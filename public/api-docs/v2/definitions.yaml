@@ -1,0 +1,193 @@
+injectjs:
+  required:
+    - injectType
+  properties:
+    injectType:
+      $ref: "parameters.yaml#/injectType"
+    visualCompleteMark:
+      $ref: "parameters.yaml#/visualCompleteMark"
+  example:
+    {
+      "injectType": "navtiming",
+      "visualCompleteMark": "initialPageLoad"
+    }
+navtiming:
+  required:
+    - injectJS
+    - sla
+    - log
+  properties:
+    injectJS:
+      $ref: "parameters.yaml#/nav-injectJS"
+    sla:
+      $ref: "parameters.yaml#/sla"
+    baseline:
+      $ref: "parameters.yaml#/baseline"
+    flags:
+      $ref: "parameters.yaml#/flags"
+    log:
+      $ref: "parameters.yaml#/log"
+  example:
+    {
+        "injectJS": {
+          "time": 1496339132056,
+          "timing": {
+            "navigationStart": 1496339132056,
+            "unloadEventStart": 0,
+            "unloadEventEnd": 0,
+            "redirectStart": 0,
+            "redirectEnd": 0,
+            "fetchStart": 1496339132120,
+            "domainLookupStart": 1496339132123,
+            "domainLookupEnd": 1496339132123,
+            "connectStart": 1496339132123,
+            "connectEnd": 1496339132170,
+            "secureConnectionStart": 1496339132137,
+            "requestStart": 1496339132170,
+            "responseStart": 1496339132300,
+            "responseEnd": 1496339132829,
+            "domLoading": 1496339132309,
+            "domInteractive": 1496339132833,
+            "domContentLoadedEventStart": 1496339132833,
+            "domContentLoadedEventEnd": 1496339132848,
+            "domComplete": 1496339132885,
+            "loadEventStart": 1496339132886,
+            "loadEventEnd": 1496339132889
+          },"visualCompleteTime": 1734,
+          "url": "www.example.com/",
+          "resources": [
+            {
+                "name": "https://img1.wsimg.com/ux/1.3.46-brand/css/uxcore-sales.min.css",
+                "entryType": "resource",
+                "startTime": 254.55,
+                "duration": 28.064999999999998,
+                "initiatorType": "link",
+                "workerStart": 0,
+                "redirectStart": 0,
+                "redirectEnd": 0,
+                "fetchStart": 254.55,
+                "domainLookupStart": 254.55,
+                "domainLookupEnd": 254.55,
+                "connectStart": 254.55,
+                "connectEnd": 254.55,
+                "secureConnectionStart": 0,
+                "requestStart": 256.665,
+                "responseStart": 279.37,
+                "responseEnd": 282.615,
+                "transferSize": 17008,
+                "encodedBodySize": 16731,
+                "decodedBodySize": 93840
+            },
+            {
+                "name": "https://img1.wsimg.com/wrhs/725d0b82d00774200f2cc0f7283a5b3d/salesheader.min.css",
+                "entryType": "resource",
+                "startTime": 254.59000000000003,
+                "duration": 32.974999999999966,
+                "initiatorType": "link",
+                "workerStart": 0,
+                "redirectStart": 0,
+                "redirectEnd": 0,
+                "fetchStart": 254.59000000000003,
+                "domainLookupStart": 254.59000000000003,
+                "domainLookupEnd": 254.59000000000003,
+                "connectStart": 254.59000000000003,
+                "connectEnd": 254.59000000000003,
+                "secureConnectionStart": 0,
+                "requestStart": 257.49,
+                "responseStart": 285.1,
+                "responseEnd": 287.565,
+                "transferSize": 36980,
+                "encodedBodySize": 36620,
+                "decodedBodySize": 151067
+            }
+          ]
+        },
+        "sla": {"pageLoadTime": 4000},
+        "baseline": {"days": 7,"perc": 75,"padding": 1.2,"searchUrl": "","src":"cicd","aggField": "act_pageLoadTime","incl": {"useragent_family":"*hrome*","os_family":"_agg_"}},
+        "flags": {"assertRum": false, "debug": false,"esTrace": false,"esCreate": false,"passOnFailedAssert": false},
+        "log": {"team": "perfeng", "test_info": "V2 - Test App (navtiming)","env_tester": "test","browser": "Chrome","env_target": "prod"}
+    }
+
+
+
+
+
+
+
+usertiming:
+  required:
+    - injectJS
+    - sla
+    - log
+  properties:
+    injectJS:
+      $ref: "parameters.yaml#/user-injectJS"
+    sla:
+      $ref: "parameters.yaml#/sla"
+    baseline:
+      $ref: "parameters.yaml#/baseline"
+    flags:
+      $ref: "parameters.yaml#/flags"
+    log:
+      $ref: "parameters.yaml#/log"
+  example:
+    {
+        "injectJS": {"time": 1474997671801, "measureArray":[{"name":"test", "entryType":"measure", "startTime":236377.80000000002, "duration":5345.174999999988}], "url":"https://www.example.com/", "marks":[{"name":"test_start", "entryType":"mark", "startTime":236377.80000000002, "duration":0}, {"name":"test_stop", "entryType":"mark", "startTime":241722.975, "duration":0}]},
+        "sla": {"pageLoadTime": 4000},
+        "baseline": {"days": 7,"perc": 75,"padding": 1.2,"searchUrl": "","src":"cicd","aggField": "act_pageLoadTime","incl": {"env_tester":"_log_"}},
+        "flags": {"assertRum": false, "debug": false,"esTrace": false,"esCreate": false,"passOnFailedAssert": false},
+        "log": {"team": "perfeng", "test_info": "V2 - Test App (usertiming)","env_tester": "chromeEmulator","browser": "Chrome","env_target": "prod"}
+    }
+
+apitiming:
+  required:
+    - timing
+    - url
+    - sla
+    - log
+  properties:
+    timing:
+      $ref: "parameters.yaml#/api-timing"
+    url:
+      type: string
+    sla:
+      $ref: "parameters.yaml#/sla"
+    baseline:
+      $ref: "parameters.yaml#/baseline"
+    flags:
+      $ref: "parameters.yaml#/flags"
+    log:
+      $ref: "parameters.yaml#/log"
+  example:
+    {
+        "timing": {"startTime": 1474997676867, "endTime": 1474997676905},
+        "url": "https://api.example.com",
+        "sla": {"pageLoadTime": 4000},
+        "baseline": {"days": 7,"perc": 75,"padding": 1.2,"searchUrl": "","src":"cicd","aggField": "act_pageLoadTime","incl": {"env_tester":"_log_"}},
+        "flags": {"assertRum": false, "debug": false,"esTrace": false,"esCreate": false,"passOnFailedAssert": false},
+        "log": {"team": "perfeng", "test_info": "V2 - Test App (apitiming)","env_tester": "linux","browser": "api_call","env_target": "prod"}
+    }
+
+resources:
+  required:
+    - id
+  properties:
+    id:
+      type: string
+  example:
+    {
+        "id": "944f735e-0214-4e0d-8b3b-9fef0f4cadc3"
+    }
+
+measureArray:
+  type: "object"
+  allOf:
+    -
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        name:
+          type: "string"
+        tag:
+          type: "string"

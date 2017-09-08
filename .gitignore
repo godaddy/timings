@@ -1,0 +1,77 @@
+# Runtime data
+logs
+*.log
+pids
+*.pid
+*.seed
+.lock-wscript
+
+# Editor artifacts
+.vscode
+
+# Test artifacts
+lib-cov
+coverage
+.grunt
+test_results
+
+# Build artifacts
+/build
+.npmrc
+
+# Dependencies
+node_modules
+
+# OS cruft
+.DS_Store
+
+# Local config overrides
+/src/server/config/local/overrides.json
+
+allure-results
+
+
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# =========================
+# Operating System Files
+# =========================
+
+# OSX
+# =========================
+
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must ends with two \r.
+Icon
+
+
+# Thumbnails
+._*
+
+# Files that might appear on external disk
+.Spotlight-V100
+.Trashes
+
+node_modules/
+*.idea/
+*.iml
+
+tasks

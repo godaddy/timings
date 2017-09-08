@@ -1,0 +1,6 @@
+build/
+test/
+Dockerfile
+gulpfile.coffee
+README.md
+node_modules/

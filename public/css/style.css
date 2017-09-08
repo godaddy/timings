@@ -1,0 +1,162 @@
+body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #2C3E50;
+    margin: 0;
+    font-size: 14px;
+}
+
+textarea {
+    width: 100%;
+}
+
+textarea.code {
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.narrow {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 1%;
+}
+
+.center {
+    text-align: center
+}
+
+.inline {
+    display: inline-block;
+}
+
+header {
+    color: #333;
+    text-align: center;
+    padding: 40px 1% 40px 1%;
+    font-size: 24px;
+    border-bottom: 1px solid #DDD;
+    margin-bottom: 40px;
+}
+
+p {
+    font-weight: normal;
+}
+
+footer {
+    text-align: center;
+    border-top: 1px solid #DDD;
+}
+
+a {
+    text-decoration: none;
+    color: #1882BC;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+button {
+    font-size: 12px;
+}
+
+pre, #result {
+    font-size: 12px;
+}
+
+code {
+    font-family: monospace;
+}
+
+#result {
+    -webkit-hyphens: auto;
+    -moz-hyphens: auto;
+    -ms-hyphens: auto;
+    -o-hyphens: auto;
+    hyphens: auto;
+}
+
+code, #result {
+    padding: 5px !important;
+    border-radius: 2px;
+    word-wrap: break-word !important;
+}
+
+table {
+    margin: 15px 0;
+    border: 1px solid black;
+    table-layout: fixed;
+    width: 100%; /* must have this set */
+}
+
+table.table-auto {
+    table-layout: auto;
+}
+
+tr:hover {
+    background: #FCFCFC;
+}
+
+td:first-child {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+td:last-child {
+    text-align: center;
+}
+
+td {
+    border-top: 1px solid #EEE;
+    padding: 5px;
+    vertical-align: top;
+}
+
+td.verb {
+    font-weight: bold;
+}
+
+th.cut-off {
+    width: 50%;
+}
+
+td.cut-off  {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    -ms-word-wrap: break-word;
+    word-wrap: break-word;
+}
+
+a.more {
+    text-decoration: none;
+}
+
+.more {
+    display: none;
+    font-weight: 200;
+    margin: 40px 0 30px 0;
+    padding: 10px;
+    background-color: #00AE77;
+    color: white;
+    font-size: 18px;
+}
+
+.more p {
+    margin: 0;
+}
+
+@media (max-width: 700px) {
+    .narrow {
+        max-width: 600px;
+    }
+    header {
+        font-size: 22px;
+    }
+
+    h1 {
+        font-size: 28px;
+    }
+
+    code, #result {
+        padding: 1% !important;
+    }
+}

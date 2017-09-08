@@ -1,0 +1,200 @@
+---
+swagger: "2.0"
+info:
+  title: "timings"
+  description: "API that processes & asserts performance data from functional tests"
+  license: 
+    name: "MIT"
+    url: "https://github.com/godaddy/timings/blob/master/LICENSE"
+externalDocs: 
+  description: "find more info here"
+  url: "https://github.com/godaddy/timings"
+consumes:
+  - application/json
+# format of the responses to the client (Accepts)
+produces:
+  - application/json
+paths:
+  /health:
+    get:
+      tags:
+        - HOME
+      description: "Healthcheck page to check that the API is healthy!"
+      operationId: health
+      produces:
+        - "application/json"
+      responses:
+        "200":
+          description: |
+            Indicates that Node JS and Express JS are operational.  
+            Also provides state of Elasticsearch dependencies
+          schema:
+            $ref: "responses.yaml#/healthresponse"
+        # responses may fall through to errors
+        default:
+          description: Generic error
+          schema:
+            $ref: "responses.yaml#/ErrorResponse"
+  /v2/api/cicd/injectjs:
+    post:
+      tags:
+        - CICD
+      description: Method to request JS code to be injected into browser. The response can be used as the 'injectJS' parameter when calling the 'navtiming' and 'usertiming' methods. The JS code in the response is url-encoded! Please decode before injecting it into your browser object!
+      # used as the method name of the controller
+      operationId: injectjs
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          description: body
+          required: true
+          schema:
+            # a pointer to a definition
+            $ref: 'definitions.yaml#/injectjs'
+      responses:
+        "200":
+          description: Success
+          schema:
+            # a pointer to a definition
+            $ref: "responses.yaml#/injectResponse"
+        # responses may fall through to errors
+        default:
+          description: Generic Error
+          schema:
+            $ref: "responses.yaml#/ErrorResponse"
+  /v2/api/cicd/navtiming:
+    post:
+      tags:
+        - CICD
+      description: Calculates and asserts navtiming data and returns results. Requires browser's response to the injected JS code! Call injectjs first and inject the JS code into your browser object. Then insert the browsers response into the injectJS parameter of this method! You can use the returned 'assert' field (boolean) for assertion.
+      # used as the method name of the controller
+      operationId: navtiming
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          description: Method to perform Navigation Timing assertion
+          required: true
+          schema:
+            # a pointer to a definition
+            $ref: 'definitions.yaml#/navtiming'
+      responses:
+        "200":
+          description: Success
+          schema:
+            # a pointer to a definition
+            $ref: "responses.yaml#/cicdResponse"
+        # responses may fall through to errors
+        default:
+          description: Error
+          schema:
+            $ref: "responses.yaml#/ErrorResponse"
+  /v2/api/cicd/usertiming:
+    post:
+      tags:
+        - CICD
+      description: Calculates and asserts usertiming data and returns results. Requires start/stop marks to be set in browser! Also requires browser's response to the injected JS code! Call injectjs first and inject the JS code into your browser object. Then insert the browsers response into the injectJS parameter of this method! You can use the returned 'assert' field (boolean) for assertion.
+      # used as the method name of the controller
+      operationId: usertiming
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          description: Method to perform user timing assertion
+          required: true
+          schema:
+            # a pointer to a definition
+            $ref: "definitions.yaml#/usertiming"
+      responses:
+        "200":
+          description: Success
+          schema:
+            # a pointer to a definition
+            $ref: "responses.yaml#/cicdResponse"
+        # responses may fall through to errors
+        default:
+          description: Error
+          schema:
+            $ref: "responses.yaml#/ErrorResponse"
+  /v2/api/cicd/apitiming:
+    post:
+      tags:
+        - CICD
+      description: Calculates and asserts start/stop timestamps and returns results. You can use the returned 'assert' field (boolean) for assertion.
+      # used as the method name of the controller
+      operationId: apitiming
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          description: Method to perform api timing assertion
+          required: true
+          schema:
+            # a pointer to a definition
+            $ref: "definitions.yaml#/apitiming"
+      responses:
+        "200":
+          description: Success
+          schema:
+            # a pointer to a definition
+            $ref: "responses.yaml#/cicdResponse"
+        # responses may fall through to errors
+        default:
+          description: Error
+          schema:
+            $ref: "responses.yaml#/ErrorResponse"
+
+  /v2/api/cicd/resources:
+    post:
+      tags:
+        - CICD
+      description: Retrieves resoruces for given UUID
+      # used as the method name of the controller
+      operationId: resources
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          description: Method to retrieve resources
+          required: true
+          schema:
+            # a pointer to a definition
+            $ref: "definitions.yaml#/resources"
+      responses:
+        "200":
+          description: Success
+          schema:
+            # a pointer to a definition
+            $ref: "responses.yaml#/resourcesResponse"
+        # responses may fall through to errors
+        default:
+          description: Error
+          schema:
+            $ref: "responses.yaml#/ErrorResponse"
+
+definitions:
+  injectjs:
+    $ref: 'definitions.yaml#/injectjs'
+  navtiming:
+    $ref: 'definitions.yaml#/navtiming'
+  usertiming:
+    $ref: 'definitions.yaml#/usertiming'
+  apitiming:
+    $ref: 'definitions.yaml#/apitiming'
+  resources:
+    $ref: 'definitions.yaml#/resources'

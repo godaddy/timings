@@ -1,0 +1,166 @@
+# injectjs
+injectType:
+  type: string
+  example: "navtiming"
+visualCompleteMark:
+  type: string
+  example: "visual_complete"
+
+# navtiming
+nav-injectJS:
+  type: object
+  properties:
+    time:
+      type: integer
+    timing:
+      type: object
+      properties:
+        navigationStart:
+          type: integer
+        unloadEventStart:
+          type: integer
+        unloadEventEnd:
+          type: integer
+        redirectStart:
+          type: integer
+        redirectEnd:
+          type: integer
+        fetchStart:
+          type: integer
+        domainLookupStart:
+          type: integer
+        domainLookupEnd:
+          type: integer
+        connectStart:
+          type: integer
+        connectEnd:
+          type: integer
+        secureConnectionStart:
+          type: integer
+        requestStart:
+          type: integer
+        responseStart:
+          type: integer
+        responseEnd:
+          type: integer
+        domLoading:
+          type: integer
+        domInteractive:
+          type: integer
+        domContentLoadedEventStart:
+          type: integer
+        domContentLoadedEventEnd:
+          type: integer
+        domComplete:
+          type: integer
+        loadEventStart:
+          type: integer
+        loadEventEnd:
+          type: integer
+    visualCompleteTime:
+        type: integer
+    url:
+        type: string
+
+# usertiming
+user-injectJS:
+  type: object
+  properties:
+    time:
+      type: integer
+    measureArray:
+      $ref: "#measureArray"
+    url:
+      type: string
+    marks:
+      type: array
+      items:
+        allOf:
+          -
+            properties:
+              name:
+                type: string
+              entryType:
+                type: string
+              startTime:
+                type: number
+              duration:
+                type: number
+measureArray:
+  type: "object"
+  allOf:
+    -
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        name:
+          type: "string"
+        tag:
+          type: "string"
+
+# apitiming
+api-timing:
+  type: object
+  properties:
+    startTime:
+      type: integer
+    endTime:
+      type: integer
+
+# Common parameters
+sla:
+  type: object
+  required: true
+  properties:
+    pageLoadTime:
+      type: integer
+    visualCompleteTime:
+      type: integer
+baseline:
+  type: object
+  properties:
+    days:
+      type: integer
+    perc:
+      type: integer
+    padding:
+      type: integer
+    incl:
+      type: object
+    excl:
+      type: object
+    searchUrl:
+      type: string
+flags:
+  type: object
+  properties:
+    assertBaseline:
+      type: boolean
+    debug:
+      type: boolean
+    esTrace:
+      type: boolean
+    esCreate:
+      type: boolean
+    passOnFailedAssert:
+      type: boolean
+log:
+  required:
+  - team
+  - test_info
+  - env_tester
+  - browser
+  - env_target
+  type: object
+  properties:
+    team:
+      type: string
+    test_info:
+      type: string
+    env_tester:
+      type: string
+    browser:
+      type: string
+    env_target:
+      type: string

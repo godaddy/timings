@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="shortcut icon" href="/favicon.ico">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="7200">
+    <meta http-equiv="expires" content="Sun, 01 Jan 2014 00:00:00 GMT" />
+    <meta http-equiv="pragma" content="no-cache" />
+    <link rel="stylesheet" type="" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="" href="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.28.15/css/theme.blue.css" />
+
+    <title>TIMINGS API - Waterfall</title>
+</head>
+
+<body style="display: hidden;">
+    <div class="col-sm-12">
+        <div class="row">
+            <table id="title" class="table table-condensed table-bordered" width="100%">
+                <tbody>
+                    <tr class="info h2">
+                        <td colspan="42">Waterfall</td>
+                    </tr>
+                    <tr class="warning">
+                        <td class="h6" width='75%'><strong>Page URL</strong></td>
+                        <td class="h6"><strong>Date/time</strong></td>
+                        <td class="h6"><strong>Team</strong></td>
+                        <td class="h6"><strong>Tester</strong></td>
+                        <td class="h6"><strong>Target</strong></td>
+                    </tr>
+                    <tr class="warning">
+                        <td class="h6"></td>
+                        <td class="h6"></td>
+                        <td class="h6"></td>
+                        <td class="h6"></td>
+                        <td class="h6"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <table id="info" class="table table-condensed table-bordered" width="100%" style="visibility: hidden;">
+                <tbody>
+                    <tr>
+                        <td class="h6"><strong>Asserted Metric</strong></td>
+                        <td class="h6"><strong>Measured</strong></td>
+                        <td class="h6" style="color: darkgreen;"><strong>Baseline</strong></td>
+                        <td class="h6" style="color: purple;"><strong>Threshold</strong></td>
+                        <td class="h6"><strong>RESULT</strong></td>
+                        <td class="h6" style="color: lime;border-left-width: thick;"><strong>First Byte</strong></td>
+                        <td class="h6" style="color: orange;"><strong>DOM Interactive</strong></td>
+                        <td class="h6" style="color: blue;"><strong>Load Event</strong></td>
+                        <td class="h6" style="color: red;"><strong>Visual Complete</strong></td>
+                    </tr>
+                    <tr class="warning">
+                        <td class="h6"></td>
+                        <td class="h6"></td>
+                        <td class="h6"></td>
+                        <td class="h6"></td>
+                        <td class="h6"></td>
+                        <td class="h6" style="border-left-width: thick;"></td>
+                        <td class="h6"></td>
+                        <td class="h6"></td>
+                        <td class="h6"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div id="svg_canvas"></div>
+            <div id="divTable" class="col-lg-12 dataTable" style="padding-right:0px; padding-left:0px;">
+                <table id="tbl_resources" class="table table-condensed table-bordered table-striped tablesorter" width="100%" style="font-size: 12px;"></table>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js" defer></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" defer></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.28.15/js/jquery.tablesorter.js" defer></script>
+    <script type="text/javascript" src="/js/waterfall.js" defer></script>
+    <script>
+        window.onload = function(e) {
+            // Main script goes here - load after onload()!
+            var id = getQueryStringParameterVal('id');
+            if (id) {
+                drawPage(id);
+                $('body').show();
+            } else {
+                $('#info').css('visibility', 'hidden');
+                $('#title tbody>tr:nth-child(3)>td:nth-child(1)').text('No ID specified').css('color', 'red');
+            };
+
+
+            $(window).on('resize', function() {
+                drawPage(id);
+            });
+        };
+
+        function drawPage(res_id) {
+            // Draw the page here - should be called from 'loadPage'
+            // Usually this is where you would make AJAX calls for any dynamic data
+
+            // Grab data from the PERF-API server
+            if (typeof window.resources == 'undefined') {
+                var tmp_data = {
+                    "id": res_id
+                };
+                this.callAjax(tmp_data, 'POST', '/v2/api/cicd/resources', 'json', true, function(err, res) {
+                    if (err) {
+                        console.warn('Missing Data', 'No data returned!');
+                    } else {
+                        if ("resources" in res && res.resources.length > 0) {
+                            window.resources = res.resources
+                            window.kibana_host = (res.kibana_port && res.kibana_port !== 80) ? res.kibana_host + ":" + res.kibana_port : res.kibana_host;
+                            waterfall('#svg_canvas', res.resources);
+                            this.fillTable('#tbl_resources', res.resources);
+                        } else {
+                            $('#info').css('visibility', 'hidden');
+                            $('#title tbody>tr:nth-child(3)>td:nth-child(1)').text('"Sorry - no resources available for this test!').css('color', 'red');
+                        }
+                    }
+                });
+            } else {
+                waterfall('#svg_canvas', window.resources);
+                this.fillTable('#tbl_resources', window.resources);
+            }
+        };
+
+        function fillTable(div, resources) {
+            $('#info').css('visibility', '');
+            $(div).empty();
+            var tbl_header = '<thead><tr>';
+            tbl_header += '<th>#</th>';
+            tbl_header += '<th>Resource</th>';
+            tbl_header += '<th>Request Start</th>';
+            tbl_header += '<th>Duration</th>';
+            tbl_header += '<th>DNS Lookup</th>';
+            tbl_header += '<th>TCP connect</th>';
+            tbl_header += '<th>SSL time</th>';
+            tbl_header += '<th>TTFB</th>';
+            tbl_header += '<th>Content Download</th>';
+            tbl_header += '<th>Bytes Downloaded</th></tr></thead>';
+            $(div).append(tbl_header + '<tbody>');
+            var onload = 0;
+
+            for (var n = 0; n < resources.length; n++) {
+                var entry = resources[n];
+                if (typeof entry === 'object' && !entry.hasOwnProperty("status")) {
+                    // This entry is from the 'resources' data
+                    if ("loadEventStart" in entry) {
+                        // Add value to the top table
+                        onload = entry.loadEventStart;
+                        $('#info tbody>tr:nth-child(2)>td:nth-child(8)').text(onload).css('color', 'blue');
+                    }
+                    //Create row for the main table
+                    var tbl_row = '<tr id="row_' + n + '">';
+
+                    //Check if the resource started before/after onload
+                    var beforeOnload = '';
+                    if (entry.start < onload) {
+                        beforeOnload += ' degrade';
+                    } else {
+                        beforeOnload += ' improve';
+                    }
+
+                    //Check if TAO opt-in is necessary (this is the case when responseStart is 0)
+                    //See also: https://github.com/w3c/resource-timing/issues/42#issuecomment-206508028
+                    //If this is the case, there will be no transferSize - we can use that cell to mention TAO!
+                    if (entry.responseStart === 0) {
+                        transferSize = 'TAO opt-in missing';
+                    } else if (entry.type === 'navtiming') {
+                        //Check if resource loaded from cache
+                        //We're passed the TAO check - if transferSize is still 0, the resource loaded from cache!
+                        var transferSize = '-';
+                    } else {
+                        //Check if resource loaded from cache
+                        //We're passed the TAO check - if transferSize is still 0, the resource loaded from cache!
+                        var transferSize = ("transferSize" in entry && entry.transferSize > 0) ? (entry.transferSize / 1000).toFixed(1) + ' KB' : 'cache';
+                    }
+
+                    tbl_row += '<td class="static' + beforeOnload + '" align="center">' + n + '</td>';
+                    var uri = entry.uri || entry.url;
+
+                    if (entry.type === 'navtiming') {
+                        uri = entry.dl;
+                        var link = "http://" + window.kibana_host + "/app/kibana#/dashboard/CICD-Dashboard?_g=(time:(from:now-7d,mode:quick,to:now))&_a=(query:(query_string:(analyze_wildcard:!t,query:"
+                        link += "'dl:" + encodeURIComponent('"' + uri + '"') + "')))";
+                    } else {
+                        var link = "http://" + window.kibana_host + "/app/kibana#/dashboard/CICD-Resources?_g=(time:(from:now-7d,mode:quick,to:now))&_a=(query:(query_string:(analyze_wildcard:!t,query:"
+                        link += "'uri:" + encodeURIComponent('"' + uri + '"') + "')))";
+                    }
+                    if (uri.length > 65) {
+                        uri = strShort(uri, 65, 'left');
+                    }
+
+                    tbl_row += '<td class="static' + beforeOnload + '" nowrap><a href="' + link + '" target="_blank">' + uri + '</a>';
+                    tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + (entry.start / 1000).toFixed(3) + ' s</td>';
+                    tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + entry.duration.toFixed(2) + ' ms</td>';
+                    tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + entry.dnsDuration.toFixed(2) + ' ms</td>';
+                    tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + entry.tcpDuration.toFixed(2) + ' ms</td>';
+                    tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + entry.sslDuration.toFixed(2) + ' ms</td>';
+                    tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + entry.requestDuration.toFixed(2) + ' ms</td>';
+                    tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + entry.responseDuration.toFixed(2) + ' ms</td>';
+                    tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + transferSize + '</td>';
+                    tbl_row += '</tr>';
+                    $(div + ' tbody').append(tbl_row);
+                } else if (entry.hasOwnProperty("status")) {
+                    // This entry is from the 'test results' data
+                    $('#title tbody>tr:nth-child(3)>td:nth-child(1)').text(entry.dl);
+                    $('#title tbody>tr:nth-child(3)>td:nth-child(2)').text(new Date(entry['@timestamp']).toLocaleString());
+                    $('#title tbody>tr:nth-child(3)>td:nth-child(3)').text(entry.log.team.toUpperCase());
+                    $('#title tbody>tr:nth-child(3)>td:nth-child(4)').text(entry.log.env_tester.toUpperCase());
+                    $('#title tbody>tr:nth-child(3)>td:nth-child(5)').text(entry.log.env_target.toUpperCase());
+
+                    $('#info tbody>tr:nth-child(2)>td:nth-child(1)').text(entry.info.assertMetric || 'n/a');
+                    $('#info tbody>tr:nth-child(1)>td:nth-child(2)').html('<strong>Measured ' + (entry.info.assertMetric || '') + '</strong>');
+                    if (entry.assertMetric === 'visualCompleteTime') {
+                        $('#info tbody>tr:nth-child(2)>td:nth-child(2)').text(entry.perf.visualComplete);
+                    } else {
+                        $('#info tbody>tr:nth-child(2)>td:nth-child(2)').text(entry.perf.measured);
+                    }
+                    if (entry.perf.baseline > 0) {
+                        $('#info tbody>tr:nth-child(2)>td:nth-child(3)').text(entry.perf.baseline).css('color', 'darkgreen');
+                    } else if (entry.info.ranBaseline) {
+                        $('#info tbody>tr:nth-child(2)>td:nth-child(3)').text('None found').css('color', 'red');
+                    } else {
+                        $('#info tbody>tr:nth-child(2)>td:nth-child(3)').text('Didn\'t run').css('color', 'red');
+                    }
+                    $('#info tbody>tr:nth-child(2)>td:nth-child(4)').text(entry.perf.threshold).css('color', 'purple');
+                    var status_color = entry.status.toUpperCase() === 'PASS' ? 'green' : 'red';
+                    $('#info tbody>tr:nth-child(2)>td:nth-child(5)').text(entry.status.toUpperCase()).css('color', status_color);
+                    $('#info tbody>tr:nth-child(2)>td:nth-child(6)').text(entry.nav.firstByteTime).css('color', 'lime');
+                    $('#info tbody>tr:nth-child(2)>td:nth-child(7)').text(entry.nav.domInteractive).css('color', 'orange');
+                    $('#info tbody>tr:nth-child(2)>td:nth-child(9)').text(entry.perf.visualComplete || 'n/a').css('color', 'red');
+                }
+            }
+            //Sort table
+            this.tableSorterSort(div, 0, 0);
+        };
+    </script>
+</body>
+
+</html>

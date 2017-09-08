@@ -1,0 +1,93 @@
+healthresponse:
+  required:
+    - env
+    - app
+    - elastic
+  properties:
+    env:
+      type: "object"
+    app:
+      type: "object"
+    elastic:
+      type: "object"
+  example:
+    {
+        "api": {
+            "HTTP_PORT": 3000,
+            "APP_NAME": "TIMINGS API",
+            "APP_VERSION": "2.0.3",
+            "NODE_ENV": "local"
+        },
+        "es": {
+            "status": "status ok",
+            "HOST": "localhost",
+            "PORT": 9200,
+            "INDEX_PERF": "cicd-perf",
+            "INDEX_RES": "cicd-perf-res",
+            "INDEX_ERR": "cicd-perf-errorlog"
+        },
+        "kibana": {
+            "HOST": "localhost",
+            "PORT": 5601
+        }
+    }
+
+injectResponse:
+  required:
+    - status
+    - inject_code
+  properties:
+    status:
+      type: integer
+      example: 200
+    inject_code:
+      type: string
+      example: "var%20visualCompleteTime%20%3D%200%3B%0Aif%20(performance.getEntriesByName('visual_complete').length)%20%7B%0A%20%20visualCompleteTime%20%3D%20parseInt(performance.getEntriesByName('visual_complete')%5B0%5D.startTime)%3B%0A%20%20window.performance.clearMarks()%3B%0A%7D%3B%0Areturn%20%7Btime%3Anew%20Date().getTime()%2C%20timing%3Awindow.performance.timing%2C%20visualCompleteTime%3A%20visualCompleteTime%2C%20url%3A%20document.location.href%2C%20resources%3A%20window.performance.getEntriesByType('resource')%7D%3B"
+cicdResponse:
+  required:
+    - status
+    - took
+    - assert
+  properties:
+    status:
+      type: integer
+      example: 200
+    took:
+      type: integer
+    assert:
+      type: boolean
+    errorMsg:
+      type: object
+    debugMsg:
+      type: object
+    export:
+      type: object
+    params:
+      type: object
+    timingInfo:
+      type: object
+    esTrace:
+      type: object
+resourcesResponse:
+  required:
+    - resources
+    - status
+  properties:
+    status:
+      type: integer
+      example: 200
+    resources:
+      type: array
+      example: [{"et":"2017-08-02T22:51:21.052Z","@timestamp":"2017-08-02T22:51:21.052Z","type":"navtiming","@_uuid":"2c6aefa5-46f2-44b4-85d0-e27c9c301588","dl":"www.example.com","uri":"https://www.example.com","uri_protocol":"https","uri_host":"www.example.com","uri_path":"/","uri_query":"","team":"TEAM","start":0,"duration":321,"redirectStart":0,"redirectDuration":0,"appCacheStart":0,"appCacheDuration":0,"dnsStart":0,"dnsDuration":0,"tcpStart":0,"tcpDuration":0,"sslStart":0,"sslDuration":0,"requestStart":0,"requestDuration":120,"responseStart":120,"responseDuration":201,"loadEventStart":391,"loadEventDuration":1}]
+ErrorResponse:
+  description: Indicates a user error, mostly a missing/malformed request/parameter
+  required:
+    - status
+    - message
+  properties:
+    status:
+      type: integer
+      example: 400
+    message:
+      type: string
+      example: "An error occured ... "
