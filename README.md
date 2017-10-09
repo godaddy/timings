@@ -81,7 +81,7 @@ $ npm install -g timings
 
 #### Option 3 - Docker pull
 
-The API is also available as a docker container at [https://hub.docker.com/r/mverkerk/timings/](https://hub.docker.com/r/mverkerk/timings/). You can pull the image with the following command:
+The API is also available as a docker container! You can pull the image with the following command:
 
 ```shell
 $ docker pull mverkerk/timings
