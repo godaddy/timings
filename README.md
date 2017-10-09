@@ -84,17 +84,19 @@ $ npm install -g timings
 The API is also available as a docker container at [https://hub.docker.com/r/mverkerk/timings/](https://hub.docker.com/r/mverkerk/timings/). You can pull the image with the following command:
 
 ```shell
-$ docker pull mverkerk/timings/
+$ docker pull mverkerk/timings
 ...
 ```
 
+You can also find a complete `docker-compose` based setup (incl. Elasticsearch and Kibana) here: [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
+
 ### Installing Elasticsearch and Kibana
 
-If you already have an Elasticsearch cluster, you can simply point the API to it with the correct parameters (see below: [Start the API](start-the-api))
+If you already have an Elasticsearch cluster, you can simply point the API to it with the correct parameters (see below: [Start the API](starting-the-api))
 
 You can install Elasticsearch and Kibana yourself by following instructions from here: [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/_installation.html) and [Kibana](https://www.elastic.co/guide/en/kibana/current/install.html).
 
-To setup Kibana for the timings API, please follow the steps described in [KIBANA.MD](/install/KIBANA.MD)
+To setup Kibana for the timings API, please follow the steps described in [KIBANA.MD](https://github.com/Verkurkie/timings-docker/blob/master/README.md#import-kibana-assets)
 
 ### Starting the API
 
@@ -153,6 +155,8 @@ npm info using node@v8.4.0
 npm info lifecycle timings@1.0.0~prestart: timings@1.0.0
 ...
 ```
+
+You can also find a complete `docker-compose` based setup (incl. Elasticsearch and Kibana) here: [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
 
 ## **THE CLIENTS**
 
