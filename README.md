@@ -1,14 +1,20 @@
 # TIMINGS API
 
-This WebService/API can be used in CI/CD pipelines for the asserting of **webpage performance** during UI tests! We hope to add more perf functionality in the near future!
+The timings API can be used in CI/CD pipelines for the asserting of **web UI or API performance** during functional/integration tests!
 
 Table of Contents
 
-* [Installation](#installation)
+* [The API](#the-api)
 
-* [Sample Client Code](#sample-client-code)
+  * [Installing the API](#installing-the-api)
 
-* [Intro CICD functionality](#cicd)
+  * [Installing Elasticsearch/Kibana](#installing-elasticsearch-and-kibana)
+
+  * [Starting the API](#starting-the-api)
+
+* [The clients](#the-clients)
+
+* [Starting the API](#starting-the-api)
 
 * [Methods](#methods)
 
@@ -38,7 +44,7 @@ Table of Contents
 
 * [ESTRACE output](#estrace-output)
 
-## THE SERVER SIDE
+## **The API**
 
 This API is based on nodejs/express and can be installed on both Windows and Linux Operating systems. Linux is highly recommended but of course, the choice is yours! Following are some recommendations for the system:
 
@@ -47,46 +53,57 @@ This API is based on nodejs/express and can be installed on both Windows and Lin
 * nodejs + npm (version 6+)
 * git
 
-### Step 1 - NPM install (global)
+There are different ways to install this API. You can clone it from github and run `npm install`, you can insttall it globally from the NPM registry, or you can pull the Docker image.
+
+### Installing the API
+
+#### Option 1 - Clone from github
+
+Install the API directly from the NPM repository by running:
+
+```shell
+$ git clone https://www.github.com/godaddy/timings.git
+$ cd timings
+$ npm i
+...
+```
+
+#### Option 2 - NPM install (global)
 
 Install the API directly from the NPM repository by running:
 
 ```shell
 $ npm install -g timings
+...
 ```
 
 (You may need Adminstrator/root rights.)
 
-To upgrade the API, run the following:
+#### Option 3 - Docker pull
+
+The API is also available as a docker container at [https://hub.docker.com/r/mverkerk/timings/](https://hub.docker.com/r/mverkerk/timings/). You can pull the image with the following command:
 
 ```shell
-$ npm install --upgrade -g timings
+$ docker pull mverkerk/timings/
+...
 ```
 
-### Step 2 - Elasticsearch and Kibana
+### Installing Elasticsearch and Kibana
 
-You will get the most out of this API by installing ElasticSearch and Kibana. The API will store all kinds of data in ElasticSearch and you can use Kibana to visualize the results! 
+If you already have an Elasticsearch cluster, you can simply point the API to it with the correct parameters (see below: [Start the API](start-the-api))
 
-The [timings-elk](https://github.com/godaddy/timings-elk) repo provides a convenient way to run the entire environment in Docker!
+You can install Elasticsearch and Kibana yourself by following instructions from here: [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/_installation.html) and [Kibana](https://www.elastic.co/guide/en/kibana/current/install.html).
 
-To setup Kibana, please follow the steps described in [KIBANA.MD](/install/KIBANA.MD)
+To setup Kibana for the timings API, please follow the steps described in [KIBANA.MD](/install/KIBANA.MD)
 
-### Step 3 - set config parameters
+### Starting the API
 
 Please review & edit the main config file as described in [CONFIG.MD](CONFIG.MD) before starting the server!
 
-### step 4 - start the server
-
-You can start the API server by running:
+The startup command accepts following arguments:
 
 ```shell
-$ timings [arguments]
-```
-
-... with the following arguments:
-
-```shell
-$ timings -h
+$ timings --help
 Options:
   -h, --help    Show help                                              [boolean]
   -d, --debug   enable console debugging              [boolean] [default: false]
@@ -100,37 +117,53 @@ Options:
   -p, --http    HTTP Port                                          [default: 80]
 ```
 
+#### Running from the command line
+
+Assuming you have installed the API with the `global` option, you can start it by running:
+
+```shell
+$ timings [arguments]
+debug: SUCCESS! ElasticSearch cluster for [localhost] is alive!)
+debug: Index [cicd-perf] exists: true
+debug: Template [cicd-perf] exists/created: true
+...
+```
+
+#### Using a package manager
+
 We recommend running the API with a package manager such as `pm2`. Example:
 
 ```shell
-$ pm2 start timings -- [options]
+$ pm2 start timings -- [arguments]
 info: SUCCESS! ElasticSearch cluster for [CICD] is alive! Host: localhost
 info: Index [cicd-perf] exists: true
 info: TIMINGS API [local] is running on port 80
+...
 ```
 
-or, to start the API from the command line, you can simply run:
+#### Running inside Docker
+
+Or to run the API with Docker:
 
 ```shell
-$ timings [options]
+$ docker run -e "ES_HOST={elasticsearch}" -e "KB_HOST={kibana}" -p 80:80 mverkerk/timings:latest
+npm info it worked if it ends with ok
+npm info using npm@5.3.0
+npm info using node@v8.4.0
+npm info lifecycle timings@1.0.0~prestart: timings@1.0.0
+...
 ```
 
-If you're using ELK, you have to point the API at the Elasticsearch/kibana servers with the correct startup parameters. Example:
+## **THE CLIENTS**
 
-```shell
-$ timings -f {elastic host} -g 9200 -k {kibana host} -l 5601
-```
+To help you on your way from the client-side (your Selenium test script), you can install the API clients as follows:
 
-## THE CLIENT SIDE
-
-To help you on your way from the client-side (probably your Selenium test script), you can deploy the API clients:
-
-|Language|Client|
-|-|-|
-|JavaScript|[`https://github.com/godaddy/timings-client-js`](https://github.com/godaddy/timings-client-js)|
-|Python|[`https://github.com/godaddy/timings-client-py`](https://github.com/godaddy/timings-client-py)|
-|Ruby|Coming soon!|
-|Java|Coming soon!|
+|Language|Install|Readme|
+|-|-|-|
+|JavaScript|`npm install --save-dev timings-client-js`|[https://github.com/godaddy/timings-client-js](https://github.com/godaddy/timings-client-js)|
+|Python|`pip install timingsclient`|[https://github.com/godaddy/timings-client-py](https://github.com/godaddy/timings-client-py)|
+|Ruby|Coming soon!||
+|Java|Coming soon!||
 
 ### Using the API without clients
 
@@ -160,7 +193,7 @@ API testing - In this case, there is no browser and tests are mostly performed w
 
 **NOTE:** All of the methods accept the `application/json` content-type only!
 
-### METHODS
+### **METHODS**
 
 #### [POST] /v2/api/cicd/injectjs
 
