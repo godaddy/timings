@@ -133,7 +133,7 @@ debug: Template [cicd-perf] exists/created: true
 
 #### Using a package manager
 
-We recommend running the API with a package manager such as `pm2`. Example:
+We recommend running the API with a process manager such as `pm2`. Example:
 
 ```shell
 $ pm2 start timings -- [arguments]
