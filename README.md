@@ -131,7 +131,7 @@ debug: Template [cicd-perf] exists/created: true
 ...
 ```
 
-#### Using a package manager
+#### Using a process manager
 
 We recommend running the API with a process manager such as `pm2`. Example:
 
