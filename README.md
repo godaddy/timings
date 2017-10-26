@@ -848,16 +848,16 @@ The "common parameters" are used by for following endpoints:
 
 |Name|Required?|Type|Description|
 |-|-|-|-|
-|`sla`|yes|object|This is the "flat" threshold value for the metric to be asserted. Currently, the API only supports the `pageLoadTime` and `visualCompleteTime` metrics. Example: `{"pageLoadTime": 4000}`. Note: The value will be used for assertion if (a) `flags.assertRum = false` or (b) it is **lower than the baseline** value.
+|`sla`|yes|object|This is the "flat" threshold value for the metric to be asserted. Currently, the API only supports the `pageLoadTime` and `visualCompleteTime` metrics. Example: `{"pageLoadTime": 4000}`. Note: The value will be used for assertion if (a) `flags.assertBaseline = false` or (b) it is **lower than the baseline** value.
 |`baseline`|no|object|Set of parameters that determine how the baseline is determined. Sub-parameters:
 |`baseline.days`|no|integer|Number of days for the baseline
 |`baseline.perc`|no|integer|The percentile for the baseline
 |`baseline.padding`|no|integer|Baseline multiplyer that enabled you to "pad" the baseline. Value has to be > 1
-|`baseline.searchUrl`|no|string|A custom search string/wildcard for the baseline. This will be applied to the 'dl' field query. Has to be a full, valid Kibana search string!
+|`baseline.searchUrl`|no|string|A custom search string/wildcard for the baseline. This will be applied to the 'dl' field query. Has to be a full, valid Kibana search string and **can not be empty**!
 |`baseline.incl`|no|object|This can be used to fine-tune the baseline query. The key-value pair will be used as an "include-filter" for the ElasticSearch query. Example: `{"browser": "chrome"}`
 |`baseline.excl`|no|object|This can be used to fine-tune the baseline query. The key-value pair will be used as an "exclude-filter" for the ElasticSearch query. Example: `{"status": "fail"}` to exclude all the failed tests
 |`flags`|no|object|Collection of flags for actions & return output. Sub-parameters:
-|`flags.assertRum`|no|boolean|Assert against RUM baseline (true) or against flat sla (false)
+|`flags.assertBaseline`|no|boolean|Assert against RUM baseline (true) or against flat sla (false)
 |`flags.debug`|no|boolean|Return debug output
 |`flags.esTrace`|no|boolean|Return ElasticSearch trace output
 |`flags.esCreate`|no|boolean|Write results to ElasticSearch
@@ -912,7 +912,7 @@ Example of the Debug response:
     },
     {
       "type": "DEBUG",
-      "message": "[assertPerf] Asserting [pageLoadTime] against flat_sla:result: pass,assertRum=false,actual=3726,baseline + padding=1341.6,flat SLA=6000"
+      "message": "[assertPerf] Asserting [pageLoadTime] against flat_sla:result: pass,assertBaseline=false,actual=3726,baseline + padding=1341.6,flat SLA=6000"
     }
   ],
   "infoMsg": [
@@ -967,7 +967,7 @@ Example of the Debug response:
       "aggField": "act_pageLoadTime"
     },
     "flags": {
-      "assertRum": false,
+      "assertBaseline": false,
       "debug": true,
       "esTrace": false,
       "esCreate": false,
@@ -1113,7 +1113,7 @@ Example of the `esTrace` output:
                 "tags": "dt_firefox_regression",
                 "team": "WSB",
                 "flag_useRum": false,
-                "flag_assertRum": false,
+                "flag_assertBaseline": false,
                 "flag_debug": false,
                 "flag_esTrace": false,
                 "flag_esCreate": true,
@@ -1159,7 +1159,7 @@ Example of the `esTrace` output:
                 "uuid": "check-widget-mutator",
                 "team": "WSB",
                 "flag_useRum": false,
-                "flag_assertRum": false,
+                "flag_assertBaseline": false,
                 "flag_debug": false,
                 "flag_esTrace": false,
                 "flag_esCreate": true,
