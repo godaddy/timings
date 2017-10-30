@@ -315,11 +315,11 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
     "url": "www.example.com",
     "resources": [
       {
-        connectEnd:52.095,
-        connectStart:52.095,
-        decodedBodySize:450,
-        domainLookupEnd:52.095,
-        ...
+        "connectEnd": 52.095,
+        "connectStart": 52.095,
+        "decodedBodySize": 450,
+        "domainLookupEnd": 52.095,
+        "...": 123
       },
       {
         ...
@@ -418,7 +418,7 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
     "dl": "www.sample.com/"
   },
   "assert": true,
-  "esServer": "10.33.170.109",
+  "esServer": "localhost",
   "esIndex": "cicd-perf",
   "esSaved": false,
   "resourceSaved": false,
@@ -564,7 +564,7 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
     "dl": "www.sample.com"
   },
   "assert": true,
-  "esServer": "10.33.170.109",
+  "esServer": "localhost",
   "esIndex": "cicd-perf",
   "esSaved": false,
   "resourceSaved": false
@@ -670,7 +670,7 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
     "dl": "api.sample.com/endpoint"
   },
   "assert": true,
-  "esServer": "10.33.170.109",
+  "esServer": "localhost",
   "esIndex": "cicd-perf",
   "esSaved": false,
   "resourceSaved": false
@@ -848,7 +848,7 @@ The "common parameters" are used by for following endpoints:
 
 |Name|Required?|Type|Description|
 |-|-|-|-|
-|`sla`|yes|object|This is the "flat" threshold value for the metric to be asserted. Currently, the API only supports the `pageLoadTime` and `visualCompleteTime` metrics. Example: `{"pageLoadTime": 4000}`. Note: The value will be used for assertion if (a) `flags.assertRum = false` or (b) it is **lower than the baseline** value.
+|`sla`|yes|object|This is the "flat" threshold value for the metric to be asserted. Currently, the API only supports the `pageLoadTime` and `visualCompleteTime` metrics. Example: `{"pageLoadTime": 4000}`. Note: The value will be used for assertion if (a) `flags.assertBaseline = false` or (b) it is **lower than the baseline** value.
 |`baseline`|no|object|Set of parameters that determine how the baseline is determined. Sub-parameters:
 |`baseline.days`|no|integer|Number of days for the baseline
 |`baseline.perc`|no|integer|The percentile for the baseline
@@ -857,7 +857,7 @@ The "common parameters" are used by for following endpoints:
 |`baseline.incl`|no|object|This can be used to fine-tune the baseline query. The key-value pair will be used as an "include-filter" for the ElasticSearch query. Example: `{"browser": "chrome"}`
 |`baseline.excl`|no|object|This can be used to fine-tune the baseline query. The key-value pair will be used as an "exclude-filter" for the ElasticSearch query. Example: `{"status": "fail"}` to exclude all the failed tests
 |`flags`|no|object|Collection of flags for actions & return output. Sub-parameters:
-|`flags.assertRum`|no|boolean|Assert against RUM baseline (true) or against flat sla (false)
+|`flags.assertBaseline`|no|boolean|Assert against RUM baseline (true) or against flat sla (false)
 |`flags.debug`|no|boolean|Return debug output
 |`flags.esTrace`|no|boolean|Return ElasticSearch trace output
 |`flags.esCreate`|no|boolean|Write results to ElasticSearch
