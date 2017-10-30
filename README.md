@@ -2,7 +2,26 @@
 
 The timings API can be used in CI/CD pipelines for the asserting of **web UI or API performance** during functional/integration tests!
 
-Table of Contents
+## **tl;dr**
+
+Install and run this API in your local network. Easiest deployment is with docker-compose (see here: [timings-docker](https://github.com/Verkurkie/timings-docker/))
+
+Then, use this API **from your functional test script(s)** to:
+
+1) Grab a snippet of JavaScript code from [`/v2/api/cicd/injectjs`](#post-v2apicicdinjectjs)
+2) Decode the response from step 1 and inject it into your browser/webdriver
+3) Send the browser's response (json object) from step 2 back to the API ([/v2/api/cicd/navtiming](#post-v2apicicdnavtiming) or [/v2/api/cicd/usertiming](#post-v2apicicdusertiming))
+4) Use the API's response to assert performance (look for the `assert` field in the response)
+
+To simplify communication with the API, there are currently two clients that you can install: one for JavaScript (`npm i --save-dev timings-client-js`) and one for Python (`pip install timingsclient`). Easy to install and easy to use! For all other languages, you will have to interact with API yourself using http `POST` calls. More info [here](#using-the-api-without-clients).
+
+Continue reading below for more details about the API and the clients.
+
+Enjoy!
+
+------
+
+## Table of Contents
 
 * [The API](#the-api)
 
@@ -312,7 +331,7 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
       "loadEventEnd": 1474997677534
     },
     "visualCompleteTime": 5992,
-    "url": "www.example.com",
+    "url": "http://www.example.com",
     "resources": [
       {
         "connectEnd": 52.095,
@@ -415,7 +434,7 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
     "@timestamp": "2017-09-29T23:16:12.869Z",
     "status": "pass",
     "@_uuid": "8441cd30-892a-4cf8-9046-9f175c1b4f67",
-    "dl": "www.sample.com/"
+    "dl": "www.example.com"
   },
   "assert": true,
   "esServer": "localhost",
@@ -478,7 +497,7 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
     "days": 7,
     "perc": 75,
     "padding": 1.2,
-    "searchUrl": "*sample*test*",
+    "searchUrl": "*w3*webperf*",
     "incl": {
       "browser":"_log_",
       "environment":"_log_"
@@ -548,7 +567,7 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
       "days": 7,
       "perc": 75,
       "padding": 1.2,
-      "searchUrl": "*sample*test*",
+      "searchUrl": "*w3*webperf*",
       "incl": {
         "browser": "_log_",
         "environment": "_log_"
@@ -561,7 +580,7 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
     "@timestamp": "2017-09-29T23:22:41.765Z",
     "status": "pass",
     "@_uuid": "7b171d80-9b44-4721-8872-ce2f5a86f363",
-    "dl": "www.sample.com"
+    "dl": "www.w3.org/webperf/"
   },
   "assert": true,
   "esServer": "localhost",
@@ -762,7 +781,7 @@ Returns JSON object with array of resources.
         "connectTime": 14,
         "processingTime": 57
       },
-      "dl": "www.sample.com/",
+      "dl": "www.example.com/",
       "status": "pass",
       "@_uuid": "fb20419b-0ec9-4e9f-8a2e-143884211469",
       "et": "1980-01-01T00:00:00.000Z",
@@ -773,10 +792,10 @@ Returns JSON object with array of resources.
       "@timestamp": "1980-01-01T00:00:00.000Z",
       "type": "navtiming",
       "@_uuid": "fb20419b-0ec9-4e9f-8a2e-143884211469",
-      "dl": "www.sample.com/",
-      "uri": "https://www.sample.com/",
+      "dl": "www.example.com/",
+      "uri": "https://www.example.com/",
       "uri_protocol": "https",
-      "uri_host": "www.sample.com",
+      "uri_host": "www.example.com",
       "uri_path": "/",
       "uri_query": null,
       "team": "Sample team",
@@ -804,11 +823,11 @@ Returns JSON object with array of resources.
       "@timestamp": "1980-01-01T00:00:00.000Z",
       "type": "resource",
       "@_uuid": "fb20419b-0ec9-4e9f-8a2e-143884211469",
-      "dl": "www.sample.com/",
-      "uri": "https://img.sample.com/test/sample.min.css",
+      "dl": "www.example.com/",
+      "uri": "https://img.example.com/test/example.min.css",
       "uri_protocol": "https",
-      "uri_host": "img.sample.com",
-      "uri_path": "/test/sample.min.css",
+      "uri_host": "img.example.com",
+      "uri_path": "/test/example.min.css",
       "uri_query": null,
       "team": "Sample team",
       "start": 254.59000000000003,
@@ -853,7 +872,7 @@ The "common parameters" are used by for following endpoints:
 |`baseline.days`|no|integer|Number of days for the baseline
 |`baseline.perc`|no|integer|The percentile for the baseline
 |`baseline.padding`|no|integer|Baseline multiplyer that enabled you to "pad" the baseline. Value has to be > 1
-|`baseline.searchUrl`|no|string|A custom search string/wildcard for the baseline. This will be applied to the 'dl' field query. Has to be a full, valid Kibana search string!
+|`baseline.searchUrl`|no|string|A custom search string/wildcard for the baseline. This will be applied to the 'dl' field query. Has to be a full, valid Kibana search string and **can not be empty**!
 |`baseline.incl`|no|object|This can be used to fine-tune the baseline query. The key-value pair will be used as an "include-filter" for the ElasticSearch query. Example: `{"browser": "chrome"}`
 |`baseline.excl`|no|object|This can be used to fine-tune the baseline query. The key-value pair will be used as an "exclude-filter" for the ElasticSearch query. Example: `{"status": "fail"}` to exclude all the failed tests
 |`flags`|no|object|Collection of flags for actions & return output. Sub-parameters:
@@ -904,7 +923,7 @@ Example of the Debug response:
     },
     {
       "type": "DEBUG",
-      "message": "[esResult] Search info: url=\"*websites*editor*\" - days=7 - percentile=75"
+      "message": "[esResult] Search info: url=\"*w3*webperf*\" - days=7 - percentile=75"
     },
     {
       "type": "DEBUG",
@@ -912,7 +931,7 @@ Example of the Debug response:
     },
     {
       "type": "DEBUG",
-      "message": "[assertPerf] Asserting [pageLoadTime] against flat_sla:result: pass,assertRum=false,actual=3726,baseline + padding=1341.6,flat SLA=6000"
+      "message": "[assertPerf] Asserting [pageLoadTime] against flat_sla:result: pass,assertBaseline=false,actual=3726,baseline + padding=1341.6,flat SLA=6000"
     }
   ],
   "infoMsg": [
@@ -948,7 +967,7 @@ Example of the Debug response:
         "visualCompleteTime": 1474997679793
       },
       "visualCompleteTime": 5992,
-      "url": "www.w3.org/webperf/"
+      "url": "http://www.w3.org/webperf/"
     },
     "sla": {
       "pageLoadTime": 6000
@@ -963,11 +982,11 @@ Example of the Debug response:
         "browser": "_log_",
         "environment": "_log_"
       },
-      "searchUrl": "*websites*editor*",
+      "searchUrl": "*w3*webperf*",
       "aggField": "act_pageLoadTime"
     },
     "flags": {
-      "assertRum": false,
+      "assertBaseline": false,
       "debug": true,
       "esTrace": false,
       "esCreate": false,
@@ -1045,7 +1064,7 @@ Example of the `esTrace` output:
               {
                 "query_string": {
                   "default_field": "dl",
-                  "query": "websites*editor*"
+                  "query": "w3*webperf*"
                 }
               },
               {
@@ -1104,7 +1123,7 @@ Example of the `esTrace` output:
                 "vis_pageLoadTime": 12170,
                 "et": "2017-03-31T02:41:10.101Z",
                 "@timestamp": "2017-03-31T02:41:10.101Z",
-                "app_info": "/home/jenkins/workspace/PC/node-ui-tests/vnext-editor-sauce-dt_firefox_regression/test/ui/pages/editor-common-header.js",
+                "app_info": "test App (navtiming)",
                 "platform": "saucelabs-windows-firefox47",
                 "browser": "firefox",
                 "server": "saucelabs",
@@ -1113,7 +1132,7 @@ Example of the `esTrace` output:
                 "tags": "dt_firefox_regression",
                 "team": "WSB",
                 "flag_useRum": false,
-                "flag_assertRum": false,
+                "flag_assertBaseline": false,
                 "flag_debug": false,
                 "flag_esTrace": false,
                 "flag_esCreate": true,
@@ -1145,7 +1164,7 @@ Example of the `esTrace` output:
                 "vis_pageLoadTime": 2652,
                 "et": "2017-03-31T03:57:41.586Z",
                 "@timestamp": "2017-03-31T03:57:41.586Z",
-                "app_info": "/private/tmp/workspace/PC/vnext-editor/workflow-pr-uitest_android_chrome_real_perf/test/ui/pages/editor-common-header.js",
+                "app_info": "test App (navtiming)",
                 "platform": "tempe-android-s5-atom",
                 "browser": "chrome",
                 "server": "tempe-lab",
@@ -1159,7 +1178,7 @@ Example of the `esTrace` output:
                 "uuid": "check-widget-mutator",
                 "team": "WSB",
                 "flag_useRum": false,
-                "flag_assertRum": false,
+                "flag_assertBaseline": false,
                 "flag_debug": false,
                 "flag_esTrace": false,
                 "flag_esCreate": true,
