@@ -13,7 +13,6 @@ try {
   'You can copy & edit the sample from: https://www.github.com/godaddy/timings/blob/master/CONFIG.MD\n');
   throw err;
 }
-const config = require('../.config.js');
 
 const app = express();
 
@@ -45,18 +44,6 @@ for (const apiVersion of Object.keys(API_VERSIONS)) {
   app.use(route + '/api/cicd/', require('../routes' + route + '/post-routes'));
 }
 
-// Add extra routes from config.modules
-if (config.hasOwnProperty('modules')) {
-  for (const mod of Object.keys(config.modules)) {
-    const objMod = config.modules[mod];
-    if (typeof objMod === 'object') {
-      const modName = Object.keys(mod)[0].replace(' ', '');
-      const modPkg = objMod[modName];
-      logger.info('- adding module [' + modPkg + '] on endpoint /' + modName.replace(' ', '') + '/');
-      app.use('/api/' + modName.replace(' ', '') + '/', require(modPkg));
-    }
-  }
-}
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
   if (req.xhr) {
