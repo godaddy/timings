@@ -117,14 +117,14 @@ You can also find a complete `docker-compose` based setup (incl. Elasticsearch a
 <span style="color:red">**IMPORTANT:**</span> If you want to use Elasticsearch and Kibana, you **have** to point the API to their respective hostnames! You can do this in **one** of the following ways (in this order of priority):
 
 1. Add the "env" object to the main config file. See [CONFIG.MD](CONFIG.MD).
-1. Adding arguments on the command line. see [API arguments](api-arguments)
+1. Adding arguments on the command line. see [API arguments](#api-arguments)
 1. Setting Environment variables (vars: ES_HOST, ES_PORT, KB_HOST and KB_PORT)
 
 You can install Elasticsearch and Kibana yourself by following instructions from here: [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/_installation.html) and [Kibana](https://www.elastic.co/guide/en/kibana/current/install.html).
 
 Or you can run the entire environment with `docker-compose` using [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
 
-To setup Kibana for the timings API, please follow the steps described in [KIBANA.MD](https://github.com/Verkurkie/timings-docker/blob/master/README.md#import-kibana-assets)
+To setup Kibana for the timings API, please follow the steps described in [Import Kibana assets](https://github.com/Verkurkie/timings-docker/blob/master/README.md#step-4-import-kibana-assets)
 
 ### Starting the API
 
