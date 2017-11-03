@@ -29,23 +29,19 @@ const argv = yargs
     },
     f: {
       alias: 'eshost',
-      describe: 'specify the elasticsearch host',
-      default: ''
+      describe: 'specify the elasticsearch host'
     },
     g: {
       alias: 'esport',
-      describe: 'specify the elasticsearch port',
-      default: 9200
+      describe: 'specify the elasticsearch port'
     },
     k: {
       alias: 'kbhost',
-      describe: 'specify the kibana host',
-      default: ''
+      describe: 'specify the kibana host'
     },
     l: {
       alias: 'kbport',
-      describe: 'specify the kibana port',
-      default: 5601
+      describe: 'specify the kibana port'
     },
     watch: {
       boolean: true,
@@ -55,41 +51,45 @@ const argv = yargs
     p: {
       alias: 'http',
       describe: 'HTTP Port',
-      default: 80
+      default: 8080
     }
   })
   .strict()
   .argv;
 
 /* eslint no-process-env: 0 */
-config.env = {
-  APP_NAME: pkg.name,
-  APP_VERSION: pkg.version,
-  NODE_ENV: argv.env,
-  DEBUG: argv.debug,
-  ES_HOST: argv.eshost || process.env.ES_HOST,
-  ES_PORT: argv.esport || process.env.ES_PORT,
-  KB_HOST: argv.kbhost || process.env.KB_HOST || argv.eshost || process.env.ES_HOST,
-  KB_PORT: argv.kbport || process.env.KB_PORT,
-  INDEX_PERF: 'cicd-perf',
-  INDEX_RES: 'cicd-perf-res',
-  INDEX_ERR: 'cicd-perf-errorlog',
-  HOST: os.hostname(),
-  HTTP_PORT: argv.http
-};
+if (!config.env) config.env = {};
+config.env.APP_NAME = pkg.name;
+config.env.APP_VERSION = pkg.version;
+config.env.NODE_ENV = argv.env;
+config.env.DEBUG = argv.debug;
+config.env.HOST = os.hostname();
+config.env.HTTP_PORT = argv.http;
 
 if (config.env.DEBUG !== true) {
   logger.transports.console.silent = true;
 }
 
-// Check if we're using ElasticSearch
-if (!config.env.ES_HOST) {
-  config.params.useES = false;
-  startServer();
-} else {
+// Check ELK settings
+if (config.env.ES_HOST || argv.eshost || process.env.ES_HOST || config.env.KB_HOST || argv.kbhost || process.env.KB_HOST) {
+  // elasticsearch is configured
   config.params.useES = true;
+  // Populate config.env if settings came from arguments or ENV variable
+  // Config file is always leading!
+  if (!config.env.ES_HOST) config.env.ES_HOST = argv.eshost || process.env.ES_HOST ||
+    config.env.KB_HOST || argv.kbhost || process.env.KB_HOST;
+  if (!config.env.ES_PORT) config.env.ES_PORT = argv.esport || process.env.ES_PORT || 9200;
+  if (!config.env.KB_HOST) config.env.KB_HOST = argv.kbhost || process.env.KB_HOST ||
+    config.env.ES_HOST || argv.eshost || process.env.ES_HOST;
+  if (!config.env.KB_PORT) config.env.KB_PORT = argv.kbport || process.env.KB_PORT || 5601;
+  config.env.INDEX_PERF = 'cicd-perf';
+  config.env.INDEX_RES = 'cicd-perf-res';
+  config.env.INDEX_ERR = 'cicd-perf-errorlog';
   // Setup ElasticSearch client & index
   setupES(new esUtils.ESClass());
+} else {
+  config.params.useES = false;
+  startServer();
 }
 
 async function setupES(es) {

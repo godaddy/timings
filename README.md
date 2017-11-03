@@ -4,16 +4,19 @@ The timings API can be used in CI/CD pipelines for the asserting of **web UI or 
 
 ## **tl;dr**
 
-Install and run this API in your local network. Easiest deployment is with docker-compose (see here: [timings-docker](https://github.com/Verkurkie/timings-docker/))
+Install and run this API in your local network and call if from your test scripts (using [clients](#the-clients) or directly).
+
+Easiest deployment is with docker-compose (see here: [timings-docker](https://github.com/Verkurkie/timings-docker/))
 
 Then, use this API **from your functional test script(s)** to:
 
-1) Grab a snippet of JavaScript code from [`/v2/api/cicd/injectjs`](#post-v2apicicdinjectjs)
-2) Decode the response from step 1 and inject it into your browser/webdriver
-3) Send the browser's response (json object) from step 2 back to the API ([/v2/api/cicd/navtiming](#post-v2apicicdnavtiming) or [/v2/api/cicd/usertiming](#post-v2apicicdusertiming))
-4) Use the API's response to assert performance (look for the `assert` field in the response)
+1. [UI tests only] Grab a snippet of JavaScript code from [`/v2/api/cicd/injectjs`](#post-v2apicicdinjectjs)
+1. [UI tests only] Decode the `"inject_code"` key from the response and inject it into your browser/webdriver
+1. [UI tests only] Send the browser's response (json object) from step 2 back to the API ([/v2/api/cicd/navtiming](#post-v2apicicdnavtiming) or [/v2/api/cicd/usertiming](#post-v2apicicdusertiming))
+1. [API tests only] Send timestamps to the API ([/v2/api/cicd/apitiming](#post-v2apicicdapitiming))
+1. [UI and API tests] Use the API's response to assert performance (look for the `assert` field in the response)
 
-To simplify communication with the API, there are currently two clients that you can install: one for JavaScript (`npm i --save-dev timings-client-js`) and one for Python (`pip install timingsclient`). Easy to install and easy to use! For all other languages, you will have to interact with API yourself using http `POST` calls. More info [here](#using-the-api-without-clients).
+To simplify communication with the API, there are currently two [clients](#the-clients) that you can install: one for JavaScript (`npm i --save-dev timings-client-js`) and one for Python (`pip install timingsclient`). Easy to install and easy to use! For all other languages, you will have to interact with API yourself using http `POST` calls. More info [here](#using-the-api-without-clients).
 
 Continue reading below for more details about the API and the clients.
 
@@ -98,7 +101,7 @@ $ npm install -g timings
 
 (You may need Adminstrator/root rights.)
 
-#### Option 3 - Docker pull
+#### Option 3 - Using Docker
 
 The API is also available as a docker container! You can pull the image with the following command:
 
@@ -111,13 +114,23 @@ You can also find a complete `docker-compose` based setup (incl. Elasticsearch a
 
 ### Installing Elasticsearch and Kibana
 
-If you already have an Elasticsearch cluster, you can simply point the API to it with the correct parameters (see below: [Start the API](starting-the-api))
+<span style="color:red">**IMPORTANT:**</span> If you want to use Elasticsearch and Kibana, you **have** to point the API to their respective hostnames! You can do this in **one** of the following ways (in this order of priority):
+
+1. Add the "env" object to the main config file. See [CONFIG.MD](CONFIG.MD).
+1. Adding arguments on the command line. see [API arguments](api-arguments)
+1. Setting Environment variables (vars: ES_HOST, ES_PORT, KB_HOST and KB_PORT)
 
 You can install Elasticsearch and Kibana yourself by following instructions from here: [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/_installation.html) and [Kibana](https://www.elastic.co/guide/en/kibana/current/install.html).
+
+Or you can run the entire environment with `docker-compose` using [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
 
 To setup Kibana for the timings API, please follow the steps described in [KIBANA.MD](https://github.com/Verkurkie/timings-docker/blob/master/README.md#import-kibana-assets)
 
 ### Starting the API
+
+There are different options to run the API: stand-alone, with/without elasticsearch/kibana, with a process manager, as a docker container, or using docker-compose. All of these options support the API's arguments list below.
+
+#### API arguments
 
 Please review & edit the main config file as described in [CONFIG.MD](CONFIG.MD) before starting the server!
 
@@ -143,7 +156,7 @@ Options:
 Assuming you have installed the API with the `global` option, you can start it by running:
 
 ```shell
-$ timings [arguments]
+$ timings -f {elasticsearch host} -k {kibana host} [other arguments]
 debug: SUCCESS! ElasticSearch cluster for [localhost] is alive!)
 debug: Index [cicd-perf] exists: true
 debug: Template [cicd-perf] exists/created: true
@@ -155,19 +168,19 @@ debug: Template [cicd-perf] exists/created: true
 We recommend running the API with a process manager such as `pm2`. Example:
 
 ```shell
-$ pm2 start timings -- [arguments]
+$ pm2 start timings -- -f {elasticsearch host} -k {kibana host} [other arguments]
 info: SUCCESS! ElasticSearch cluster for [CICD] is alive! Host: localhost
 info: Index [cicd-perf] exists: true
 info: TIMINGS API [local] is running on port 80
 ...
 ```
 
-#### Running inside Docker
+#### Running with Docker
 
 Or to run the API with Docker:
 
 ```shell
-$ docker run -e "ES_HOST={elasticsearch}" -e "KB_HOST={kibana}" -p 80:80 mverkerk/timings:latest
+$ docker run -e "ES_HOST={elasticsearch host}" -e "KB_HOST={kibana host}" -p 80:80 mverkerk/timings:latest
 npm info it worked if it ends with ok
 npm info using npm@5.3.0
 npm info using node@v8.4.0
@@ -175,7 +188,9 @@ npm info lifecycle timings@1.0.0~prestart: timings@1.0.0
 ...
 ```
 
-You can also find a complete `docker-compose` based setup (incl. Elasticsearch and Kibana) here: [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
+#### Running with Docker-Compose
+
+You can find a complete `docker-compose` based setup (incl. Elasticsearch and Kibana) here: [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
 
 ## **THE CLIENTS**
 

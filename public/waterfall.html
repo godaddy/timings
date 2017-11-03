@@ -181,10 +181,10 @@
 
                     if (entry.type === 'navtiming') {
                         uri = entry.dl;
-                        var link = "http://" + window.kibana_host + "/app/kibana#/dashboard/CICD-Dashboard?_g=(time:(from:now-7d,mode:quick,to:now))&_a=(query:(query_string:(analyze_wildcard:!t,query:"
+                        var link = "http://" + window.kibana_host + "/app/kibana#/dashboard/TIMINGS-Dashboard?_g=(time:(from:now-7d,mode:quick,to:now))&_a=(query:(query_string:(analyze_wildcard:!t,query:"
                         link += "'dl:" + encodeURIComponent('"' + uri + '"') + "')))";
                     } else {
-                        var link = "http://" + window.kibana_host + "/app/kibana#/dashboard/CICD-Resources?_g=(time:(from:now-7d,mode:quick,to:now))&_a=(query:(query_string:(analyze_wildcard:!t,query:"
+                        var link = "http://" + window.kibana_host + "/app/kibana#/dashboard/TIMINGS-Resources?_g=(time:(from:now-7d,mode:quick,to:now))&_a=(query:(query_string:(analyze_wildcard:!t,query:"
                         link += "'uri:" + encodeURIComponent('"' + uri + '"') + "')))";
                     }
                     if (uri.length > 65) {

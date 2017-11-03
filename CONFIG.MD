@@ -10,6 +10,10 @@ If for some reason, the file is missing, you can copy the sample config from her
 
 const config = {
   NODE_ENV: process.env.NODE_ENV,
+  env: {
+    ES_HOST: '{elasticsearch host}',
+    KB_HOST: '{kibana host}'
+  },
   params: {
     //Required and default parameters
     required: ['log.test_info', 'log.env_tester', 'log.team', 'log.browser', 'log.env_target'],
@@ -40,6 +44,10 @@ This section has the defaults values for various client parameters. These values
 
 |Main key|Sub-key|Default|Description|
 |--------|------------|-------|-----------|
+|env|ES_HOST|-|Hostname of the elasticsearch server/cluster|
+|env|ES_PORT|9200|TCP port of the elasticsearch server/cluster|
+|env|KB_HOST|-|Hostname of the kibana server|
+|env|KB_PORT|5601|TCP port of the kibana server|
 |required|-|-|Array of fields that you want to enforce|
 |defaults|baseline:days|`7`|The default number of days for the baseline query|
 |defaults|baseline:perc|`75`|The default percentile for the baseline query|

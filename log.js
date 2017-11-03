@@ -35,7 +35,7 @@ var accessLog = new winston.Logger({
     })
   ],
   exitOnError: false
-})
+});
 
 module.exports = logger;
 module.exports.stream = {
