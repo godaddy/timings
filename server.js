@@ -51,7 +51,7 @@ const argv = yargs
     p: {
       alias: 'http',
       describe: 'HTTP Port',
-      default: 8080
+      default: 80
     }
   })
   .strict()
