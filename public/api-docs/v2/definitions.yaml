@@ -104,7 +104,7 @@ navtiming:
         },
         "sla": {"pageLoadTime": 4000},
         "baseline": {"days": 7,"perc": 75,"padding": 1.2,"searchUrl": "","src":"cicd","aggField": "act_pageLoadTime","incl": {"useragent_family":"*hrome*","os_family":"_agg_"}},
-        "flags": {"assertRum": false, "debug": false,"esTrace": false,"esCreate": false,"passOnFailedAssert": false},
+        "flags": {"assertBaseline": false, "debug": false,"esTrace": false,"esCreate": false,"passOnFailedAssert": false},
         "log": {"team": "perfeng", "test_info": "V2 - Test App (navtiming)","env_tester": "test","browser": "Chrome","env_target": "prod"}
     }
 
@@ -135,7 +135,7 @@ usertiming:
         "injectJS": {"time": 1474997671801, "measureArray":[{"name":"test", "entryType":"measure", "startTime":236377.80000000002, "duration":5345.174999999988}], "url":"https://www.example.com/", "marks":[{"name":"test_start", "entryType":"mark", "startTime":236377.80000000002, "duration":0}, {"name":"test_stop", "entryType":"mark", "startTime":241722.975, "duration":0}]},
         "sla": {"pageLoadTime": 4000},
         "baseline": {"days": 7,"perc": 75,"padding": 1.2,"searchUrl": "","src":"cicd","aggField": "act_pageLoadTime","incl": {"env_tester":"_log_"}},
-        "flags": {"assertRum": false, "debug": false,"esTrace": false,"esCreate": false,"passOnFailedAssert": false},
+        "flags": {"assertBaseline": false, "debug": false,"esTrace": false,"esCreate": false,"passOnFailedAssert": false},
         "log": {"team": "perfeng", "test_info": "V2 - Test App (usertiming)","env_tester": "chromeEmulator","browser": "Chrome","env_target": "prod"}
     }
 
@@ -164,7 +164,7 @@ apitiming:
         "url": "https://api.example.com",
         "sla": {"pageLoadTime": 4000},
         "baseline": {"days": 7,"perc": 75,"padding": 1.2,"searchUrl": "","src":"cicd","aggField": "act_pageLoadTime","incl": {"env_tester":"_log_"}},
-        "flags": {"assertRum": false, "debug": false,"esTrace": false,"esCreate": false,"passOnFailedAssert": false},
+        "flags": {"assertBaseline": false, "debug": false,"esTrace": false,"esCreate": false,"passOnFailedAssert": false},
         "log": {"team": "perfeng", "test_info": "V2 - Test App (apitiming)","env_tester": "linux","browser": "api_call","env_target": "prod"}
     }
 

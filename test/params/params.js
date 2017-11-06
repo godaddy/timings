@@ -1,5 +1,5 @@
 const commonFlags = {
-  assertRum: true,
+  assertBaseline: true,
   debug: true,
   esTrace: true,
   esCreate: false,
