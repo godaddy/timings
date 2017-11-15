@@ -11,7 +11,6 @@ const template = {
           "dynamic_templates": [{
                   "string_fields": {
                       "mapping": {
-                          "ignore_above": 256,
                           "index": "not_analyzed",
                           "omit_norms": true,
                           "type": "string",

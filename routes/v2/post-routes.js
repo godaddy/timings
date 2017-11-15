@@ -74,9 +74,6 @@ router.post('/injectjs', jsonParser, (req, res, next) => {
 function validateSchema(route, body) {
   // Schema for request validation (extended in individual routes)
 
-  // Get the required 'log' parameters from main config
-  const reqLogs = config.params.required;
-
   // Add base schema
   const baseSchema = joi.object({
     sla: joi.object({
@@ -109,7 +106,13 @@ function validateSchema(route, body) {
     }).pattern(/[a-zA-Z0-9]{3,}/, joi.string())
   });
 
-  const requiredSchema = baseSchema.requiredKeys(reqLogs);
+  // Get the required 'log' parameters from main config
+  const reqLogs = config.params.required;
+  let requiredSchema = baseSchema;
+  if (reqLogs.length > 0) {
+    reqLogs.push('log');
+    requiredSchema = baseSchema.requiredKeys(reqLogs);
+  }
 
   // Add route specific entries
   const extendedSchema = {
