@@ -1,6 +1,7 @@
 /**
 * Created by mverkerk on 10/20/2016.
 */
+const fs = require('fs');
 const elasticsearch = require('elasticsearch');
 const logger = require('../../log.js');
 const config = require('../../.config.js');
@@ -9,13 +10,40 @@ class ESClass {
   constructor() {
     this.config = config;
     this.logger = logger;
-    const esHost = this.config.env.ES_HOST || 'localhost';
-    const esPort = this.config.env.ES_PORT || 9200;
-    this.client = new elasticsearch.Client({
-      host: esHost + ':' + esPort,
+
+    // Basic ES config - no auth
+    const esConfig = {
+      host: this.config.env.ES_HOST + ':' + this.config.env.ES_PORT,
       requestTimeout: 2000,
       log: 'error'
-    });
+    };
+
+    // Check if user/passwd are provided - configure basic auth
+    if (this.config.env.ES_USER && this.config.env.ES_PASS) {
+      // esConfig.host[0].auth = (this.config.env.ES_USER || '') + ':' + (this.config.env.ES_PASS || '');
+      esConfig.host = this.config.env.ES_PROTOCOL + '://' + this.config.env.ES_USER + ':' + this.config.env.ES_PASS + '@' +
+        this.config.env.ES_HOST + ':' + this.config.env.ES_PORT;
+    }
+
+    // Check if SSL cert/key are provided - configure SSL
+    if (this.config.env.ES_SSL_CERT && this.config.env.ES_SSL_KEY) {
+      // Cert overwrites basic auth! Delete the 'auth' key
+      esConfig.host = [
+        {
+          host: this.config.env.ES_HOST || 'localhost',
+          protocol: this.config.env.ES_PROTOCOL || 'http',
+          port: this.config.env.ES_PORT || 9200,
+          ssl: {
+            cert: fs.readFileSync(this.config.env.ES_SSL_CERT).toString(),
+            key: fs.readFileSync(this.config.env.ES_SSL_KEY).toString(),
+            rejectUnauthorized: true
+          }
+        }
+      ];
+    }
+
+    // Create the ES client!
+    this.client = new elasticsearch.Client(esConfig);
   }
 
   async ping() {

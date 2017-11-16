@@ -6,6 +6,12 @@ pids
 *.seed
 .lock-wscript
 
+# Cert files
+*.crt
+*.pem
+*.key
+*.pfx
+
 # Editor artifacts
 .vscode
 

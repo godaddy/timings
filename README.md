@@ -70,10 +70,10 @@ Enjoy!
 
 This API is based on nodejs/express and can be installed on both Windows and Linux Operating systems. Linux is highly recommended but of course, the choice is yours! Following are some recommendations for the system:
 
-* Enterprise Linux recommended, 64-bit
-* Windows Server 2012+, 64-bit
-* nodejs + npm (version 6+)
-* git
+* **Enterprise Linux, 64-bit** [recommended]
+* **Windows Server 2012+, 64-bit**
+* **nodejs + npm (version 8+)** - see [here](https://nodejs.org/en/download/package-manager/)
+* **git** - see [here](https://git-scm.com/downloads)
 
 There are different ways to install this API. You can clone it from github and run `npm install`, you can insttall it globally from the NPM registry, or you can pull the Docker image.
 
@@ -120,6 +120,9 @@ You can also find a complete `docker-compose` based setup (incl. Elasticsearch a
 1. Adding arguments on the command line. see [API arguments](#api-arguments)
 1. Setting Environment variables (vars: ES_HOST, ES_PORT, KB_HOST and KB_PORT)
 
+- **Config/arguments and ENV vars now support Basic Authentication and SSL cert/key authentication!**
+- **NOTE:** If both are provided, SSL auth will be used!
+
 You can install Elasticsearch and Kibana yourself by following instructions from here: [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/_installation.html) and [Kibana](https://www.elastic.co/guide/en/kibana/current/install.html).
 
 Or you can run the entire environment with `docker-compose` using [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
@@ -139,16 +142,21 @@ The startup command accepts following arguments:
 ```shell
 $ timings --help
 Options:
-  -h, --help    Show help                                              [boolean]
-  -d, --debug   enable console debugging              [boolean] [default: false]
-  -e, --env     specify runtime environment
+  -h, --help     Show help                                             [boolean]
+  -d, --debug    enable console debugging             [boolean] [default: false]
+  -e, --env      specify runtime environment
                     [choices: "local", "dev", "test", "prod"] [default: "local"]
-  -f, --eshost  specify the elasticsearch host                     [default: ""]
-  -g, --esport  specify the elasticsearch port                   [default: 9200]
-  -k, --kbhost  specify the kibana host                            [default: ""]
-  -l, --kbport  specify the kibana port                          [default: 5601]
-  --watch       watch local build                     [boolean] [default: false]
-  -p, --http    HTTP Port                                          [default: 80]
+  -f, --eshost   specify the elasticsearch host
+  -g, --esport   specify the elasticsearch port
+  --esprotocol   The protocol of the elasticsearch server      [default: "http"]
+  --esuser       The user for elasticsearch server auth
+  --espasswd     The password for elasticsearch server auth
+  --es_ssl_cert  Path to the SSL cert for elasticsearch server auth
+  --es_ssl_key   Path to the SSL key for elasticsearch server auth
+  -k, --kbhost   specify the kibana host
+  -l, --kbport   specify the kibana port
+  --watch        watch local build                    [boolean] [default: false]
+  -p, --http     HTTP Port                                         [default: 80]
 ```
 
 #### Running from the command line
@@ -896,12 +904,14 @@ The "common parameters" are used by for following endpoints:
 |`flags.esTrace`|no|boolean|Return ElasticSearch trace output
 |`flags.esCreate`|no|boolean|Write results to ElasticSearch
 |`flags.passOnFailedAssert`|no|boolean|Will determine whether a **failed** assertion will still return `true` in the assert field
-|`log`|no|object|Set of key/value pairs that will be saved to ElasticSearch. You can add any key-value pair here but the following are mandatory / recommended:
-|`log.test_info`|no|boolean|String describing the page/transaction being tested. Example: "Login to home page"
-|`log.env_tester`|no|boolean|The platform of the test **source**. Examples: "local", "saucelabs-windows-firefox47"
-|`log.browser`|no|boolean|The browser used to run the test. Examples: "chrome", "firefox"
-|`log.env_target`|no|boolean|Environment of the test **target**. Examples: "test", "prod"
-|`log.team`|no|boolean|Short string describing the product or test team
+|`log`|*|object|Set of key/value pairs that will be saved to ElasticSearch. You can add any key-value pair here but the following are mandatory / recommended:
+|`log.test_info`|*|boolean|String describing the page/transaction being tested. Example: "Login to home page"
+|`log.env_tester`|*|boolean|The platform of the test **source**. Examples: "local", "saucelabs-windows-firefox47"
+|`log.browser`|*|boolean|The browser used to run the test. Examples: "chrome", "firefox"
+|`log.env_target`|*|boolean|Environment of the test **target**. Examples: "test", "prod"
+|`log.team`|*|boolean|Short string describing the product or test team
+
+**NOTE:** mandatory `log` parameters can be set in the server's config file! Above parameters are just a suggestion. Look for the `required` field here: [CONFIG.MD](CONFIG.MD) for more info.
 
 ### DEBUG output
 

@@ -35,6 +35,22 @@ const argv = yargs
       alias: 'esport',
       describe: 'specify the elasticsearch port'
     },
+    esprotocol: {
+      describe: 'The protocol of the elasticsearch server',
+      default: 'http'
+    },
+    esuser: {
+      describe: 'The user for elasticsearch server auth'
+    },
+    espasswd: {
+      describe: 'The password for elasticsearch server auth'
+    },
+    es_ssl_cert: {
+      describe: 'Path to the SSL cert for elasticsearch server auth'
+    },
+    es_ssl_key: {
+      describe: 'Path to the SSL key for elasticsearch server auth'
+    },
     k: {
       alias: 'kbhost',
       describe: 'specify the kibana host'
@@ -64,7 +80,7 @@ config.env.APP_VERSION = pkg.version;
 config.env.NODE_ENV = argv.env;
 config.env.DEBUG = argv.debug;
 config.env.HOST = os.hostname();
-config.env.HTTP_PORT = argv.http;
+// config.env.HTTP_PORT = argv.http;
 
 if (config.env.DEBUG !== true) {
   logger.transports.console.silent = true;
@@ -81,7 +97,13 @@ if (config.env.ES_HOST || argv.eshost || process.env.ES_HOST || config.env.KB_HO
   if (!config.env.ES_PORT) config.env.ES_PORT = argv.esport || process.env.ES_PORT || 9200;
   if (!config.env.KB_HOST) config.env.KB_HOST = argv.kbhost || process.env.KB_HOST ||
     config.env.ES_HOST || argv.eshost || process.env.ES_HOST;
+  if (!config.env.ES_USER) config.env.ES_USER = argv.esuser || process.env.ES_USER || '';
+  if (!config.env.ES_PASS) config.env.ES_PASS = argv.espasswd || process.env.ES_PASS || '';
+  if (!config.env.ES_SSL_CERT) config.env.ES_SSL_CERT = argv.es_ssl_cert || process.env.ES_SSL_CERT || '';
+  if (!config.env.ES_SSL_KEY) config.env.ES_SSL_KEY = argv.es_ssl_key || process.env.ES_SSL_KEY || '';
+  if (!config.env.ES_PROTOCOL) config.env.ES_PROTOCOL = argv.esprotocol || process.env.ES_PROTOCOL || 'http';
   if (!config.env.KB_PORT) config.env.KB_PORT = argv.kbport || process.env.KB_PORT || 5601;
+  if (!config.env.HTTP_PORT) config.env.HTTP_PORT = argv.http || process.env.HTTP_PORT || 80;
   config.env.INDEX_PERF = 'cicd-perf';
   config.env.INDEX_RES = 'cicd-perf-res';
   config.env.INDEX_ERR = 'cicd-perf-errorlog';
