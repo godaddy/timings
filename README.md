@@ -166,8 +166,8 @@ Assuming you have installed the API with the `global` option, you can start it b
 ```shell
 $ timings -f {elasticsearch host} -k {kibana host} [other arguments]
 debug: SUCCESS! ElasticSearch cluster for [localhost] is alive!)
-debug: Index [cicd-perf] exists: true
-debug: Template [cicd-perf] exists/created: true
+debug: Index [timings-perf] exists: true
+debug: Template [timings-perf] exists/created: true
 ...
 ```
 
@@ -178,7 +178,7 @@ We recommend running the API with a process manager such as `pm2`. Example:
 ```shell
 $ pm2 start timings -- -f {elasticsearch host} -k {kibana host} [other arguments]
 info: SUCCESS! ElasticSearch cluster for [CICD] is alive! Host: localhost
-info: Index [cicd-perf] exists: true
+info: Index [timings-perf] exists: true
 info: TIMINGS API [local] is running on port 80
 ...
 ```
@@ -461,7 +461,7 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
   },
   "assert": true,
   "esServer": "localhost",
-  "esIndex": "cicd-perf",
+  "esIndex": "timings-perf",
   "esSaved": false,
   "resourceSaved": false,
 }
@@ -607,7 +607,7 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
   },
   "assert": true,
   "esServer": "localhost",
-  "esIndex": "cicd-perf",
+  "esIndex": "timings-perf",
   "esSaved": false,
   "resourceSaved": false
 }
@@ -713,7 +713,7 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
   },
   "assert": true,
   "esServer": "localhost",
-  "esIndex": "cicd-perf",
+  "esIndex": "timings-perf",
   "esSaved": false,
   "resourceSaved": false
 }
@@ -998,7 +998,7 @@ Example of the Debug response:
       "pageLoadTime": 6000
     },
     "baseline": {
-      "src": "cicd",
+      "src": "timings",
       "days": 7,
       "perc": 75,
       "padding": 1.2,
@@ -1079,9 +1079,9 @@ Example of the `esTrace` output:
   "esTrace": [
     {
       "type": "ES_SEARCH",
-      "src": "cicd",
+      "src": "timings",
       "host": "localhost:9200",
-      "index": "cicd-perf/usertiming",
+      "index": "timings-perf/usertiming",
       "search_query": {
         "query": {
           "bool": {
@@ -1131,7 +1131,7 @@ Example of the `esTrace` output:
           "max_score": 2,
           "hits": [
             {
-              "_index": "cicd-perf",
+              "_index": "timings-perf",
               "_type": "usertiming",
               "_id": "AVsiPO3XgIFNtugI0oui",
               "_score": 2,
@@ -1172,7 +1172,7 @@ Example of the `esTrace` output:
               }
             },
             {
-              "_index": "cicd-perf",
+              "_index": "timings-perf",
               "_type": "usertiming",
               "_id": "AVsigv1UgIFNtugI0twP",
               "_score": 2,

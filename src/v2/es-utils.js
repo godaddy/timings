@@ -13,8 +13,8 @@ class ESClass {
 
     // Basic ES config - no auth
     const esConfig = {
-      host: this.config.env.ES_HOST + ':' + this.config.env.ES_PORT,
-      requestTimeout: 2000,
+      host: this.config.env.ES_PROTOCOL + '://' + this.config.env.ES_HOST + ':' + this.config.env.ES_PORT,
+      requestTimeout: 5000,
       log: 'error'
     };
 
@@ -30,9 +30,6 @@ class ESClass {
       // Cert overwrites basic auth! Delete the 'auth' key
       esConfig.host = [
         {
-          host: this.config.env.ES_HOST || 'localhost',
-          protocol: this.config.env.ES_PROTOCOL || 'http',
-          port: this.config.env.ES_PORT || 9200,
           ssl: {
             cert: fs.readFileSync(this.config.env.ES_SSL_CERT).toString(),
             key: fs.readFileSync(this.config.env.ES_SSL_KEY).toString(),
@@ -48,7 +45,7 @@ class ESClass {
 
   async ping() {
     const response = await this.client
-      .ping({ requestTimeout: 2000 });
+      .ping({ requestTimeout: 5000 });
     this.logger.debug('SUCCESS! ElasticSearch cluster for [' +
       this.config.env.ES_HOST + '] is alive!)');
     return response;

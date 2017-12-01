@@ -8,7 +8,7 @@ const esUtils = require('./src/v2/es-utils');
 const pkg = require('./package.json');
 const yargs = require('yargs');
 const config = require('./.config.js');
-const cicdTemplate = require('./.template.js');
+const timingsTemplate = require('./.es_template.js');
 
 // Process arguments
 const argv = yargs
@@ -36,8 +36,7 @@ const argv = yargs
       describe: 'specify the elasticsearch port'
     },
     esprotocol: {
-      describe: 'The protocol of the elasticsearch server',
-      default: 'http'
+      describe: 'The protocol of the elasticsearch server'
     },
     esuser: {
       describe: 'The user for elasticsearch server auth'
@@ -80,6 +79,7 @@ config.env.APP_VERSION = pkg.version;
 config.env.NODE_ENV = argv.env;
 config.env.DEBUG = argv.debug;
 config.env.HOST = os.hostname();
+config.env.HTTP_PORT = argv.http || config.env.HTTP_PORT || process.env.HTTP_PORT || 80;
 // config.env.HTTP_PORT = argv.http;
 
 if (config.env.DEBUG !== true) {
@@ -92,21 +92,20 @@ if (config.env.ES_HOST || argv.eshost || process.env.ES_HOST || config.env.KB_HO
   config.params.useES = true;
   // Populate config.env if settings came from arguments or ENV variable
   // Config file is always leading!
-  if (!config.env.ES_HOST) config.env.ES_HOST = argv.eshost || process.env.ES_HOST ||
-    config.env.KB_HOST || argv.kbhost || process.env.KB_HOST;
-  if (!config.env.ES_PORT) config.env.ES_PORT = argv.esport || process.env.ES_PORT || 9200;
-  if (!config.env.KB_HOST) config.env.KB_HOST = argv.kbhost || process.env.KB_HOST ||
-    config.env.ES_HOST || argv.eshost || process.env.ES_HOST;
-  if (!config.env.ES_USER) config.env.ES_USER = argv.esuser || process.env.ES_USER || '';
-  if (!config.env.ES_PASS) config.env.ES_PASS = argv.espasswd || process.env.ES_PASS || '';
-  if (!config.env.ES_SSL_CERT) config.env.ES_SSL_CERT = argv.es_ssl_cert || process.env.ES_SSL_CERT || '';
-  if (!config.env.ES_SSL_KEY) config.env.ES_SSL_KEY = argv.es_ssl_key || process.env.ES_SSL_KEY || '';
-  if (!config.env.ES_PROTOCOL) config.env.ES_PROTOCOL = argv.esprotocol || process.env.ES_PROTOCOL || 'http';
-  if (!config.env.KB_PORT) config.env.KB_PORT = argv.kbport || process.env.KB_PORT || 5601;
-  if (!config.env.HTTP_PORT) config.env.HTTP_PORT = argv.http || process.env.HTTP_PORT || 80;
+  config.env.ES_HOST = argv.eshost || config.env.ES_HOST || process.env.ES_HOST ||
+    argv.kbhost || config.env.KB_HOST || process.env.KB_HOST;
+  config.env.ES_PORT = argv.esport || config.env.ES_PORT || process.env.ES_PORT || 9200;
+  config.env.KB_HOST = argv.kbhost || config.env.KB_HOST || process.env.KB_HOST ||
+    argv.eshost || config.env.ES_HOST || process.env.ES_HOST;
+  config.env.ES_USER = argv.esuser || config.env.ES_USER || process.env.ES_USER || '';
+  config.env.ES_PASS = argv.espasswd || config.env.ES_PASS || process.env.ES_PASS || '';
+  config.env.ES_SSL_CERT = argv.es_ssl_cert || config.env.ES_SSL_CERT || process.env.ES_SSL_CERT || '';
+  config.env.ES_SSL_KEY = argv.es_ssl_key || config.env.ES_SSL_KEY || process.env.ES_SSL_KEY || '';
+  config.env.ES_PROTOCOL = argv.esprotocol || config.env.ES_PROTOCOL || process.env.ES_PROTOCOL || 'http';
+  config.env.KB_PORT = argv.kbport || config.env.KB_PORT || process.env.KB_PORT || 5601;
   config.env.INDEX_PERF = 'cicd-perf';
-  config.env.INDEX_RES = 'cicd-perf-res';
-  config.env.INDEX_ERR = 'cicd-perf-errorlog';
+  config.env.INDEX_RES = 'cicd-resource';
+  config.env.INDEX_ERR = 'cicd-errorlog';
   // Setup ElasticSearch client & index
   setupES(new esUtils.ESClass());
 } else {
@@ -118,7 +117,7 @@ async function setupES(es) {
   try {
     await es.ping();
     const indexExists = await es.indexExists(config.env.INDEX_PERF);
-    const templateCreated = await es.putTemplate('cicd-perf', cicdTemplate);
+    const templateCreated = await es.putTemplate(config.env.INDEX_PERF, timingsTemplate);
     let indexCreated = false;
     if (indexExists !== true) {
       indexCreated = await es.indexCreate(config.env.INDEX_PERF);

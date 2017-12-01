@@ -23,8 +23,8 @@ healthresponse:
             "HOST": "localhost",
             "PORT": 9200,
             "INDEX_PERF": "cicd-perf",
-            "INDEX_RES": "cicd-perf-res",
-            "INDEX_ERR": "cicd-perf-errorlog"
+            "INDEX_RES": "cicd-resources",
+            "INDEX_ERR": "cicd-errorlog"
         },
         "kibana": {
             "HOST": "localhost",

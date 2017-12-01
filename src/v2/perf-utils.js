@@ -45,20 +45,22 @@ class PUClass {
       if (this.config.params.useES === true) {
         const blQuery = this.buildBaselineQuery();
         this.esTrace.push({ type: 'ES_SEARCH', host: this.config.env.ES_HOST,
-          index: this.config.env.INDEX_PERF + '/' + this.route, search_query: blQuery
+          index: this.config.env.INDEX_PERF + '*/' + this.route, search_query: blQuery
         });
-        const response = await this.es.search(this.config.env.INDEX_PERF, this.route, blQuery);
+        const response = await this.es.search(this.config.env.INDEX_PERF + '*', this.route, blQuery);
         this.esTrace.push({ type: 'ES_RESPONSE', response: response });
         this.es_took = response.took;
         this.baseline = this.checkBaseline(response);
       }
       // Compare actual to SLA and create output
       this.status = this.checkSLA(this.measuredPerf);
+      // Get day from export data
       const exportData = this.createExportData();
+      const indexDay = new Date(exportData.et).toISOString().slice(0, 10).replace(/-/g, '.');
       // Store results in ES
       if (this.config.params.useES === true && this.objParams.flags.esCreate === true) {
         this.esTrace.push({ type: 'ES_CREATE', exportData });
-        this.esSaved = await this.es.index(this.config.env.INDEX_PERF, this.route, exportData);
+        this.esSaved = await this.es.index(this.config.env.INDEX_PERF + '-' + indexDay, this.route, exportData);
         if (this.esSaved && this.route === 'navtiming') {
           const resBody = this.getResourcesBody(exportData['@_uuid']);
           this.resourcesSaved = await this.es.bulk(resBody);
@@ -442,6 +444,7 @@ class PUClass {
     const et = this.objParams.injectJS.time
       ? new Date(this.objParams.injectJS.time).toISOString()
       : new Date().toISOString();
+    const indexDay = new Date(et).toISOString().slice(0, 10).replace(/-/g, '.');
     let body = this.resNav(uuid, et);
 
     // Create entries for resources
@@ -481,7 +484,7 @@ class PUClass {
         'responseStart': resource.responseStart,
         'responseDuration': resource.responseStart > 0 ? resource.responseEnd - resource.responseStart : 0
       };
-      body += '{ "index" : { "_index" : "' + this.config.env.INDEX_RES + '", "_type" : "resource" } }\n';
+      body += '{ "index" : { "_index" : "' + this.config.env.INDEX_RES + '-' + indexDay + '", "_type" : "resource" } }\n';
       body += JSON.stringify(res) + '\n';
     });
     return body;
@@ -490,6 +493,7 @@ class PUClass {
   resNav(uuid, et) {
     // Create separate entry for the root URL (using navtiming data)
     // grab navtiming info (only for the root URL)
+    const indexDay = new Date(et).toISOString().slice(0, 10).replace(/-/g, '.');
     const timing = this.objParams.injectJS.timing;
     const navUrl = this.parseUrl(this.objParams.injectJS.url);
     const nt = {
@@ -523,7 +527,7 @@ class PUClass {
       'loadEventStart': timing.loadEventStart - timing.navigationStart,
       'loadEventDuration': timing.loadEventEnd - timing.loadEventStart
     };
-    let body = '{ "index" : { "_index" : "' + this.config.env.INDEX_RES + '", "_type" : "resource" } }\n';
+    let body = '{ "index" : { "_index" : "' + this.config.env.INDEX_RES + '-' + indexDay + '", "_type" : "resource" } }\n';
     body += JSON.stringify(nt) + '\n';
 
     return body;
@@ -543,6 +547,7 @@ class PUClass {
       body.client_ua = req.headers['user-agent'] || 'Unknown user-agent';
       const reqBody = req.body;
       body['@timestamp'] = body.et;
+      const indexDay = new Date(body.et).toISOString().slice(0,10).replace(/-/g, '.');
 
       if (typeof (reqBody) === 'object') {
 
@@ -562,7 +567,7 @@ class PUClass {
       body.err_status = err.status ? err.status : 400;
 
       // console.log("Error to ELK: " + JSON.stringify(body, null, 2));
-      this.es.index(this.config.env.INDEX_ERR, 'error_' + body.route, body);
+      this.es.index(this.config.env.INDEX_ERR + '-' + indexDay, 'error_' + body.route, body);
     }
   }
 
