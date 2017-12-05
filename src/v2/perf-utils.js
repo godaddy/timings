@@ -169,8 +169,8 @@ class PUClass {
     // Check the URL
     // First, remove the trailing '*' -> the Lucene parszer will automatically add it
     let tmpSearchUrl = baselineParams.searchUrl;
-    if (baselineParams.searchUrl.trim().substr(baselineParams.searchUrl.trim().length - 1) === '*') {
-      tmpSearchUrl = baselineParams.searchUrl.substring(0, baselineParams.searchUrl.trim().length - 1);
+    if (tmpSearchUrl && tmpSearchUrl.trim().substr(tmpSearchUrl.trim().length - 1) === '*') {
+      tmpSearchUrl = tmpSearchUrl.substring(0, tmpSearchUrl.trim().length - 1);
     }
     // Then, decide what URL to filter on
     this.queryUrl = tmpSearchUrl || this.dl.replace('https://', '').replace('http://', '');
