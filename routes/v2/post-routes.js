@@ -84,9 +84,9 @@ function validateSchema(route, body) {
       days: joi.number().integer(),
       perc: joi.number().integer().max(100),
       padding: joi.number().min(1),
-      src: joi.string(),
-      aggField: joi.string(),
-      searchUrl: joi.string(),
+      src: joi.string().allow(''),
+      aggField: joi.string().allow(''),
+      searchUrl: joi.string().allow(''),
       incl: joi.object(),
       excl: joi.object()
     }),
@@ -151,7 +151,7 @@ function validateSchema(route, body) {
     }),
     injectjs: joi.object({
       injectType: joi.any().valid('navtiming', 'usertiming').required(),
-      visualCompleteMark: joi.string()
+      visualCompleteMark: joi.string().allow('')
     })
   };
 

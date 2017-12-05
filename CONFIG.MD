@@ -1,6 +1,14 @@
 # CONFIG
 
-Configuration of the WebService/API is done through the `/.config.js` file in the root folder of the app. If you installed the app with `npm i -g timings` you will find the file in the `{global node_modules}/timings` folder. On Linux systems, this is usually `/usr/lib/node_modules/timings/`
+Configuration of the WebService/API is done through a JavaScript based config file called `.config.js`. For your convenience, this repo includes a sample config file: `/.config_sample.js`.
+
+Depending on how you installed the API, your config file should be located here:
+
+|Installation|Location config file|Notes|
+|-|-|-|
+|git clone|`{clone path}/timings/.config.js`|folder created by the `git clone https://github.com/godaddy/timings.git` command|
+|npm global install|`{global node_modules}/timings/.config.js`|folder created by the `npm i -g timings` command|
+|docker-compose|`{clone path}/timings-docker/timings/config/.config.js`|folder created by the `git clone https://github.com/Verkurkie/timings-docker.git` command|
 
 If for some reason, the file is missing, you can copy the sample config from here:
 
@@ -10,38 +18,43 @@ If for some reason, the file is missing, you can copy the sample config from her
 
 const config = {
   NODE_ENV: process.env.NODE_ENV,
+  // Environment variables
   env: {
-    ES_HOST: '{elasticsearch host}',
-    ES_PORT: '{elasticsearch port}',
-    ES_PROTOCOL: "http|https",
-    ES_USER: '{username}',
-    ES_PASS: '{password}',
-    ES_SSL_CERT: '{cert_file.crt}',
-    ES_SSL_KEY: '{key_file.key},
-    KB_HOST: '{kibana host}',
-    HTTP_PORT: 80
+    ES_HOST: '{elasticsearch host}',   // Scheme used by the ElasticSearch server/cluster (default: "http")
+    ES_PORT: '{elasticsearch port}',   // Hostname of the ElasticSearch server/cluster (default: "localhost")
+    ES_PROTOCOL: "http|https",         // Scheme used by the ElasticSearch server/cluster (default: 9200)
+    ES_USER: '{username}',             // Username for Basic auth to ElasticSearch server/cluster (default: "")
+    ES_PASS: '{password}',             // Password for Basic auth to ElasticSearch server/cluster (default: "")
+    ES_SSL_CERT: '{cert_file.crt}',    // Path to cert file for SSL auth to ElasticSearch server/cluster (default: "")
+    ES_SSL_KEY: '{key_file.key}',      // Path to key file for SSL auth toElasticSearch server/cluster (default: "")
+    KB_HOST: '{kibana host}',          // Hostname of the Kibana server/cluster (default: -same as ES_HOST-)
+    KB_PORT: '{kibana port}',          // Scheme used by the ElasticSearch server/cluster (default: 5601)
+    HTTP_PORT: 80                      // Port of the API server (default: 80)
   },
+  // API parameters
   params: {
-    //Required and default parameters
+    // Array of REQUIRED LOG parameters (have to start with 'log.')
     required: ['log.test_info', 'log.env_tester', 'log.team', 'log.browser', 'log.env_target'],
+    // DEFAULT parameters (will be used if they are not provided in the client's POST body)
     defaults: {
-      baseline: {
-        days: 7,
-        perc: 75,
-        padding: 1.2
+      "baseline": {           // These settings are used to calculate the baseline
+        "days": 7,                     // Number of days to calculate the baseline for
+        "perc": 75,                    // Percentile to calculate
+        "padding": 1.2                 // Extra padding on top of the calculated baseline (gives some wiggle-room)
       },
-      flags: {
-        assertBaseline: true,
-        debug: false,
-        esTrace: false,
-        esCreate: true,
-        passOnFailedAssert: false
+      "flags": {              // These booleans determine the output and other actions to be performed
+        "assertBaseline": true,        // Whether or not to compare against baseline
+        "debug": false,                // Request extra debug info from the API
+        "esTrace": false,              // Request elasticsearch output from API
+        "esCreate": true,              // Save results to elasticsearch
+        "passOnFailedAssert": false    // Pass the test, even when the performance is above the threshold
       }
     }
   }
 }
 
 module.exports = config;
+
 
 ```
 

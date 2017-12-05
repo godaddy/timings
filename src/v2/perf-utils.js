@@ -167,7 +167,13 @@ class PUClass {
     const aggs = { baseline: { percentiles: { field: baselineAgg, percents: [baselineParams.perc] }}};
 
     // Check the URL
-    this.queryUrl = baselineParams.searchUrl || this.dl.replace('https://', '').replace('http://', '');
+    // First, remove the trailing '*' -> the Lucene parszer will automatically add it
+    let tmpSearchUrl = baselineParams.searchUrl;
+    if (baselineParams.searchUrl.trim().substr(baselineParams.searchUrl.trim().length - 1) === '*') {
+      tmpSearchUrl = baselineParams.searchUrl.substring(0, baselineParams.searchUrl.trim().length - 1);
+    }
+    // Then, decide what URL to filter on
+    this.queryUrl = tmpSearchUrl || this.dl.replace('https://', '').replace('http://', '');
 
     // Add the URL and the time range
     luceneParse.setSearchTerm(this.queryUrl);
