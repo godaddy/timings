@@ -378,7 +378,9 @@ class PUClass {
       returnJSON.esIndex = this.config.env.INDEX_PERF;
       returnJSON.esSaved = this.esSaved;
       returnJSON.resourceSaved = this.resourcesSaved;
-      returnJSON.esTrace = this.esTrace;
+      if (this.objParams.flags.esTrace === true) {
+        returnJSON.esTrace = this.esTrace;
+      }
     }
     if (this.objParams.flags.debug === true) {
       returnJSON.debugMsg = this.debugMsg;

@@ -18,8 +18,7 @@ const argv = yargs
     d: {
       alias: 'debug',
       boolean: true,
-      describe: 'enable console debugging',
-      default: false
+      describe: 'enable console debugging'
     },
     e: {
       alias: 'env',
@@ -65,8 +64,7 @@ const argv = yargs
     },
     p: {
       alias: 'http',
-      describe: 'HTTP Port',
-      default: 80
+      describe: 'HTTP Port'
     }
   })
   .strict()
@@ -77,7 +75,7 @@ if (!config.env) config.env = {};
 config.env.APP_NAME = pkg.name;
 config.env.APP_VERSION = pkg.version;
 config.env.NODE_ENV = argv.env;
-config.env.DEBUG = argv.debug;
+config.env.DEBUG = argv.debug || config.env.DEBUG || process.env.DEBUG || false;
 config.env.HOST = os.hostname();
 config.env.HTTP_PORT = argv.http || config.env.HTTP_PORT || process.env.HTTP_PORT || 80;
 // config.env.HTTP_PORT = argv.http;

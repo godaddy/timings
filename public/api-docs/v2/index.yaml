@@ -1,13 +1,13 @@
 ---
 swagger: "2.0"
 info:
-  title: "timings"
+  title: "timings API"
   description: "API that processes & asserts performance data from functional tests"
   license: 
     name: "MIT"
     url: "https://github.com/godaddy/timings/blob/master/LICENSE"
 externalDocs: 
-  description: "find more info here"
+  description: "https://github.com/godaddy/timings"
   url: "https://github.com/godaddy/timings"
 consumes:
   - application/json

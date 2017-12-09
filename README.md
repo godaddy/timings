@@ -1,3 +1,9 @@
+# <span style="color:red;">**IMPORTANT NOTICE:**</span>  
+## <span style="color:red;">**A recent update to the API (v1.1.0+) requires a significant update to the elasticsearch/kibana setup. After updating, you should run the `./upgrade/import.py` script**</span>
+
+## <span style="color:red;">More info: [https://github.com/Verkurkie/timings-docker/blob/master/README.md#the-import-script](https://github.com/Verkurkie/timings-docker/blob/master/README.md#the-import-script)</span>
+<hr>
+
 # TIMINGS API
 
 The timings API can be used in CI/CD pipelines for the asserting of **web UI or API performance** during functional/integration tests!
@@ -28,11 +34,9 @@ Enjoy!
 
 * [The API](#the-api)
 
-  * [Installing the API](#installing-the-api)
+  * [Installing and running the API](#installing-and-running-the-api)
 
   * [Installing Elasticsearch/Kibana](#installing-elasticsearch-and-kibana)
-
-  * [Starting the API](#starting-the-api)
 
 * [The clients](#the-clients)
 
@@ -68,51 +72,51 @@ Enjoy!
 
 ## **The API**
 
-This API is based on nodejs/express and can be installed on both Windows and Linux Operating systems. Linux is highly recommended but of course, the choice is yours! Following are some recommendations for the system:
+The timings API is a node/express based API the uses ElasticSearch and Kibana (we'll call that "ELK") to store & visualize data. The idea behind the API is to submit/validate/store/assert performance measurements as part of regular functional test cycles. The API can be run in various ways (see below) and it _can_ be run without ELK although that is not recommended (you loose a lot of the goodies!). You can run ELK yourself or you can make use of the convenient [timings-docker](https://github.com/Verkurkie/timings-docker) repo!
+
+The API can be installed on both Windows and Linux Operating systems. Linux is highly recommended but of course, the choice is yours! Following are some system recommendations:
 
 * **Enterprise Linux, 64-bit** [recommended]
 * **Windows Server 2012+, 64-bit**
 * **nodejs + npm (version 8+)** - see [here](https://nodejs.org/en/download/package-manager/)
 * **git** - see [here](https://git-scm.com/downloads)
 
-There are different ways to install this API. You can clone it from github and run `npm install`, you can insttall it globally from the NPM registry, or you can pull the Docker image.
+### **Installing and running the API**
 
-### Installing the API
+There are different ways to install/run the API. The recommended method is to use **docker-compose** as it will include ELK! You can also clone it from github and run with `node` from inside the cloned directory, or you can install it **globally** with `npm i -g` (from the public NPM registry), or you can build/pull/run a stand-alone Docker container. Below are the different install & run commands for each:
 
-#### Option 1 - Clone from github
+|Method|Install command(s)|Startup command(s)|Location of `.config.js` file|
+|-|-|-|-|
+|**docker-compose**|`git clone https://github.com/verkurkie/timings-docker`|`cd timings-docker`<br>`docker-compose up`|`{clone path}/timings-docker/timings/config/.config.js`<br>For more info, check the repo here: [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)|
+|**Github clone**|`git clone https://www.github.com/godaddy/timings.git`<br>`cd timings`<br>`npm i`|`node ./server.js [arguments]`|`{clone path}/timings/.config.js`|
+|**NPM install**|`npm install -g timings`|`timings [arguments]`|`{global node_modules}/timings/.config.js`|
+|**Docker (stand-alone)**|`docker pull mverkerk/timings:{version}`|`docker run -d -v {path to config}:/src/.config.js -p {VM_port}:{Host_port} mverkerk/timings:{version}`|Your config file can be stored anywhere you want. Use the `-v` argument to mount the config file in the container.<br>`{path to config}` = the **absolute** path to your `.config.js` file<br>`{VM_port}` = the listening port of the API server inside the container<br>`{Host_port}` = the port that you want the **docker host** to listen on. This is the port used to connect to the API!!<br>`{version}` = the desired version of the timings API. You can also use `"latest"`|
 
-Install the API directly from the NPM repository by running:
+#### **Command line arguments**
 
-```shell
-$ git clone https://www.github.com/godaddy/timings.git
-$ cd timings
-$ npm i
-...
-```
+Please review & edit the main config file as described in [CONFIG.MD](CONFIG.MD) before starting the server!
 
-#### Option 2 - NPM install (global)
+The server takes the following arguments:
 
-Install the API directly from the NPM repository by running:
+|Switch|Alias|Description|Config file equivalent|Default value|Notes|
+|-|-|-|-|-|-|
+|`-h`|`--help`|Shows the help text|-none-
+|`-d`|`--debug`|Enable console debugging|`env.DEBUG`|`false`|Shows extra output from the server|
+|`-e`|`--env`|specify runtime environment|`NODE_ENV`|`local`|Valid options: `local`, `dev`, `test`, `prod`|
+|`-f`|`--eshost`|The elasticsearch host|`env.ES_HOST`||Provide the full FQDN!<br>Will copy value from `kbhost` if not specified!|
+|`-g`|`--esport`|The elasticsearch port|`env.ES_PORT`|`9200`|
+||`--esprotocol`|The protocol of the elasticsearch server|`env.ES_PROTOCOL`|`http`|Valid options: `http` or `https`|
+||`--esuser`|Username for elasticsearch Basic auth|`env.ES_USER`||
+||`--espasswd`|Password for elasticsearch Basic auth|`env.ES_PASS`|
+||`--es_ssl_cert`|Path to the SSL **cert** for elasticsearch server SSL auth|`env.ES_SSL_CERT`|
+||`--es_ssl_key`|Path to the SSL **key** for elasticsearch server SSL auth|`env.ES_SSL_KEY`|
+|`-k`|`--kbhost`|The Kibana host|`env.KB_HOST`||Provide the full FQDN!<br>Will copy value from `eshost` if not specified!|
+|`-l`|`--kbport`|The Kibana port|`env.KB_PORT`|`5601`|
+|`-p`|`--http`|The timings API server port|`env.HTTP_PORT`|`80`|
 
-```shell
-$ npm install -g timings
-...
-```
+NOTE: most of these can also be specified in your config file (`.config.js`). See [CONFIG.MD](CONFIG.MD) for more info.
 
-(You may need Adminstrator/root rights.)
-
-#### Option 3 - Using Docker
-
-The API is also available as a docker container! You can pull the image with the following command:
-
-```shell
-$ docker pull mverkerk/timings
-...
-```
-
-You can also find a complete `docker-compose` based setup (incl. Elasticsearch and Kibana) here: [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
-
-### Installing Elasticsearch and Kibana
+### **Installing Elasticsearch and Kibana**
 
 <span style="color:red">**IMPORTANT:**</span> If you want to use Elasticsearch and Kibana, you **have** to point the API to their respective hostnames! You can do this in **one** of the following ways (in this order of priority):
 
@@ -129,87 +133,16 @@ Or you can run the entire environment with `docker-compose` using [https://githu
 
 To setup Kibana for the timings API, please follow the steps described in [Import Kibana assets](https://github.com/Verkurkie/timings-docker/blob/master/README.md#step-4-import-kibana-assets)
 
-### Starting the API
-
-There are different options to run the API: stand-alone, with/without elasticsearch/kibana, with a process manager, as a docker container, or using docker-compose. All of these options support the API's arguments list below.
-
-#### API arguments
-
-Please review & edit the main config file as described in [CONFIG.MD](CONFIG.MD) before starting the server!
-
-The startup command accepts following arguments:
-
-```shell
-$ timings --help
-Options:
-  -h, --help     Show help                                             [boolean]
-  -d, --debug    enable console debugging             [boolean] [default: false]
-  -e, --env      specify runtime environment
-                    [choices: "local", "dev", "test", "prod"] [default: "local"]
-  -f, --eshost   specify the elasticsearch host
-  -g, --esport   specify the elasticsearch port
-  --esprotocol   The protocol of the elasticsearch server      [default: "http"]
-  --esuser       The user for elasticsearch server auth
-  --espasswd     The password for elasticsearch server auth
-  --es_ssl_cert  Path to the SSL cert for elasticsearch server auth
-  --es_ssl_key   Path to the SSL key for elasticsearch server auth
-  -k, --kbhost   specify the kibana host
-  -l, --kbport   specify the kibana port
-  --watch        watch local build                    [boolean] [default: false]
-  -p, --http     HTTP Port                                         [default: 80]
-```
-
-#### Running from the command line
-
-Assuming you have installed the API with the `global` option, you can start it by running:
-
-```shell
-$ timings -f {elasticsearch host} -k {kibana host} [other arguments]
-debug: SUCCESS! ElasticSearch cluster for [localhost] is alive!)
-debug: Index [timings-perf] exists: true
-debug: Template [timings-perf] exists/created: true
-...
-```
-
-#### Using a process manager
-
-We recommend running the API with a process manager such as `pm2`. Example:
-
-```shell
-$ pm2 start timings -- -f {elasticsearch host} -k {kibana host} [other arguments]
-info: SUCCESS! ElasticSearch cluster for [CICD] is alive! Host: localhost
-info: Index [timings-perf] exists: true
-info: TIMINGS API [local] is running on port 80
-...
-```
-
-#### Running with Docker
-
-Or to run the API with Docker:
-
-```shell
-$ docker run -e "ES_HOST={elasticsearch host}" -e "KB_HOST={kibana host}" -p 80:80 mverkerk/timings:latest
-npm info it worked if it ends with ok
-npm info using npm@5.3.0
-npm info using node@v8.4.0
-npm info lifecycle timings@1.0.0~prestart: timings@1.0.0
-...
-```
-
-#### Running with Docker-Compose
-
-You can find a complete `docker-compose` based setup (incl. Elasticsearch and Kibana) here: [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
-
 ## **THE CLIENTS**
 
 To help you on your way from the client-side (your Selenium test script), you can install the API clients as follows:
 
 |Language|Install|Readme|
 |-|-|-|
-|JavaScript|`npm install --save-dev timings-client-js`|[https://github.com/godaddy/timings-client-js](https://github.com/godaddy/timings-client-js)|
-|Python|`pip install timingsclient`|[https://github.com/godaddy/timings-client-py](https://github.com/godaddy/timings-client-py)|
+|JavaScript|`npm install --save-dev timings-client-js`|[https://github.com/godaddy/timings-client-js/blob/master/README.md](https://github.com/godaddy/timings-client-js/blob/master/README.md)|
+|Python|`pip install timingsclient`|[https://github.com/godaddy/timings-client-py/blob/master/README.md](https://github.com/godaddy/timings-client-py/blob/master/README.md)|
+|Java|IntelliJ: import as maven project<br>Java Project: build/publish with `mvn` or add to your maven POM|[https://github.com/kaygee/timings-client/blob/master/README.md](https://github.com/kaygee/timings-client/blob/master/README.md)|
 |Ruby|Coming soon!||
-|Java|Coming soon!||
 
 ### Using the API without clients
 

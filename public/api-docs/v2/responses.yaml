@@ -1,36 +1,51 @@
 healthresponse:
   required:
-    - env
-    - app
-    - elastic
+    - server
+    - es
+    - kibana
   properties:
-    env:
+    server:
       type: "object"
-    app:
+      properties:
+        host:
+          type: "string"
+          example: "localhost"
+        version:
+          type: "string"
+          example: "1.0.9"
+        NODE_ENV:
+          type: "string"
+          example: "local"
+        useES:
+          type: "boolean"
+          example: true
+    es:
       type: "object"
-    elastic:
+      properties:
+        HOST:
+          type: "string"
+          example: "localhost"
+        PORT:
+          type: "integer"
+          example: 9200
+        INDEX_PERF:
+          type: "string"
+          example: "cicd-perf"
+        INDEX_RES:
+          type: "string"
+          example: "cicd-resource"
+        INDEX_ERR:
+          type: "string"
+          example: "cicd-errorlog"
+    kibana:
       type: "object"
-  example:
-    {
-        "api": {
-            "HTTP_PORT": 3000,
-            "APP_NAME": "TIMINGS API",
-            "APP_VERSION": "2.0.3",
-            "NODE_ENV": "local"
-        },
-        "es": {
-            "status": "status ok",
-            "HOST": "localhost",
-            "PORT": 9200,
-            "INDEX_PERF": "cicd-perf",
-            "INDEX_RES": "cicd-resources",
-            "INDEX_ERR": "cicd-errorlog"
-        },
-        "kibana": {
-            "HOST": "localhost",
-            "PORT": 5601
-        }
-    }
+      properties:
+        HOST:
+          type: "string"
+          example: "localhost"
+        PORT:
+          type: "integer"
+          example: 9200
 
 injectResponse:
   required:
