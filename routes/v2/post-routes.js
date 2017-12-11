@@ -99,20 +99,29 @@ function validateSchema(route, body) {
     }),
     log: joi.object({
       team: joi.string(),
-      browser: joi.string(),
-      env_tester: joi.string(),
-      env_target: joi.string(),
-      test_info: joi.string()
-    }).pattern(/[a-zA-Z0-9]{3,}/, joi.string())
+      browser: joi.string()
+    }).pattern(/[a-zA-Z0-9]{3,}/, joi.string()).required()
   });
 
   // Get the required 'log' parameters from main config
+  const logObj = {
+    team: joi.string(),
+    browser: joi.string()
+  };
   const reqLogs = config.params.required;
-  let requiredSchema = baseSchema;
   if (reqLogs.length > 0) {
-    reqLogs.push('log');
-    requiredSchema = baseSchema.requiredKeys(reqLogs);
+    // reqLogs.push('log');
+    for (let index of Object.keys(reqLogs)) {
+      let requiredLog = reqLogs[index];
+      if (requiredLog.indexOf('log.') === 0) {
+        logObj[requiredLog.substring(4)] = joi.string();
+      }
+    }
   }
+
+  const requiredSchema = baseSchema.keys({
+    log: joi.object(logObj).pattern(/[a-zA-Z0-9]{3,}/, joi.string()).required()
+  });
 
   // Add route specific entries
   const extendedSchema = {

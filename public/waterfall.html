@@ -207,8 +207,15 @@
                     $('#title tbody>tr:nth-child(3)>td:nth-child(1)').text(entry.dl);
                     $('#title tbody>tr:nth-child(3)>td:nth-child(2)').text(new Date(entry['@timestamp']).toLocaleString());
                     $('#title tbody>tr:nth-child(3)>td:nth-child(3)').text(entry.log.team.toUpperCase());
-                    $('#title tbody>tr:nth-child(3)>td:nth-child(4)').text(entry.log.env_tester.toUpperCase());
-                    $('#title tbody>tr:nth-child(3)>td:nth-child(5)').text(entry.log.env_target.toUpperCase());
+                    // Below is for GoDaddy compatibility
+                    var tester = '-field not used-';
+                    var target = '-field not used-';
+                    if ( (entry.log.hasOwnProperty('env_tester') || entry.log.hasOwnProperty('platform')) && (entry.log.hasOwnProperty('env_target') || entry.log.hasOwnProperty('environment')) ) {
+                        var tester = ('env_tester' in entry.log) ? entry.log.env_tester.toUpperCase() : entry.log.platform.toUpperCase();
+                        var target = ('env_target' in entry.log) ? entry.log.env_target.toUpperCase() : entry.log.environment.toUpperCase();
+                    }
+                    $('#title tbody>tr:nth-child(3)>td:nth-child(4)').text(tester);
+                    $('#title tbody>tr:nth-child(3)>td:nth-child(5)').text(target);
 
                     $('#info tbody>tr:nth-child(2)>td:nth-child(1)').text(entry.info.assertMetric || 'n/a');
                     $('#info tbody>tr:nth-child(1)>td:nth-child(2)').html('<strong>Measured ' + (entry.info.assertMetric || '') + '</strong>');

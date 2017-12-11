@@ -419,7 +419,7 @@ class PUClass {
     const body = { query: query, size: 1000 };
 
     try {
-      const response = await this.es.search(this.config.env.INDEX_PERF + '*', '', body);
+      const response = await this.es.search([this.config.env.INDEX_PERF + '*', this.config.env.INDEX_RES + '*'], '', body);
       // Strip the meta-data from the hits
       const hits = response.hits.hits;
       const resources = [];
@@ -555,7 +555,7 @@ class PUClass {
       body.client_ua = req.headers['user-agent'] || 'Unknown user-agent';
       const reqBody = req.body;
       body['@timestamp'] = body.et;
-      const indexDay = new Date(body.et).toISOString().slice(0,10).replace(/-/g, '.');
+      const indexDay = new Date(body.et).toISOString().slice(0, 10).replace(/-/g, '.');
 
       if (typeof (reqBody) === 'object') {
 
@@ -570,7 +570,7 @@ class PUClass {
         }
       }
 
-      // Add ERROR message and status        
+      // Add ERROR message and status
       body.err_message = err.message ? err.message : 'Missing or Unknown message';
       body.err_status = err.status ? err.status : 400;
 
