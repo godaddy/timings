@@ -1,7 +1,7 @@
-# <span style="color:red;">**IMPORTANT NOTICE:**</span>  
-## <span style="color:red;">**A recent update to the API (v1.1.0+) requires a significant update to the elasticsearch/kibana setup. After updating, you should run the `./upgrade/import.py` script**</span>
+# **IMPORTANT NOTICE:**
+## **A recent update to the API (v1.1.0+) requires a significant update to the elasticsearch/kibana setup. After upgrading the API, you should run the `./upgrade/import.py` script to update the Kibana dashboards, visualizations, etc.**
 
-## <span style="color:red;">More info: [https://github.com/Verkurkie/timings-docker/blob/master/README.md#the-import-script](https://github.com/Verkurkie/timings-docker/blob/master/README.md#the-import-script)</span>
+## More info: [Updating the API](#updating-the-api)
 <hr>
 
 # TIMINGS API
@@ -34,7 +34,9 @@ Enjoy!
 
 * [The API](#the-api)
 
-  * [Installing and running the API](#installing-and-running-the-api)
+  * [Installing, running and upgrading the API](#installing-running-and-upgrading-the-api)
+
+  * [Updating the API](#updating-the-api)
 
   * [Installing Elasticsearch/Kibana](#installing-elasticsearch-and-kibana)
 
@@ -81,16 +83,16 @@ The API can be installed on both Windows and Linux Operating systems. Linux is h
 * **nodejs + npm (version 8+)** - see [here](https://nodejs.org/en/download/package-manager/)
 * **git** - see [here](https://git-scm.com/downloads)
 
-### **Installing and running the API**
+### **Installing, running and upgrading the API**
 
-There are different ways to install/run the API. The recommended method is to use **docker-compose** as it will include ELK! You can also clone it from github and run with `node` from inside the cloned directory, or you can install it **globally** with `npm i -g` (from the public NPM registry), or you can build/pull/run a stand-alone Docker container. Below are the different install & run commands for each:
+There are different ways to install/run the API. The recommended method is to use the **docker-compose** method as it includes ELK! You can also clone it from github and run with `node` from inside the cloned directory, or you can install it **globally** with `npm i -g` (from the public NPM registry), or you can build/pull/run a stand-alone Docker container. Below are the different install, startup and upgrade commands for each:
 
-|Method|Install command(s)|Startup command(s)|Location of `.config.js` file|
-|-|-|-|-|
-|**docker-compose**|`git clone https://github.com/verkurkie/timings-docker`|`cd timings-docker`<br>`docker-compose up`|`{clone path}/timings-docker/timings/config/.config.js`<br>For more info, check the repo here: [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)|
-|**Github clone**|`git clone https://www.github.com/godaddy/timings.git`<br>`cd timings`<br>`npm i`|`node ./server.js [arguments]`|`{clone path}/timings/.config.js`|
-|**NPM install**|`npm install -g timings`|`timings [arguments]`|`{global node_modules}/timings/.config.js`|
-|**Docker (stand-alone)**|`docker pull mverkerk/timings:{version}`|`docker run -d -v {path to config}:/src/.config.js -p {VM_port}:{Host_port} mverkerk/timings:{version}`|Your config file can be stored anywhere you want. Use the `-v` argument to mount the config file in the container.<br>`{path to config}` = the **absolute** path to your `.config.js` file<br>`{VM_port}` = the listening port of the API server inside the container<br>`{Host_port}` = the port that you want the **docker host** to listen on. This is the port used to connect to the API!!<br>`{version}` = the desired version of the timings API. You can also use `"latest"`|
+Method|Install|Startup|Upgrade|Location of `.config.js` file
+---|---|---|---|---
+**docker-compose**|`git clone https://github.com/verkurkie/timings-docker`|`cd timings-docker`<br>`docker-compose up`|`git pull`<br>`docker-compose up --build`|`{clone path}/timings-docker/timings/config/.config.js`<br>For more info, check the repo here: [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
+**Github clone**|`git clone https://www.github.com/godaddy/timings.git`<br>`cd timings`<br>`npm i`|`node ./server.js [arguments]`|`git pull`|`{clone path}/timings/.config.js`
+**NPM install**|`npm install -g timings`|`timings [arguments]`|`npm update -g timings`|`{global node_modules}/timings/.config.js`
+**Docker (stand-alone)**|`docker pull mverkerk/timings:{version}`|`docker run -d -v {path to config}:/src/.config.js -p {VM_port}:{Host_port} mverkerk/timings:{version}`|`n/a`|Your config file can be stored anywhere you want. Use the `-v` argument to mount the config file in the container.<br>`{path to config}` = the **absolute** path to your `.config.js` file<br>`{VM_port}` = the listening port of the API server inside the container<br>`{Host_port}` = the port that you want the **docker host** to listen on. This is the port used to connect to the API!!<br>`{version}` = the desired version of the timings API. You can also use `"latest"`
 
 #### **Command line arguments**
 
@@ -115,6 +117,48 @@ The server takes the following arguments:
 |`-p`|`--http`|The timings API server port|`env.HTTP_PORT`|`80`|
 
 NOTE: most of these can also be specified in your config file (`.config.js`). See [CONFIG.MD](CONFIG.MD) for more info.
+
+### **Updating the API**
+
+In certain rare cases, it may be necessary to update the back-end elasticsearch/kibana setup. For this purpose, you can use the `./upgrade/import.py` script. Run this script as follows (incl. all three full FQDN hostnames!):
+
+```shell
+$ python elasticsearch/import/import.py --apihost [APIHOST] --eshost [ELASTICSEARCH HOST] --kbhost [KIBANA HOST]
+```
+
+**IMPORTANT**: it is particularly important that you **specify the full hostname of the API server** using the `--apihost` argument! If you don not do this, the script will assume `localhost` and the waterfall links will not work for remote users!!
+
+If elasticsearch is running on a remote server/cluster, you may have to specify the scheme, full hostname and port using the `--esprotocol`, `--eshost`, and `--esport` arguments!
+
+The script supports Basic authentication to the elasticsearch server. Please use `--esuser` and `--espasswd` if required.
+
+Use the `--help` argument to review all of the script's arguments:
+
+```shell
+$ python ./import.py --help
+usage: import.py [-h] [--apihost APIHOST] [--apiport APIPORT]
+                 [--esprotocol ESPROTOCOL] [--eshost ESHOST] [--esport ESPORT]
+                 [--esuser ESUSER] [--espasswd ESPASSWD] [--kbindex KBINDEX]
+                 [--kbhost KBHOST] [--kbport KBPORT] [--replace REPLACE]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --apihost APIHOST     full hostname or IP address of the timings server
+                        (default=localhost)
+  --apiport APIPORT     port of the timings server (default=80)
+  --esprotocol ESPROTOCOL
+                        scheme used by the elasticsearch server (default=http)
+  --eshost ESHOST       full hostname or IP address of the elasticsearch
+                        server (default=localhost)
+  --esport ESPORT       port of the elasticsearch server (default=9200)
+  --esuser ESUSER       username for elasticsearch - if required
+  --espasswd ESPASSWD   The password for elasticsearch - if required
+  --kbindex KBINDEX     the kibana index (default=.kibana)
+  --kbhost KBHOST       full hostname or IP address of the kibana server
+                        (default=localhost)
+  --kbport KBPORT       port of the kibana server (default=5601)
+  --replace REPLACE     replace `TIMINGS` with this string
+```
 
 ### **Installing Elasticsearch and Kibana**
 
