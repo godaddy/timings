@@ -89,10 +89,10 @@ There are different ways to install/run the API. The recommended method is to us
 
 Method|Install|Startup|Upgrade|Location of `.config.js` file
 ---|---|---|---|---
-**docker-compose**|`git clone https://github.com/verkurkie/timings-docker`|`cd timings-docker`<br>`docker-compose up`|`git pull`<br>`docker-compose up --build`|`{clone path}/timings-docker/timings/config/.config.js`<br>For more info, check the repo here: [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
-**Github clone**|`git clone https://www.github.com/godaddy/timings.git`<br>`cd timings`<br>`npm i`|`node ./server.js [arguments]`|`git pull`|`{clone path}/timings/.config.js`
-**NPM install**|`npm install -g timings`|`timings [arguments]`|`npm update -g timings`|`{global node_modules}/timings/.config.js`
-**Docker (stand-alone)**|`docker pull mverkerk/timings:{version}`|`docker run -d -v {path to config}:/src/.config.js -p {VM_port}:{Host_port} mverkerk/timings:{version}`|`n/a`|Your config file can be stored anywhere you want. Use the `-v` argument to mount the config file in the container.<br>`{path to config}` = the **absolute** path to your `.config.js` file<br>`{VM_port}` = the listening port of the API server inside the container<br>`{Host_port}` = the port that you want the **docker host** to listen on. This is the port used to connect to the API!!<br>`{version}` = the desired version of the timings API. You can also use `"latest"`
+**docker-compose**|`$ git clone https://github.com/verkurkie/timings-docker`|`$ cd timings-docker`<br>`$ docker-compose up`|`$ git pull`<br>`$ docker-compose up --build`|`{clone path}/timings-docker/timings/config/.config.js`<br>For more info, check the repo here: [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
+**Github clone**|`$ git clone https://www.github.com/godaddy/timings.git`<br>`$ cd timings`<br>`$ npm i`|`$ node ./server.js [arguments]`|`$ git pull`|`{clone path}/timings/.config.js`
+**NPM install**|`$ npm install -g timings`|`$ timings [arguments]`|`$ npm update -g timings`|`{global node_modules}/timings/.config.js`
+**Docker (stand-alone)**|`$ docker pull mverkerk/timings:{version}`|`$ docker run -d -v {path to config}:/src/.config.js -p {VM_port}:{Host_port} mverkerk/timings:{version}`|`n/a`|Your config file can be stored anywhere you want. Use the `-v` argument to mount the config file in the container.<br>`{path to config}` = the **absolute** path to your `.config.js` file<br>`{VM_port}` = the listening port of the API server inside the container<br>`{Host_port}` = the port that you want the **docker host** to listen on. This is the port used to connect to the API!!<br>`{version}` = the desired version of the timings API. You can also use `"latest"`
 
 #### **Command line arguments**
 
