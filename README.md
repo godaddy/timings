@@ -140,7 +140,7 @@ Config|Your config file can be stored anywhere you want. Use the `-v` argument t
 In certain rare cases, it may be necessary to update the back-end elasticsearch/kibana setup. For this purpose, you can use the `./upgrade/import.py` script. Run this script as follows (incl. all three full FQDN hostnames!):
 
 ```shell
-$ python elasticsearch/import/import.py --apihost [APIHOST] --eshost [ELASTICSEARCH HOST] --kbhost [KIBANA HOST]
+$ python ./upgrade/import.py --apihost [APIHOST] --eshost [ELASTICSEARCH HOST] --kbhost [KIBANA HOST]
 ```
 
 **IMPORTANT**: it is particularly important that you **specify the full hostname of the API server** using the `--apihost` argument! If you don not do this, the script will assume `localhost` and the waterfall links will not work for remote users!!
@@ -152,7 +152,7 @@ The script supports Basic authentication to the elasticsearch server. Please use
 Use the `--help` argument to review all of the script's arguments:
 
 ```shell
-$ python ./import.py --help
+$ python ./upgrade/import.py --help
 usage: import.py [-h] [--apihost APIHOST] [--apiport APIPORT]
                  [--esprotocol ESPROTOCOL] [--eshost ESHOST] [--esport ESPORT]
                  [--esuser ESUSER] [--espasswd ESPASSWD] [--kbindex KBINDEX]
@@ -181,10 +181,10 @@ optional arguments:
 
 <span style="color:red">**IMPORTANT:**</span> If you want to use Elasticsearch and Kibana, you **have** to point the API to their respective hostnames! You can do this in **one** of the following ways (ENV vars take priority!):
 
-1. Use the correct keys (`ES_PROTOCOL`, `ES_HOST`, `ES_PORT`, `KB_HOST` and `KB_PORT`) in the `env` object of your config file. See [CONFIG.MD](CONFIG.MD).
-1. Setting Environment Variables (vars: `ES_PROTOCOL`, `ES_HOST`, `ES_PORT`, `KB_HOST` and `KB_PORT`)
+1. Use the correct keys in the `env` object of your config file. See [CONFIG.MD](CONFIG.MD).
+1. Setting Environment Variables for `ES_PROTOCOL`, `ES_HOST`, `ES_PORT`, `KB_HOST` and `KB_PORT`
 
-- **The API now support Basic Authentication and SSL cert/key authentication to elasticsearch!**
+- **The API supports authentication for elasticsearch!**
   - use `ES_USER` and `ES_PASS` for Basic Auth
   - use `ES_SSL_CERT` and `ES_SSL_KEY` for SSL Auth
   - **NOTE:** If both are provided, SSL auth will be used!
@@ -216,7 +216,7 @@ To make this happen, test scripts will have to make two WS calls:
 
 * Call [`/v2/api/cicd/injectjs`](#post-v2apicicdinjectjs)
   * This method will return a url-encoded string containing JavaScript code
-  * This code needs to be injected into webdriver (or equivalent) after **every** page load / user action!
+  * This code needs to be injected into webdriver after **every** page load / user action!
   * The browser will return an object that becomes input for the second call (as the the injectJS parameter) …
 * Call [`/v2/api/cicd/navtiming`](#post-v2apicicdnavtiming) or [`/v2/api/cicd/usertiming`](#post-v2apicicdusertiming)
   * navtiming is used for "full page loads"

@@ -1,3 +1,4 @@
+const fs = require('fs');
 var winston = require('winston');
 winston.emitErrs = true;
 
@@ -21,6 +22,10 @@ var logger = new winston.Logger({
   ],
   exitOnError: false
 });
+
+if (!fs.existsSync('./logs/')) {
+  fs.mkdirSync('logs')
+}
 
 var accessLog = new winston.Logger({
   transports: [
