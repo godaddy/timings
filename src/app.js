@@ -2,17 +2,8 @@
 const path = require('path');
 const express = require('express');
 const logger = require('../log.js');
-// const expressWinston = require('express-winston');
 const cookieParser = require('cookie-parser');
 const pjson = require('../package.json');
-
-try {
-  require.resolve('../.config.js');
-} catch (err) {
-  logger.error('Config file [./.config.js] not found. Please create config file!\n' +
-  'You can copy & edit the sample from: https://www.github.com/godaddy/timings/blob/master/CONFIG.MD\n');
-  throw err;
-}
 
 const app = express();
 

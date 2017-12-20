@@ -6,7 +6,8 @@ const express = require('express');
 // eslint-disable-next-line new-cap
 const router = express.Router();
 const path = require('path');
-const config = require('../../.config.js');
+// const config = require('../../.config.js');
+const nconf = require('nconf');
 
 const htmlDir = path.join(__dirname, '../../public/');
 
@@ -34,24 +35,26 @@ router.get('/v2/api/cicd/health*', function (req, res) {
 function health() {
   const ret = {
     server: {
-      host: config.env.HOST + ':' + config.env.HTTP_PORT,
-      version: config.env.APP_VERSION,
-      NODE_ENV: config.env.NODE_ENV,
-      useES: config.params.useES
+      APP_HOST: nconf.get('env:HOST') + ':' + nconf.get('env:HTTP_PORT'),
+      APP_NAME: nconf.get('env:APP_NAME'),
+      APP_VERSION: nconf.get('env:APP_VERSION'),
+      APP_CONFIG: nconf.get('env:APP_CONFIG'),
+      NODE_ENV: nconf.get('env:NODE_ENV'),
+      useES: nconf.get('env:useES')
     }
   };
 
-  if (config.params.useES === true) {
+  if (nconf.get('env:useES') === true) {
     ret.es = {
-      HOST: config.env.ES_HOST || 'Not set!',
-      PORT: config.env.ES_PORT || 'Not set!',
-      INDEX_PERF: config.env.INDEX_PERF || 'Not set!',
-      INDEX_RES: config.env.INDEX_RES || 'Not set!',
-      INDEX_ERR: config.env.INDEX_ERR || 'Not set!'
+      HOST: nconf.get('env:ES_HOST') || 'Not set!',
+      PORT: nconf.get('env:ES_PORT') || 'Not set!',
+      INDEX_PERF: nconf.get('env:INDEX_PERF') || 'Not set!',
+      INDEX_RES: nconf.get('env:INDEX_RES') || 'Not set!',
+      INDEX_ERR: nconf.get('env:INDEX_ERR') || 'Not set!'
     };
     ret.kibana = {
-      HOST: config.env.KB_HOST,
-      PORT: config.env.KB_PORT
+      HOST: nconf.get('env:KB_HOST'),
+      PORT: nconf.get('env:KB_PORT')
     };
   }
 

@@ -3,7 +3,7 @@
  */
 const url = require('url'); // Used in usertimings method only
 // const logger = require('../../log.js');
-const config = require('../../.config.js');
+const nconf = require('nconf');
 const luceneParse = require('lucene-parser');
 const uuidv4 = require('uuid/v4');
 const esUtils = require('./es-utils.js');
@@ -13,7 +13,8 @@ class PUClass {
     this.body = body;
     this.route = route.replace('/', '');
     this.es = new esUtils.ESClass();
-    this.config = config;
+    this.env = nconf.get('env');
+    this.defaults = nconf.get('params:defaults');
     // this.logger = logger;
     this.debugMsg = [];
     this.esTrace = [];
@@ -21,8 +22,7 @@ class PUClass {
     this.errorMsg = [];
     this.dl = '';
     this.timing = {};
-    this.objParams = this.mergeDeep({}, config.params.defaults, body);
-    this.defaults = config.params.defaults;
+    this.objParams = this.mergeDeep({}, this.defaults, body);
     if (body.hasOwnProperty('sla')) {
       this.assertMetric = Object.keys(body.sla)[0] || '';
       this.assertSLA = body.sla[this.assertMetric] || '';
@@ -42,12 +42,12 @@ class PUClass {
       // Call the correct timing function based on the route
       this.measuredPerf = this[this.route]();
       // Run baseline
-      if (this.config.params.useES === true) {
+      if (this.env.useES === true) {
         const blQuery = this.buildBaselineQuery();
-        this.esTrace.push({ type: 'ES_SEARCH', host: this.config.env.ES_HOST,
-          index: this.config.env.INDEX_PERF + '*/' + this.route, search_query: blQuery
+        this.esTrace.push({ type: 'ES_SEARCH', host: this.env.ES_HOST,
+          index: this.env.INDEX_PERF + '*/' + this.route, search_query: blQuery
         });
-        const response = await this.es.search(this.config.env.INDEX_PERF + '*', this.route, blQuery);
+        const response = await this.es.search(this.env.INDEX_PERF + '*', this.route, blQuery);
         this.esTrace.push({ type: 'ES_RESPONSE', response: response });
         this.es_took = response.took;
         this.baseline = this.checkBaseline(response);
@@ -58,9 +58,9 @@ class PUClass {
       const exportData = this.createExportData();
       const indexDay = new Date(exportData.et).toISOString().slice(0, 10).replace(/-/g, '.');
       // Store results in ES
-      if (this.config.params.useES === true && this.objParams.flags.esCreate === true) {
+      if (this.env.useES === true && this.objParams.flags.esCreate === true) {
         this.esTrace.push({ type: 'ES_CREATE', exportData });
-        this.esSaved = await this.es.index(this.config.env.INDEX_PERF + '-' + indexDay, this.route, exportData);
+        this.esSaved = await this.es.index(this.env.INDEX_PERF + '-' + indexDay, this.route, exportData);
         if (this.esSaved && this.route === 'navtiming') {
           const resBody = this.getResourcesBody(exportData['@_uuid']);
           this.resourcesSaved = await this.es.bulk(resBody);
@@ -295,6 +295,22 @@ class PUClass {
   // STORE & RESPONSE //
   createExportData() {
     const exportData = {};
+    // Get the main timestamp
+    let et = new Date().toISOString();
+    if (this.route === 'apitiming') {
+      // get timestamp from startTime
+      et = new Date(this.objParams.timing.startTime).toISOString();
+    } else {
+      // get timestamp from injectJS.time parameter
+      et = this.objParams.injectJS.hasOwnProperty('time')
+        ? new Date(this.objParams.injectJS.time).toISOString()
+        : new Date().toISOString();
+    }
+    exportData.et = et;
+    exportData['@timestamp'] = et;
+    exportData.status = this.status;
+    exportData['@_uuid'] = uuidv4();
+    exportData.dl = this.dl;
 
     // Add the 'perf' section
     exportData.perf = {
@@ -313,7 +329,7 @@ class PUClass {
       assertMetric: this.assertMetric,
       api_took: (new Date().getTime() - this.apiStartTime),
       es_took: this.es_took,
-      api_version: this.config.env.APP_VERSION,
+      api_version: this.env.APP_VERSION,
       hasResources: (this.route === 'navtiming' && this.objParams.injectJS.hasOwnProperty('resources'))
     };
 
@@ -336,27 +352,6 @@ class PUClass {
       };
     }
 
-
-    // Get the main timestamp
-    let et = new Date().toISOString();
-    if (this.route === 'apitiming') {
-      // get timestamp from startTime
-      et = new Date(this.objParams.timing.startTime).toISOString();
-    } else {
-      // get timestamp from injectJS.time parameter
-      et = this.objParams.injectJS.hasOwnProperty('time')
-        ? new Date(this.objParams.injectJS.time).toISOString()
-        : new Date().toISOString();
-    }
-    exportData.et = et;
-    exportData['@timestamp'] = et;
-    exportData.status = this.status;
-    exportData['@_uuid'] = uuidv4();
-    // exportData._type = this.route;
-    exportData.dl = this.dl;
-
-    // const outlier = this.objPerf.export.perf.measured > 60000 || this.objPerf.export.perf.measured < 0;
-    // return { objPerf: objPerf, export: exp, outlier: outlier };
     return exportData;
   }
 
@@ -369,13 +364,13 @@ class PUClass {
     const returnJSON = {
       // - Build response object
       status: 200,
-      api_version: this.config.env.APP_VERSION,
-      export: exportData,
-      assert: this.objParams.flags.passOnFailedAssert ? true : (this.status !== 'fail')
+      api_version: this.env.APP_VERSION,
+      assert: this.objParams.flags.passOnFailedAssert ? true : (this.status !== 'fail'),
+      route: this.route
     };
-    if (this.config.params.useES === true) {
-      returnJSON.esServer = this.config.env.ES_HOST;
-      returnJSON.esIndex = this.config.env.INDEX_PERF;
+    if (this.env.useES === true) {
+      returnJSON.esServer = this.env.ES_HOST;
+      returnJSON.esIndex = this.env.INDEX_PERF + '-*';
       returnJSON.esSaved = this.esSaved;
       returnJSON.resourceSaved = this.resourcesSaved;
       if (this.objParams.flags.esTrace === true) {
@@ -394,13 +389,15 @@ class PUClass {
       returnJSON.errorMsg = this.errorMsg;
     }
 
+    returnJSON.export = exportData;
+
     return returnJSON;
   }
 
   // RESOURCES //
   async getResources(req, cb) {
     // Collect POST data
-    if (this.config.params.useES === false) {
+    if (this.env.useES === false) {
       // Send something back to the user
       const err = new Error('Resources not available - ELK could not be reached or is not configured');
       err.status = 400;
@@ -419,7 +416,7 @@ class PUClass {
     const body = { query: query, size: 1000 };
 
     try {
-      const response = await this.es.search([this.config.env.INDEX_PERF + '*', this.config.env.INDEX_RES + '*'], '', body);
+      const response = await this.es.search([this.env.INDEX_PERF + '*', this.env.INDEX_RES + '*'], '', body);
       // Strip the meta-data from the hits
       const hits = response.hits.hits;
       const resources = [];
@@ -428,8 +425,8 @@ class PUClass {
       });
 
       returnJSON.status = 200;
-      returnJSON.kibana_host = this.config.env.KB_HOST;
-      returnJSON.kibana_port = this.config.env.KB_PORT;
+      returnJSON.kibana_host = this.env.KB_HOST;
+      returnJSON.kibana_port = this.env.KB_PORT;
       returnJSON.resources = resources;
       return cb(null, returnJSON);
     } catch (err) {
@@ -441,7 +438,7 @@ class PUClass {
     // [OUTPUT TO CICD-RESOURCE] Only used for navtiming
     // Check if ES server is there & grab resources
     const rt = this.objParams.injectJS.resources;
-    if (this.config.params.useES === false || !Array.isArray(rt)) {
+    if (this.env.useES === false || !Array.isArray(rt)) {
       const err = new Error(
         '[getResourcesBody] ERROR: Resources not saved! Issue with resources array or ELK is not available!'
       );
@@ -492,7 +489,7 @@ class PUClass {
         'responseStart': resource.responseStart,
         'responseDuration': resource.responseStart > 0 ? resource.responseEnd - resource.responseStart : 0
       };
-      body += '{ "index" : { "_index" : "' + this.config.env.INDEX_RES + '-' + indexDay + '", "_type" : "resource" } }\n';
+      body += '{ "index" : { "_index" : "' + this.env.INDEX_RES + '-' + indexDay + '", "_type" : "resource" } }\n';
       body += JSON.stringify(res) + '\n';
     });
     return body;
@@ -535,7 +532,7 @@ class PUClass {
       'loadEventStart': timing.loadEventStart - timing.navigationStart,
       'loadEventDuration': timing.loadEventEnd - timing.loadEventStart
     };
-    let body = '{ "index" : { "_index" : "' + this.config.env.INDEX_RES + '-' + indexDay + '", "_type" : "resource" } }\n';
+    let body = '{ "index" : { "_index" : "' + this.env.INDEX_RES + '-' + indexDay + '", "_type" : "resource" } }\n';
     body += JSON.stringify(nt) + '\n';
 
     return body;
@@ -543,12 +540,12 @@ class PUClass {
 
   // OTHER //
   saveError(err, req) {
-    if (this.config.params.useES === true) {
+    if (this.env.useES === true) {
       // post to ELK (if flags.esCreate=true)
       const body = {};
 
       // Add timestamp to body object
-      body.api_version = this.config.env.APP_VERSION;
+      body.api_version = this.env.APP_VERSION;
       body.et = new Date().toISOString();
       body.route = req.route.path.replace('/', '');
       body.client_ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
@@ -575,7 +572,7 @@ class PUClass {
       body.err_status = err.status ? err.status : 400;
 
       // console.log("Error to ELK: " + JSON.stringify(body, null, 2));
-      this.es.index(this.config.env.INDEX_ERR + '-' + indexDay, 'error_' + body.route, body);
+      this.es.index(this.env.INDEX_ERR + '-' + indexDay, 'error_' + body.route, body);
     }
   }
 

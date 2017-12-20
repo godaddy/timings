@@ -42,8 +42,6 @@ Enjoy!
 
 * [The clients](#the-clients)
 
-* [Starting the API](#starting-the-api)
-
 * [Methods](#methods)
 
   * [/v2/api/cicd/injectjs](#post-v2apicicdinjectjs)
@@ -74,7 +72,9 @@ Enjoy!
 
 ## **The API**
 
-The timings API is a node/express based API the uses ElasticSearch and Kibana (we'll call that "ELK") to store & visualize data. The idea behind the API is to submit/validate/store/assert performance measurements as part of regular functional test cycles. The API can be run in various ways (see below) and it _can_ be run without ELK although that is not recommended (you loose a lot of the goodies!). You can run ELK yourself or you can make use of the convenient [timings-docker](https://github.com/Verkurkie/timings-docker) repo!
+The timings API is a node/express based API the uses ElasticSearch and Kibana (we'll call that "ELK") to store & visualize data. The idea behind the API is to submit/validate/store/assert performance measurements as part of regular functional test cycles. 
+
+The API can be run in various ways (see below) and it _can_ be run without ELK although that is not recommended (you miss out on a lot of the goodies!). You can run ELK yourself or you can make use of the convenient [timings-docker](https://github.com/Verkurkie/timings-docker) repo!
 
 The API can be installed on both Windows and Linux Operating systems. Linux is highly recommended but of course, the choice is yours! Following are some system recommendations:
 
@@ -83,40 +83,57 @@ The API can be installed on both Windows and Linux Operating systems. Linux is h
 * **nodejs + npm (version 8+)** - see [here](https://nodejs.org/en/download/package-manager/)
 * **git** - see [here](https://git-scm.com/downloads)
 
-### **Installing, running and upgrading the API**
+### **Installing and running the API**
 
-There are different ways to install/run the API. The recommended method is to use the **docker-compose** method as it includes ELK! You can also clone it from github and run with `node` from inside the cloned directory, or you can install it **globally** with `npm i -g` (from the public NPM registry), or you can build/pull/run a stand-alone Docker container. Below are the different install, startup and upgrade commands for each:
+The recommended method is "**docker-compose**" as it includes ELK and requires the least amount of setup/configuration! You can also clone this repo and run the API with `node` from inside the cloned directory, or you can install it **globally** with `npm i -g` (from the public NPM registry), or you can build/pull/run a stand-alone Docker container.
 
-Method|Install|Startup|Upgrade|Location of `.config.js` file
----|---|---|---|---
-**docker-compose**|`$ git clone https://github.com/verkurkie/timings-docker`|`$ cd timings-docker`<br>`$ docker-compose up`|`$ git pull`<br>`$ docker-compose up --build`|`{clone path}/timings-docker/timings/config/.config.js`<br>For more info, check the repo here: [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
-**Github clone**|`$ git clone https://www.github.com/godaddy/timings.git`<br>`$ cd timings`<br>`$ npm i`|`$ node ./server.js [arguments]`|`$ git pull`|`{clone path}/timings/.config.js`
-**NPM install**|`$ npm install -g timings`|`$ timings [arguments]`|`$ npm update -g timings`|`{global node_modules}/timings/.config.js`
-**Docker (stand-alone)**|`$ docker pull mverkerk/timings:{version}`|`$ docker run -d -v {path to config}:/src/.config.js -p {VM_port}:{Host_port} mverkerk/timings:{version}`|`n/a`|Your config file can be stored anywhere you want. Use the `-v` argument to mount the config file in the container.<br>`{path to config}` = the **absolute** path to your `.config.js` file<br>`{VM_port}` = the listening port of the API server inside the container<br>`{Host_port}` = the port that you want the **docker host** to listen on. This is the port used to connect to the API!!<br>`{version}` = the desired version of the timings API. You can also use `"latest"`
+NOTE: It is important that you **create** a config file before you start the API. You also need to point the API at the config file using the `--config-file` argument. If you fail to do this, the API will use defaults settings such as `localhost` for the elasticsearch server! Please refer to [CONFIG.MD](CONFIG.MD) for more details.
 
-#### **Command line arguments**
+Below are the different install & run commands for each method as well as the instructions on how to point to the config file:
 
-Please review & edit the main config file as described in [CONFIG.MD](CONFIG.MD) before starting the server!
+## docker-compose
 
-The server takes the following arguments:
+For more info, check the repo here: [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
 
-|Switch|Alias|Description|Config file equivalent|Default value|Notes|
-|-|-|-|-|-|-|
-|`-h`|`--help`|Shows the help text|-none-
-|`-d`|`--debug`|Enable console debugging|`env.DEBUG`|`false`|Shows extra output from the server|
-|`-e`|`--env`|specify runtime environment|`NODE_ENV`|`local`|Valid options: `local`, `dev`, `test`, `prod`|
-|`-f`|`--eshost`|The elasticsearch host|`env.ES_HOST`||Provide the full FQDN!<br>Will copy value from `kbhost` if not specified!|
-|`-g`|`--esport`|The elasticsearch port|`env.ES_PORT`|`9200`|
-||`--esprotocol`|The protocol of the elasticsearch server|`env.ES_PROTOCOL`|`http`|Valid options: `http` or `https`|
-||`--esuser`|Username for elasticsearch Basic auth|`env.ES_USER`||
-||`--espasswd`|Password for elasticsearch Basic auth|`env.ES_PASS`|
-||`--es_ssl_cert`|Path to the SSL **cert** for elasticsearch server SSL auth|`env.ES_SSL_CERT`|
-||`--es_ssl_key`|Path to the SSL **key** for elasticsearch server SSL auth|`env.ES_SSL_KEY`|
-|`-k`|`--kbhost`|The Kibana host|`env.KB_HOST`||Provide the full FQDN!<br>Will copy value from `eshost` if not specified!|
-|`-l`|`--kbport`|The Kibana port|`env.KB_PORT`|`5601`|
-|`-p`|`--http`|The timings API server port|`env.HTTP_PORT`|`80`|
+Activity|Command
+---|---
+Install|`$ git clone https://github.com/verkurkie/timings-docker`
+Startup|`$ cd timings-docker`<br>`$ docker-compose -e CONFIGFILE={path} up`
+Upgrade|`$ git pull`<br>`$ docker-compose up --build`
+Config|Can Can be anywhere! Use `-e CONFIGFILE={path}` argument for docker-compose!
 
-NOTE: most of these can also be specified in your config file (`.config.js`). See [CONFIG.MD](CONFIG.MD) for more info.
+## Git clone
+
+You have to run ELK yourself! See also here: [installing-elasticsearch-and-kibana](#installing-elasticsearch-and-kibana)
+
+Activity|Command
+---|---
+Installation|`$ git clone https://www.github.com/godaddy/timings.git`<br>`$ cd timings`<br>`$ npm i`
+Startup|`$ node ./server.js --config-file {path}`
+Upgrade|`$ git pull`
+Config|Can be anywhere! Use `--config-file` argument!
+
+## NPM install
+
+You have to run ELK yourself! See also here: [installing-elasticsearch-and-kibana](#installing-elasticsearch-and-kibana)
+
+Activity|Command
+---|---
+Installation|`$ npm install -g timings`
+Startup|`$ timings --config-file {path}`
+Upgrade|`$ npm update -g timings`
+Config|Can be anywhere! Use `--config-file` argument!
+
+## Docker (stand-alone)
+
+You have to run ELK yourself! See also here: [installing-elasticsearch-and-kibana](#installing-elasticsearch-and-kibana)
+
+Activity|Command
+---|---
+Installation|`$ docker pull mverkerk/timings:{version}`
+Startup|`$ docker run \`<br>`-d -v {path to config}:/src/.config.js \`<br>`-p {VM_port}:{Host_port} \`<br>`mverkerk/timings:{version}`
+Upgrade|`n/a`
+Config|Your config file can be stored anywhere you want. Use the `-v` argument to mount the config file in the container.<br>`{path to config}` = the **absolute** path to your config file<br>`{VM_port}` = the listening port of the API server inside the container<br>`{Host_port}` = the port that you want the **docker host** to listen on. This is the port used to connect to the API!!<br>`{version}` = the desired version of the timings API. You can also use `"latest"`
 
 ### **Updating the API**
 
@@ -162,18 +179,19 @@ optional arguments:
 
 ### **Installing Elasticsearch and Kibana**
 
-<span style="color:red">**IMPORTANT:**</span> If you want to use Elasticsearch and Kibana, you **have** to point the API to their respective hostnames! You can do this in **one** of the following ways (in this order of priority):
+<span style="color:red">**IMPORTANT:**</span> If you want to use Elasticsearch and Kibana, you **have** to point the API to their respective hostnames! You can do this in **one** of the following ways (ENV vars take priority!):
 
-1. Add the "env" object to the main config file. See [CONFIG.MD](CONFIG.MD).
-1. Adding arguments on the command line. see [API arguments](#api-arguments)
-1. Setting Environment variables (vars: ES_HOST, ES_PORT, KB_HOST and KB_PORT)
+1. Use the correct keys (`ES_PROTOCOL`, `ES_HOST`, `ES_PORT`, `KB_HOST` and `KB_PORT`) in the `env` object of your config file. See [CONFIG.MD](CONFIG.MD).
+1. Setting Environment Variables (vars: `ES_PROTOCOL`, `ES_HOST`, `ES_PORT`, `KB_HOST` and `KB_PORT`)
 
-- **Config/arguments and ENV vars now support Basic Authentication and SSL cert/key authentication!**
-- **NOTE:** If both are provided, SSL auth will be used!
+- **The API now support Basic Authentication and SSL cert/key authentication to elasticsearch!**
+  - use `ES_USER` and `ES_PASS` for Basic Auth
+  - use `ES_SSL_CERT` and `ES_SSL_KEY` for SSL Auth
+  - **NOTE:** If both are provided, SSL auth will be used!
 
 You can install Elasticsearch and Kibana yourself by following instructions from here: [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/_installation.html) and [Kibana](https://www.elastic.co/guide/en/kibana/current/install.html).
 
-Or you can run the entire environment with `docker-compose` using [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
+Or you can run them with `docker-compose` using the `docker-compose-elk.yml` file in [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
 
 To setup Kibana for the timings API, please follow the steps described in [Import Kibana assets](https://github.com/Verkurkie/timings-docker/blob/master/README.md#step-4-import-kibana-assets)
 

@@ -7,7 +7,7 @@ const router = express.Router();
 const puUtils = require('../../src/v2/perf-utils');
 const joi = require('joi');
 const bodyParser = require('body-parser');
-const config = require('../../.config.js');
+const nconf = require('nconf');
 
 var jsonParser = bodyParser.json();
 
@@ -108,7 +108,7 @@ function validateSchema(route, body) {
     team: joi.string(),
     browser: joi.string()
   };
-  const reqLogs = config.params.required;
+  const reqLogs = nconf.get('params:required');
   if (reqLogs.length > 0) {
     // reqLogs.push('log');
     for (let index of Object.keys(reqLogs)) {
