@@ -9,7 +9,8 @@ const config = {
     "ES_SSL_KEY": "",                 // Path to key file for SSL auth toElasticSearch server/cluster (default: "")
     "KB_HOST": "",                    // Hostname of the Kibana server/cluster (default: -copy value from ES_HOST-)
     "KB_PORT": 5601,                  // Scheme used by the ElasticSearch server/cluster (default: 5601)
-    "HTTP_PORT": 80                   // Port of the API server (default: 80)
+    "KB_INDEX": "",                   // Name of the main Kibana index in ElasticSearch (default: ".kibana") - used for upgrades
+    "HTTP_PORT": 8080                   // Port of the API server (default: 80)
   },
   // API parameters
   "params": {                       // Client-side parameters

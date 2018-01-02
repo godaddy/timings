@@ -1,9 +1,3 @@
-# **IMPORTANT NOTICE:**
-## **A recent update to the API (v1.1.0+) requires a significant update to the elasticsearch/kibana setup. After upgrading the API, you should run the `./upgrade/import.py` script to update the Kibana dashboards, visualizations, etc.**
-
-## More info: [Updating the API](#updating-the-api)
-<hr>
-
 # TIMINGS API
 
 The timings API can be used in CI/CD pipelines for the asserting of **web UI or API performance** during functional/integration tests!
@@ -87,7 +81,9 @@ The API can be installed on both Windows and Linux Operating systems. Linux is h
 
 The recommended method is "**docker-compose**" as it includes ELK and requires the least amount of setup/configuration! You can also clone this repo and run the API with `node` from inside the cloned directory, or you can install it **globally** with `npm i -g` (from the public NPM registry), or you can build/pull/run a stand-alone Docker container.
 
-NOTE: It is important that you **create** a config file before you start the API. You also need to point the API at the config file using the `--config-file` argument. If you fail to do this, the API will use defaults settings such as `localhost` for the elasticsearch server! Please refer to [CONFIG.MD](CONFIG.MD) for more details.
+**NOTE**: It is important that you **create a config file** before you start the API! Your config file can be in JS, JSON or YML format (examples are provided in the root of this repo). 
+
+You need to point the API at the config file using the `--config-file` argument. If you fail to do this, the API will use defaults settings such as `""` for the elasticsearch server (= don't use ElasticSearch)! Please refer to [CONFIG.MD](CONFIG.MD) for more details.
 
 Below are the different install & run commands for each method as well as the instructions on how to point to the config file:
 
@@ -99,7 +95,7 @@ Activity|Command
 ---|---
 Install|`$ git clone https://github.com/verkurkie/timings-docker`
 Startup|`$ cd timings-docker`<br>`$ docker-compose -e CONFIGFILE={path} up`
-Upgrade|`$ git pull`<br>`$ docker-compose up --build`
+Upgrade|`$ git pull`<br>`$ docker-compose -e CONFIGFILE={path} up --build`
 Config|Can Can be anywhere! Use `-e CONFIGFILE={path}` argument for docker-compose!
 
 ## Git clone
@@ -110,7 +106,7 @@ Activity|Command
 ---|---
 Installation|`$ git clone https://www.github.com/godaddy/timings.git`<br>`$ cd timings`<br>`$ npm i`
 Startup|`$ node ./server.js --config-file {path}`
-Upgrade|`$ git pull`
+Upgrade|`$ git pull`<br>`$ node ./server.js --config-file {path}`
 Config|Can be anywhere! Use `--config-file` argument!
 
 ## NPM install
@@ -121,7 +117,7 @@ Activity|Command
 ---|---
 Installation|`$ npm install -g timings`
 Startup|`$ timings --config-file {path}`
-Upgrade|`$ npm update -g timings`
+Upgrade|`$ npm update -g timings`<br>`$ timings --config-file {path}`
 Config|Can be anywhere! Use `--config-file` argument!
 
 ## Docker (stand-alone)
@@ -132,54 +128,20 @@ Activity|Command
 ---|---
 Installation|`$ docker pull mverkerk/timings:{version}`
 Startup|`$ docker run \`<br>`-d -v {path to config}:/src/.config.js \`<br>`-p {VM_port}:{Host_port} \`<br>`mverkerk/timings:{version}`
-Upgrade|`n/a`
+Upgrade|Just point at the latest version or use `mverkerk/timings:latest` in the startup command.<br>You can find the latest version here: https://hub.docker.com/r/mverkerk/timings/tags/
 Config|Your config file can be stored anywhere you want. Use the `-v` argument to mount the config file in the container.<br>`{path to config}` = the **absolute** path to your config file<br>`{VM_port}` = the listening port of the API server inside the container<br>`{Host_port}` = the port that you want the **docker host** to listen on. This is the port used to connect to the API!!<br>`{version}` = the desired version of the timings API. You can also use `"latest"`
 
 ### **Updating the API**
 
-In certain rare cases, it may be necessary to update the back-end elasticsearch/kibana setup. For this purpose, you can use the `./upgrade/import.py` script. Run this script as follows (incl. all three full FQDN hostnames!):
+On every startup of the API, the code will check for differences in the version and run the necessary upgrades. This may include updates to the Elasticsearch template & index-patterns and may add new visualizations & dashboards to Kibana! This process is fully automated so you just have to (re-)start the API after a code upgrade!
 
-```shell
-$ python ./upgrade/import.py --apihost [APIHOST] --eshost [ELASTICSEARCH HOST] --kbhost [KIBANA HOST]
-```
+### **Manual setup for Elasticsearch and Kibana**
 
-**IMPORTANT**: it is particularly important that you **specify the full hostname of the API server** using the `--apihost` argument! If you don not do this, the script will assume `localhost` and the waterfall links will not work for remote users!!
+You can install Elasticsearch and Kibana yourself by following instructions found here: [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/_installation.html) and [Kibana](https://www.elastic.co/guide/en/kibana/current/install.html).
 
-If elasticsearch is running on a remote server/cluster, you may have to specify the scheme, full hostname and port using the `--esprotocol`, `--eshost`, and `--esport` arguments!
+Or you can run them with `docker-compose` using the `docker-compose-elk.yml` file in [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
 
-The script supports Basic authentication to the elasticsearch server. Please use `--esuser` and `--espasswd` if required.
-
-Use the `--help` argument to review all of the script's arguments:
-
-```shell
-$ python ./upgrade/import.py --help
-usage: import.py [-h] [--apihost APIHOST] [--apiport APIPORT]
-                 [--esprotocol ESPROTOCOL] [--eshost ESHOST] [--esport ESPORT]
-                 [--esuser ESUSER] [--espasswd ESPASSWD] [--kbindex KBINDEX]
-                 [--kbhost KBHOST] [--kbport KBPORT] [--replace REPLACE]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --apihost APIHOST     full hostname or IP address of the timings server
-                        (default=localhost)
-  --apiport APIPORT     port of the timings server (default=80)
-  --esprotocol ESPROTOCOL
-                        scheme used by the elasticsearch server (default=http)
-  --eshost ESHOST       full hostname or IP address of the elasticsearch
-                        server (default=localhost)
-  --esport ESPORT       port of the elasticsearch server (default=9200)
-  --esuser ESUSER       username for elasticsearch - if required
-  --espasswd ESPASSWD   The password for elasticsearch - if required
-  --kbindex KBINDEX     the kibana index (default=.kibana)
-  --kbhost KBHOST       full hostname or IP address of the kibana server
-                        (default=localhost)
-  --kbport KBPORT       port of the kibana server (default=5601)
-  --replace REPLACE     replace `TIMINGS` with this string
-```
-
-### **Installing Elasticsearch and Kibana**
-
-<span style="color:red">**IMPORTANT:**</span> If you want to use Elasticsearch and Kibana, you **have** to point the API to their respective hostnames! You can do this in **one** of the following ways (ENV vars take priority!):
+<span style="color:red">**IMPORTANT:**</span> If you setup Elasticsearch and Kibana yourself, you **HAVE** to point the API to their respective hostnames! You can do this in **one** of the following ways (ENV vars take priority!):
 
 1. Use the correct keys in the `env` object of your config file. See [CONFIG.MD](CONFIG.MD).
 1. Setting Environment Variables for `ES_PROTOCOL`, `ES_HOST`, `ES_PORT`, `KB_HOST` and `KB_PORT`
@@ -188,12 +150,6 @@ optional arguments:
   - use `ES_USER` and `ES_PASS` for Basic Auth
   - use `ES_SSL_CERT` and `ES_SSL_KEY` for SSL Auth
   - **NOTE:** If both are provided, SSL auth will be used!
-
-You can install Elasticsearch and Kibana yourself by following instructions from here: [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/_installation.html) and [Kibana](https://www.elastic.co/guide/en/kibana/current/install.html).
-
-Or you can run them with `docker-compose` using the `docker-compose-elk.yml` file in [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
-
-To setup Kibana for the timings API, please follow the steps described in [Import Kibana assets](https://github.com/Verkurkie/timings-docker/blob/master/README.md#step-4-import-kibana-assets)
 
 ## **THE CLIENTS**
 
@@ -248,14 +204,16 @@ The browser's response is then used as POST data for [`/v2/api/cicd/navtiming`](
 |Name|Required?|Type|Description|
 |-|-|-|-|
 |`injectType`|yes|string|Valid values: `navtiming` or `usertiming`|
-|`visualCompleteMark`|only used for injectType `navtiming`|string|Name of the "visual complete mark" as set by `performance.mark()`|
+|`visualCompleteMark`|no|string|Used in combination with `navtiming` - Name of the "visual complete mark" as set by `performance.mark()`. Default is `visual_complete`|
+|`stripQueryString`|no|boolean|Setting this to `true` will strip the querystring from the current URL. Default is `false`.|
 
 ##### Example Request Body (injectjs)
 
 ```json
 {
   "injectType":"navtiming",
-  "visualCompleteMark":"initialPageLoad"
+  "visualCompleteMark":"visual_complete",
+  "stripQueryString": true
 }
 ```
 
@@ -276,7 +234,7 @@ if (performance.getEntriesByName('" + visualCompleteMark + "').length) {
   visualCompleteTime = parseInt(performance.getEntriesByName('" + visualCompleteMark + "')[0].startTime);
   window.performance.clearMarks();
 };
-return {time:new Date().getTime(), timing:window.performance.timing, visualCompleteTime: visualCompleteTime, url: document.location.href, resources: window.performance.getEntriesByType('resource')};
+return {time:new Date().getTime(), timing:window.performance.timing, visualCompleteTime: visualCompleteTime, url: document.location.href.split('?')[0], resources: window.performance.getEntriesByType('resource')};
 ```
 
 Decoded [usertiming]:
@@ -299,7 +257,7 @@ for (var i = 0; i < marks.length; i++) {
 window.performance.clearMarks();
 var measureArray = window.performance.getEntriesByType('measure');
 window.performance.clearMeasures();
-return {time:new Date().getTime(), measureArray:measureArray, url:document.location.href, marks};
+return {time:new Date().getTime(), measureArray:measureArray, url: document.location.href.split('?')[0], marks};
 ```
 
 Insert this decoded script into your browser object to collect the required performance data!

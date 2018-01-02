@@ -50,7 +50,11 @@ class PUClass {
         const response = await this.es.search(this.env.INDEX_PERF + '*', this.route, blQuery);
         this.esTrace.push({ type: 'ES_RESPONSE', response: response });
         this.es_took = response.took;
-        this.baseline = this.checkBaseline(response);
+        if (response.hasOwnProperty('aggregations')) {
+          this.baseline = this.checkBaseline(response);
+        } else {
+          this.baseline = 0;
+        }
       }
       // Compare actual to SLA and create output
       this.status = this.checkSLA(this.measuredPerf);
@@ -60,7 +64,8 @@ class PUClass {
       // Store results in ES
       if (this.env.useES === true && this.objParams.flags.esCreate === true) {
         this.esTrace.push({ type: 'ES_CREATE', exportData });
-        this.esSaved = await this.es.index(this.env.INDEX_PERF + '-' + indexDay, this.route, exportData);
+        const response = await this.es.index(this.env.INDEX_PERF + '-' + indexDay, this.route, '', exportData);
+        this.esSaved = response.created;
         if (this.esSaved && this.route === 'navtiming') {
           const resBody = this.getResourcesBody(exportData['@_uuid']);
           this.resourcesSaved = await this.es.bulk(resBody);
@@ -376,6 +381,8 @@ class PUClass {
       if (this.objParams.flags.esTrace === true) {
         returnJSON.esTrace = this.esTrace;
       }
+    } else {
+      returnJSON.esSaved = "ElasticSearch is not in use or 'flags.esCreate=false'!";
     }
     if (this.objParams.flags.debug === true) {
       returnJSON.debugMsg = this.debugMsg;
@@ -572,7 +579,7 @@ class PUClass {
       body.err_status = err.status ? err.status : 400;
 
       // console.log("Error to ELK: " + JSON.stringify(body, null, 2));
-      this.es.index(this.env.INDEX_ERR + '-' + indexDay, 'error_' + body.route, body);
+      this.es.index(this.env.INDEX_ERR + '-' + indexDay, 'error_' + body.route, '', body);
     }
   }
 
@@ -607,7 +614,8 @@ class PUClass {
   getInjectJS(req, cb) {
     const injectType = req.body.injectType;
     const visualCompleteMark = req.body.visualCompleteMark || '';
-    let injectJS = this.getInjectCode(injectType, visualCompleteMark);
+    const stripQueryString = req.body.stripQueryString || false;
+    let injectJS = this.getInjectCode(injectType, visualCompleteMark, stripQueryString);
     // Send decoded string if requested!
     if (req.body.hasOwnProperty('decoded') && req.body.decoded === true) {
       injectJS = decodeURIComponent(injectJS);
@@ -649,10 +657,11 @@ class PUClass {
     return this.mergeDeep(target, ...sources);
   }
 
-  getInjectCode(type = null, mark = null) {
+  getInjectCode(type = null, mark = null, stripQueryString = false) {
     let injectCode = '';
     // If no mark is provided, set to default "visual_complete"
     mark = mark || 'visual_complete';
+    const docHref = (stripQueryString === true) ? 'document.location.href.split("?")[0]' : 'document.location.href';
     if (type === 'navtiming') {
       injectCode =
           `var visualCompleteTime = 0;
@@ -664,7 +673,7 @@ class PUClass {
       time:new Date().getTime(),
       timing:window.performance.timing,
       visualCompleteTime: visualCompleteTime,
-      url: document.location.href,
+      url: ${docHref},
       resources: window.performance.getEntriesByType('resource')
   };`;
 
@@ -690,7 +699,7 @@ class PUClass {
   return {
       time:new Date().getTime(),
       measureArray:measureArray,
-      url:document.location.href,
+      url: ${docHref},
       marks
   };`;
     }

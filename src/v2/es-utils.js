@@ -44,11 +44,12 @@ class ESClass {
   }
 
   async ping() {
-    const response = await this.client
-      .ping({ requestTimeout: 5000 });
-    this.logger.debug('SUCCESS! ElasticSearch cluster for [' +
-      this.env.ES_HOST + '] is alive!');
-    return response;
+    await this.client.ping({ requestTimeout: 5000 })
+      .then(function (resp) {
+        return resp;
+      }, function (err) {
+        throw (err);
+      });
   }
 
   async templExists(template) {
@@ -64,7 +65,45 @@ class ESClass {
       .indices
       .putTemplate({ name: name, body: body });
     this.logger.debug('Template [' + name + '] exists/created: ' + (response.acknowledged === true));
+    return response;
+  }
+
+  async getTemplate(name) {
+    const response = await this.client
+      .indices
+      .getTemplate({ name: name });
+    return response;
+  }
+
+  async defaultIndex(name, version) {
+    const response = await this.client
+      .index({ index: (nconf.get('env:KB_INDEX') || '.kibana'), type: 'config', id: version, body: { defaultIndex: name }});
+    return response;
+  }
+
+  async delIndexPattern(pattern) {
+    const response = await this.client
+      .delete({ index: '.kibana', type: 'index-pattern', id: pattern });
     return response.acknowledged;
+  }
+
+  async delIndex(index) {
+    const response = await this.client
+      .indices
+      .delete({ index: index });
+    return response;
+  }
+
+  async reindex(src, dst) {
+    const response = await this.client
+      .reindex({ body: { source: { index: src }, dest: { index: dst }}});
+    return response;
+  }
+
+  async exists(index, type, id) {
+    const response = await this.client
+      .exists({ index: index, type: type, id: id });
+    return response;
   }
 
   async search(index, type, body) {
@@ -73,10 +112,19 @@ class ESClass {
     return response;
   }
 
-  async index(index, type, body) {
-    const response = await this.client
-      .index({ index: index, type: type, body: body });
-    return response.created;
+  async index(index, type, id, body) {
+    let exists = false;
+    if (id) {
+      // Check if it already exists
+      exists = await this.client
+        .exists({ index: index, type: type, id: id })
+    }
+    if (!exists) {
+      const response = await this.client
+        .index({ index: index, type: type, id: id, body: body });
+      return response;
+    }
+    return { _id: id, result: 'exists', statusCode: 200, reason: 'Already exists' };
   }
 
   async bulk(body) {
@@ -85,6 +133,48 @@ class ESClass {
     return (response.items.length > 0);
   }
 
+  async kbImport(importJson) {
+    try {
+      for (const index of Object.keys(importJson)) {
+        const item = importJson[index];
+        const _source = item._source;
+
+        if (item._type === 'index-pattern' && item._id === 'cicd-perf*') {
+          const apiHost = (this.env.HTTP_PORT !== 80) ? this.env.HOST + ':' + this.env.HTTP_PORT : this.env.HOST;
+          _source.fieldFormatMap = _source.fieldFormatMap.replace('__api__hostname', apiHost);
+        }
+
+        const response = await this.index('.kibana', item._type, item._id, _source);
+        this.checkEsResponse(response, 'import [' + item._type + ']', item._id);
+      }
+      return true;
+    } catch (err) {
+      this.logger.debug('Error in kbImport: ' + err.message);
+      return false;
+    }
+  }
+
+  async checkEsResponse(response, job, item) {
+    let result;
+    let reason = response.reason || 'n/a';
+    if (response.hasOwnProperty('result')) {
+      result = response.result.toUpperCase();
+    } else if (response.hasOwnProperty('total')) {
+      if (response.hasOwnProperty('created') && response.created > 0)
+        result = 'CREATED (' + response.created + ' items)';
+      if (response.hasOwnProperty('deleted') && response.deleted > 0)
+        result = 'DELETED (' + response.deleted + ' items)';
+      if (response.hasOwnProperty('updated') && response.updated > 0)
+        result = 'UPDATED (' + response.updated + ' items)';
+    } else if (response.hasOwnProperty('acknowledged')) {
+      result = 'ACKNOWLEDGED';
+    } else if (response.hasOwnProperty('error')) {
+      result = 'ERROR';
+      reason = response.error.reason;
+    }
+    this.logger.debug(`[${result}] - action: ${job} - item: ${item} - status: ${response.statuscode || response.status || 'n/a'} - reason: ${reason}`);
+    return true;
+  }
 }
 
 module.exports.ESClass = ESClass;
