@@ -10,7 +10,7 @@ env:
   KB_HOST: localhost
   KB_PORT: 5601
   KB_INDEX: ~
-  HTTP_PORT: 8080
+  HTTP_PORT: 80
 params: 
   required: 
     - log.test_info
