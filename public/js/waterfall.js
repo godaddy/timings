@@ -11,7 +11,7 @@
  * javascript:(function(){var el=document.createElement('script');el.type='text/javascript';el.src='http://andydavies.me/sandbox/waterfall.js';document.getElementsByTagName('body')[0].appendChild(el);})();
  */
 
-function waterfall(div, resources) {
+function waterfall(div, resources, fltr) {
     $(div).empty();
 
     var xmlns = "http://www.w3.org/2000/svg";
@@ -37,7 +37,23 @@ function waterfall(div, resources) {
     function drawWaterfall(entries) {
 
         var maxTime = 0;
-        for (var n = 0; n < entries.length; n++) {
+        for (var n = entries.length -1; n >= 0; n--) {
+            if (fltr && entries[n].hasOwnProperty("initiatorType")) {
+                if (fltr.indexOf("fltr_") === 0) {
+                    // this is a type filter
+                    var fltrType = fltr.replace("fltr_", "");
+                    if (entryFilter(entries[n], fltrType) === true) {
+                        entries.splice(n, 1);
+                        continue;
+                    }
+                } else {
+                    // must be a text filter
+                    if (entries[n].uri.indexOf(fltr) < 0) {
+                        entries.splice(n, 1);
+                        continue;
+                    }
+                }
+            }
             if (entries[n].hasOwnProperty("status") && (entries[n].sla_pageLoadTime <= (entries[n].act_pageLoadTime * 2)) ) {
                 maxTime = Math.max(maxTime, entries[n].sla_pageLoadTime) + 50;
             } else if (!entries[n].hasOwnProperty("status")) {
@@ -403,7 +419,7 @@ function waterfall(div, resources) {
 
     if (w.performance !== undefined && (w.performance.getEntriesByType !== undefined || w.performance.webkitGetEntriesByType !== undefined)) {
 
-        var timings = resources;
+        var timings = Array.from(resources);
 
         drawWaterfall(timings);
     } else {
@@ -587,4 +603,31 @@ function tableSorterSort(tbl, col, dir, sticky) {
 function getQueryStringParameterVal(name) {
     var match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
     return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+};
+
+function entryFilter(entry, fltrType) {
+    var result = false;
+    switch (fltrType) {
+        case "xhr":
+            if (entry.initiatorType !== "xmlhttprequest") {
+                result = true;
+            }
+            break;
+        case "js":
+            if (entry.initiatorType !== "link") {
+                result = true;
+            }
+            break;
+        case "css":
+            if (entry.initiatorType !== "link") {
+                result = true;
+            }
+            break;
+        case "img":
+            if (entry.initiatorType !== "img") {
+                result = true;
+            }
+            break;
+    }
+    return result;
 };

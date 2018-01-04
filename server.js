@@ -19,8 +19,8 @@ nconf
   })
   .env({
     lowerCase: true,
-    whitelist: ['configfile', 'node_env', 'http_port', 'debug', 'es_upgrade', 'es_host', 'es_port',
-      'es_protocol', 'es_user', 'es_passwd', 'es_ssl_cert', 'es_ssl_key', 'kb_host', 'kb_port'
+    whitelist: ['configfile', 'node_env', 'http_port', 'debug', 'kb_index', 'kb_rename', 'es_upgrade', 'es_host', 
+      'es_port', 'es_protocol', 'es_user', 'es_passwd', 'es_ssl_cert', 'es_ssl_key', 'kb_host', 'kb_port'
     ],
     parseValues: true
   });
@@ -92,6 +92,7 @@ const cfgNconf = {
     KB_HOST: nconf.get('kb_host') || cfgConfig.env.KB_HOST || nconf.get('es_host') ||  cfgConfig.env.ES_HOST || '',
     KB_PORT: nconf.get('kb_port') || cfgConfig.env.KB_PORT || 5601,
     KB_INDEX: nconf.get('kb_index') || cfgConfig.env.KB_INDEX || '.kibana',
+    KB_RENAME: nconf.get('kb_rename') || cfgConfig.env.KB_RENAME || '',
     HTTP_PORT: nconf.get('http_port') || cfgConfig.env.HTTP_PORT || 80,
     DEBUG: nconf.get('debug') || cfgConfig.env.DEBUG || false,
     APP_NAME: pkg.name,
@@ -107,17 +108,17 @@ const cfgNconf = {
   params: {
     required: cfgConfig.params.required || ['log.test_info', 'log.env_tester', 'log.team', 'log.browser', 'log.env_target'],
     defaults: {
-      baseline: {           // These settings are used to calculate the baseline
-        days: cfgConfig.params.defaults.baseline.days || 7,                              // Number of days to calculate the baseline for
-        perc: cfgConfig.params.defaults.baseline.perc || 75,                             // Percentile to calculate
-        padding: cfgConfig.params.defaults.baseline.padding || 1.2                       // Extra padding on top of the calculated baseline (gives some wiggle-room)
+      baseline: {
+        days: cfgConfig.params.defaults.baseline.days || 7,
+        perc: cfgConfig.params.defaults.baseline.perc || 75,
+        padding: cfgConfig.params.defaults.baseline.padding || 1.2
       },
-      flags: {              // These booleans determine the output and other actions to be performed
-        assertBaseline: cfgConfig.params.defaults.flags.assertBaseline || true,          // Whether or not to compare against baseline
-        debug: cfgConfig.params.defaults.flags.debug || false,                           // Request extra debug info from the API
-        esTrace: cfgConfig.params.defaults.flags.esTrace || false,                       // Request elasticsearch output from API
-        esCreate: cfgConfig.params.defaults.flags.esCreate || false,                     // Save results to elasticsearch
-        passOnFailedAssert: cfgConfig.params.defaults.flags.passOnFailedAssert || false  // Pass the test, even when the performance is above the threshold
+      flags: {
+        assertBaseline: cfgConfig.params.defaults.flags.assertBaseline || true,
+        debug: cfgConfig.params.defaults.flags.debug || false,
+        esTrace: cfgConfig.params.defaults.flags.esTrace || false,
+        esCreate: cfgConfig.params.defaults.flags.esCreate || false,
+        passOnFailedAssert: cfgConfig.params.defaults.flags.passOnFailedAssert || false
       }
     }
   }
@@ -167,7 +168,7 @@ async function setupES(es) {
 
     if (currTemplate.hasOwnProperty(env.INDEX_PERF)) {
       const currentVersion = currTemplate[env.INDEX_PERF].version;
-      if (newVersion > currentVersion) {
+      if (!currentVersion || (newVersion > currentVersion)) {
         logger.debug(` >> upgrading API from v.${currentVersion} - installing v.${newVersion} ...`);
         needUpgrade = true;
       }
@@ -188,7 +189,12 @@ async function setupES(es) {
       // upgr.delIndexPattern('cicd-perf-errorlog');
 
       // Import/update latest visualizations and dashboards
-      const importJson = JSON.parse(fs.readFileSync('./.kibana_items.json'));
+      let importFile = fs.readFileSync('./.kibana_items.json', 'utf8');
+      const replText = nconf.get('env:KB_RENAME');
+      if (replText && typeof replText === 'string') {
+        importFile = importFile.replace(/TIMINGS/g, replText.toUpperCase());
+      }
+      const importJson = JSON.parse(importFile);
       let esResponse = await es.kbImport(importJson);
       if (esResponse === true) {
         await es.defaultIndex(env.INDEX_PERF + '*', '5.6.2')

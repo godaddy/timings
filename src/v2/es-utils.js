@@ -15,7 +15,8 @@ class ESClass {
     const esConfig = {
       host: this.env.ES_PROTOCOL + '://' + this.env.ES_HOST + ':' + this.env.ES_PORT,
       requestTimeout: 5000,
-      log: 'error'
+      log: 'error',
+      apiVersion: '5.x'
     };
 
     // Check if user/passwd are provided - configure basic auth
@@ -77,13 +78,13 @@ class ESClass {
 
   async defaultIndex(name, version) {
     const response = await this.client
-      .index({ index: (nconf.get('env:KB_INDEX') || '.kibana'), type: 'config', id: version, body: { defaultIndex: name }});
+      .index({ index: (this.env.KB_INDEX || '.kibana'), type: 'config', id: version, body: { defaultIndex: name }});
     return response;
   }
 
   async delIndexPattern(pattern) {
     const response = await this.client
-      .delete({ index: '.kibana', type: 'index-pattern', id: pattern });
+      .delete({ index: (this.env.KB_INDEX || '.kibana'), type: 'index-pattern', id: pattern });
     return response.acknowledged;
   }
 
@@ -117,7 +118,7 @@ class ESClass {
     if (id) {
       // Check if it already exists
       exists = await this.client
-        .exists({ index: index, type: type, id: id })
+        .exists({ index: index, type: type, id: id });
     }
     if (!exists) {
       const response = await this.client
@@ -141,11 +142,11 @@ class ESClass {
 
         if (item._type === 'index-pattern' && item._id === 'cicd-perf*') {
           const apiHost = (this.env.HTTP_PORT !== 80) ? this.env.HOST + ':' + this.env.HTTP_PORT : this.env.HOST;
-          _source.fieldFormatMap = _source.fieldFormatMap.replace('__api__hostname', apiHost);
+          _source.fieldFormatMap = _source.fieldFormatMap.replace('__api__hostname', apiHost.toLowerCase());
         }
 
-        const response = await this.index('.kibana', item._type, item._id, _source);
-        this.checkEsResponse(response, 'import [' + item._type + ']', item._id);
+        const response = await this.index((this.env.KB_INDEX || '.kibana'), item._type, item._id, _source);
+        this.checkEsResponse(response, 'import [' + item._type + ']', item._source.title);
       }
       return true;
     } catch (err) {
