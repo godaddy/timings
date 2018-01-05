@@ -4,11 +4,9 @@ The timings API can be used in CI/CD pipelines for the asserting of **web UI or 
 
 ## **tl;dr**
 
-Install and run this API in your local network and call if from your test scripts (using [clients](#the-clients) or directly).
+Install and run this API in your local network. The easiest deployment is with docker-compose (see here: [timings-docker](https://github.com/Verkurkie/timings-docker/))
 
-Easiest deployment is with docker-compose (see here: [timings-docker](https://github.com/Verkurkie/timings-docker/))
-
-Then, use this API **from your functional test script(s)** to:
+Call the API **from your functional test script(s)** (using platform specific [clients](#the-clients) or directly) to:
 
 1. [UI tests only] Grab a snippet of JavaScript code from [`/v2/api/cicd/injectjs`](#post-v2apicicdinjectjs)
 1. [UI tests only] Decode the `"inject_code"` key from the response and inject it into your browser/webdriver
@@ -16,7 +14,7 @@ Then, use this API **from your functional test script(s)** to:
 1. [API tests only] Send timestamps to the API ([/v2/api/cicd/apitiming](#post-v2apicicdapitiming))
 1. [UI and API tests] Use the API's response to assert performance (look for the `assert` field in the response)
 
-To simplify communication with the API, there are currently two [clients](#the-clients) that you can install: one for JavaScript (`npm i --save-dev timings-client-js`) and one for Python (`pip install timingsclient`). Easy to install and easy to use! For all other languages, you will have to interact with API yourself using http `POST` calls. More info [here](#using-the-api-without-clients).
+To simplify communication with the API, there are currently three [clients](#the-clients) that you can install: one for JavaScript (`npm i --save-dev timings-client-js`), one for Python (`pip install timingsclient`) and one for Java (see here: [https://github.com/kaygee/timings-client](https://github.com/kaygee/timings-client)). Easy to install and easy to use! For all other languages, you can interact with API yourself using http `POST` calls. More info [here](#using-the-api-without-clients).
 
 Continue reading below for more details about the API and the clients.
 
@@ -28,11 +26,11 @@ Enjoy!
 
 * [The API](#the-api)
 
-  * [Installing, running and upgrading the API](#installing-running-and-upgrading-the-api)
+  * [Installing, running and upgrading the API](#installing-running-the-api)
 
-  * [Updating the API](#updating-the-api)
+  * [Upgrading the API](#upgrading-the-api)
 
-  * [Installing Elasticsearch/Kibana](#installing-elasticsearch-and-kibana)
+  * [Manual installation of Elasticsearch/Kibana](#manual-setup-for-elasticsearch-and-kibana)
 
 * [The clients](#the-clients)
 
@@ -87,7 +85,7 @@ You need to point the API at the config file using the `--config-file` argument.
 
 Below are the different install & run commands for each method as well as the instructions on how to point to the config file:
 
-## docker-compose
+## docker-compose (recommended)
 
 For more info, check the repo here: [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
 
@@ -131,22 +129,22 @@ Startup|`$ docker run \`<br>`-d -v {path to config}:/src/.config.js \`<br>`-p {V
 Upgrade|Just point at the latest version or use `mverkerk/timings:latest` in the startup command.<br>You can find the latest version here: https://hub.docker.com/r/mverkerk/timings/tags/
 Config|Your config file can be stored anywhere you want. Use the `-v` argument to mount the config file in the container.<br>`{path to config}` = the **absolute** path to your config file<br>`{VM_port}` = the listening port of the API server inside the container<br>`{Host_port}` = the port that you want the **docker host** to listen on. This is the port used to connect to the API!!<br>`{version}` = the desired version of the timings API. You can also use `"latest"`
 
-### **Updating the API**
+### **Upgrading the API**
 
-On every startup of the API, the code will check for differences in the version and run the necessary upgrades. This may include updates to the Elasticsearch template & index-patterns and may add new visualizations & dashboards to Kibana! This process is fully automated so you just have to (re-)start the API after a code upgrade!
+On every startup of the API, the code will check for differences in the version and run the necessary updates. This may include updates to the Elasticsearch template & index-patterns and may add new visualizations & dashboards to Kibana! This process runs automatically when you startup the API again after an upgrade! For upgrade instructions, see the above run options.
 
 ### **Manual setup for Elasticsearch and Kibana**
 
-You can install Elasticsearch and Kibana yourself by following instructions found here: [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/_installation.html) and [Kibana](https://www.elastic.co/guide/en/kibana/current/install.html).
+If you choose to install & run Elasticsearch and Kibana yourself, you can reference these sources: [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/_installation.html) and [Kibana](https://www.elastic.co/guide/en/kibana/current/install.html).
 
-Or you can run them with `docker-compose` using the `docker-compose-elk.yml` file in [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
+You can also use `docker-compose` using the `docker-compose-elk.yml` file in [https://github.com/Verkurkie/timings-docker](https://github.com/Verkurkie/timings-docker)
 
-<span style="color:red">**IMPORTANT:**</span> If you setup Elasticsearch and Kibana yourself, you **HAVE** to point the API to their respective hostnames! You can do this in **one** of the following ways (ENV vars take priority!):
+**IMPORTANT:** If you run Elasticsearch and Kibana yourself, you **HAVE** to point the API to their respective hostnames! You can do this in **one** of the following ways (ENV vars take priority!):
 
 1. Use the correct keys in the `env` object of your config file. See [CONFIG.MD](CONFIG.MD).
-1. Setting Environment Variables for `ES_PROTOCOL`, `ES_HOST`, `ES_PORT`, `KB_HOST` and `KB_PORT`
+1. Set Environment Variables for `ES_PROTOCOL`, `ES_HOST`, `ES_PORT`, `KB_HOST` and `KB_PORT`
 
-- **The API supports authentication for elasticsearch!**
+- **The API also supports authentication for elasticsearch!**
   - use `ES_USER` and `ES_PASS` for Basic Auth
   - use `ES_SSL_CERT` and `ES_SSL_KEY` for SSL Auth
   - **NOTE:** If both are provided, SSL auth will be used!
@@ -222,7 +220,7 @@ The browser's response is then used as POST data for [`/v2/api/cicd/navtiming`](
 ```json
 {
   "status": 200,
-  "inject_code": "var%20visualCompleteTime%20%3D%200%3B%0Aif%20(performance.getEntriesByName('%22%20%2B%20visualCompleteMark%20%2B%20%22').length)%20%7B%0A%20%20visualCompleteTime%20%3D%20parseInt(performance.getEntriesByName('%22%20%2B%20visualCompleteMark%20%2B%20%22')%5B0%5D.startTime)%3B%0A%20%20window.performance.clearMarks()%3B%0A%7D%3B%0Areturn%20%7Btime%3Anew%20Date().getTime()%2C%20timing%3Awindow.performance.timing%2C%20visualCompleteTime%3A%20visualCompleteTime%2C%20url%3A%20document.location.href%2C%20resources%3A%20window.performance.getEntriesByType('resource')%7D%3B"
+  "inject_code": "var%20visualCompleteTime%20%3D%200%3B%0A%20%20if%20(performance.getEntriesByName('visual_complete').length)%20%7B%0A%20%20%20%20%20%20visualCompleteTime%20%3D%20parseInt(performance.getEntriesByName('visual_complete')%5B0%5D.startTime)%3B%0A%20%20%20%20%20%20window.performance.clearMarks()%3B%0A%20%20%7D%3B%0A%20%20return%20%7B%0A%20%20%20%20%20%20time%3Anew%20Date().getTime()%2C%0A%20%20%20%20%20%20timing%3Awindow.performance.timing%2C%0A%20%20%20%20%20%20visualCompleteTime%3A%20visualCompleteTime%2C%0A%20%20%20%20%20%20url%3A%20document.location.href.split(%22%3F%22)%5B0%5D%2C%0A%20%20%20%20%20%20resources%3A%20window.performance.getEntriesByType('resource')%0A%20%20%7D%3B"
 }
 ```
 
@@ -235,29 +233,6 @@ if (performance.getEntriesByName('" + visualCompleteMark + "').length) {
   window.performance.clearMarks();
 };
 return {time:new Date().getTime(), timing:window.performance.timing, visualCompleteTime: visualCompleteTime, url: document.location.href.split('?')[0], resources: window.performance.getEntriesByType('resource')};
-```
-
-Decoded [usertiming]:
-
-```javascript
-var marks = window.performance.getEntriesByType('mark');
-for (var i = 0; i < marks.length; i++) {
-  var markName = marks[i].name;
-  if (i < marks.length && (markName.indexOf('_start') >= 0 || markName.indexOf('_stop') >= 0)) {
-    if (markName.indexOf('_start') >= 0) {
-      var startMark = markName;
-      var measureName = markName.replace('_start', '');
-    }
-    if (startMark && markName.indexOf('_stop') >= 0 && markName.replace('_stop', '') === measureName) {
-      var stopMark = markName;
-      window.performance.measure(measureName, startMark, stopMark);
-    }
-  }
-};
-window.performance.clearMarks();
-var measureArray = window.performance.getEntriesByType('measure');
-window.performance.clearMeasures();
-return {time:new Date().getTime(), measureArray:measureArray, url: document.location.href.split('?')[0], marks};
 ```
 
 Insert this decoded script into your browser object to collect the required performance data!
@@ -273,7 +248,7 @@ Returns JSON object with results and debug/trace info, if requested.
 
 |Name|Required?|Type|Description|
 |-|-|-|-|
-|`injectJS`|yes|string|The value of this parameters is the FULL object returned by the browser as a result of injecting the JS code that was returned by [`/v2/api/cicd/injectjs`](#post-v2apicicdinjectjs).|
+|`injectJS`|yes|object|This is the FULL response object returned by the browser as a result of injecting the code that was obtained from [`/v2/api/cicd/injectjs`](#post-v2apicicdinjectjs).|
 
 For the remaining parameters, see here: [common parameters](#common-parameters-navtiming-usertiming-and-apitiming)
 
@@ -281,71 +256,102 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
 
 ```json
 {
-  "injectJS": {
-    "time": 1474997671801,
-    "timing": {
-      "navigationStart": 1474997673801,
-      "unloadEventStart": 0,
-      "unloadEventEnd": 0,
-      "redirectStart": 0,
-      "redirectEnd": 0,
-      "fetchStart": 1474997676866,
-      "domainLookupStart": 1474997676867,
-      "domainLookupEnd": 1474997676867,
-      "connectStart": 1474997676867,
-      "connectEnd": 1474997676905,
-      "secureConnectionStart": 1474997676880,
-      "requestStart": 1474997676905,
-      "responseStart": 1474997676990,
-      "responseEnd": 1474997677298,
-      "domLoading": 1474997676998,
-      "domInteractive": 1474997677402,
-      "domContentLoadedEventStart": 1474997677402,
-      "domContentLoadedEventEnd": 1474997677403,
-      "domComplete": 1474997677527,
-      "loadEventStart": 1474997677527,
-      "loadEventEnd": 1474997677534
+    "injectJS": {
+        "time": 1515175358980,
+        "timing": {
+            "navigationStart": 1515175358980,
+            "unloadEventStart": 0,
+            "unloadEventEnd": 0,
+            "redirectStart": 0,
+            "redirectEnd": 0,
+            "fetchStart": 1515175359044,
+            "domainLookupStart": 1515175359047,
+            "domainLookupEnd": 1515175359047,
+            "connectStart": 1515175359047,
+            "connectEnd": 1515175359094,
+            "secureConnectionStart": 1515175359061,
+            "requestStart": 1515175359094,
+            "responseStart": 1515175359224,
+            "responseEnd": 1515175359753,
+            "domLoading": 1515175359233,
+            "domInteractive": 1515175359757,
+            "domContentLoadedEventStart": 1515175359757,
+            "domContentLoadedEventEnd": 1515175359772,
+            "domComplete": 1515175359809,
+            "loadEventStart": 1515175359810,
+            "loadEventEnd": 1515175359813
+        },
+        "visualCompleteTime": 1734,
+        "url": "https://www.test-godaddy.com/",
+        "resources": [
+            {
+                "name": "https://img1.wsimg.com/ux/1.3.46-brand/css/uxcore-sales.min.css",
+                "entryType": "resource",
+                "startTime": 254.55,
+                "duration": 28.064999999999998,
+                "initiatorType": "link",
+                "workerStart": 0,
+                "redirectStart": 0,
+                "redirectEnd": 0,
+                "fetchStart": 254.55,
+                "domainLookupStart": 254.55,
+                "domainLookupEnd": 254.55,
+                "connectStart": 254.55,
+                "connectEnd": 254.55,
+                "secureConnectionStart": 0,
+                "requestStart": 256.665,
+                "responseStart": 279.37,
+                "responseEnd": 282.615,
+                "transferSize": 17008,
+                "encodedBodySize": 16731,
+                "decodedBodySize": 93840
+            },
+            {
+                "name": "https://img1.wsimg.com/wrhs/725d0b82d00774200f2cc0f7283a5b3d/salesheader.min.css",
+                "entryType": "resource",
+                "startTime": 254.59000000000003,
+                "duration": 32.974999999999966,
+                "initiatorType": "link",
+                "workerStart": 0,
+                "redirectStart": 0,
+                "redirectEnd": 0,
+                "fetchStart": 254.59000000000003,
+                "domainLookupStart": 254.59000000000003,
+                "domainLookupEnd": 254.59000000000003,
+                "connectStart": 254.59000000000003,
+                "connectEnd": 254.59000000000003,
+                "secureConnectionStart": 0,
+                "requestStart": 257.49,
+                "responseStart": 285.1,
+                "responseEnd": 287.565,
+                "transferSize": 36980,
+                "encodedBodySize": 36620,
+                "decodedBodySize": 151067
+            }
+        ]
     },
-    "visualCompleteTime": 5992,
-    "url": "http://www.example.com",
-    "resources": [
-      {
-        "connectEnd": 52.095,
-        "connectStart": 52.095,
-        "decodedBodySize": 450,
-        "domainLookupEnd": 52.095,
-        "...": 123
-      },
-      {
-        ...
-      }
-    ]
-  },
-  "sla": {
-    "pageLoadTime": 4000
-  },
-  "baseline": {
-    "days": 7,
-    "perc": 75,
-    "padding": 1.2,
-    "incl": {
-      "team": "_log_"
+    "sla": {
+        "pageLoadTime": 3000
+    },
+    "baseline": {
+        "days": 7,
+        "perc": 75,
+        "padding": 1.2
+    },
+    "flags": {
+        "assertBaseline": true,
+        "debug": false,
+        "esTrace": false,
+        "esCreate": false,
+        "passOnFailedAssert": false
+    },
+    "log": {
+        "team": "Sample team",
+        "test_info": "Sample App (navtiming)",
+        "env_tester": "test",
+        "browser": "chrome",
+        "env_target": "prod"
     }
-  },
-  "flags": {
-    "assertBaseline": true,
-    "debug": false,
-    "esTrace": false,
-    "esCreate": false,
-    "passOnFailedAssert": false
-  },
-  "log": {
-    "team": "Sample team",
-    "test_info": "Sample App (navtiming)",
-    "env_tester": "test",
-    "browser": "chrome",
-    "env_target": "prod"
-  }
 }
 ```
 
@@ -354,76 +360,68 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
 ```json
 
 {
-  "status": 200,
-  "api_version": "2.0.12",
-  "export": {
-    "perf": {
-      "flatSLA": 4000,
-      "measured": 830,
-      "baseline": 830,
-      "threshold": 996,
-      "visualComplete": 1734
-    },
-    "info": {
-      "ranBaseline": true,
-      "usedBaseline": true,
-      "assertType": "baseline_padding",
-      "assertMetric": "pageLoadTime",
-      "api_took": 99,
-      "es_took": 1,
-      "api_version": "2.0.12",
-      "hasResources": true
-    },
-    "log": {
-      "team": "Sample team",
-      "test_info": "Sample App (navtiming)",
-      "env_tester": "test",
-      "browser": "chrome",
-      "env_target": "prod"
-    },
-    "flags": {
-      "assertBaseline": true,
-      "debug": false,
-      "esTrace": false,
-      "esCreate": false,
-      "passOnFailedAssert": false
-    },
-    "baseline": {
-      "days": 7,
-      "perc": 75,
-      "padding": 1.2,
-      "incl": {
-        "team": "_log_"
-      }
-    },
-    "nav": {
-      "loadEventStart": 830,
-      "domComplete": 829,
-      "domInteractive": 777,
-      "firstByteTime": 130,
-      "dnsTime": 0,
-      "redirectTime": 0,
-      "connectTime": 14,
-      "processingTime": 57
-    },
-    "et": "2017-09-29T23:16:12.869Z",
-    "@timestamp": "2017-09-29T23:16:12.869Z",
-    "status": "pass",
-    "@_uuid": "8441cd30-892a-4cf8-9046-9f175c1b4f67",
-    "dl": "www.example.com"
-  },
-  "assert": true,
-  "esServer": "localhost",
-  "esIndex": "timings-perf",
-  "esSaved": false,
-  "resourceSaved": false,
+    "status": 200,
+    "api_version": "1.1.3",
+    "assert": true,
+    "route": "navtiming",
+    "esSaved": "ElasticSearch is not in use or 'flags.esCreate=false'!",
+    "export": {
+        "et": "2018-01-05T18:03:52.418Z",
+        "@timestamp": "2018-01-05T18:03:52.418Z",
+        "status": "pass",
+        "@_uuid": "38ec95e5-5dd3-4b93-b2a4-a4d1cdb6d6c5",
+        "dl": "www.test-godaddy.com/",
+        "perf": {
+            "flatSLA": 3000,
+            "measured": 830,
+            "baseline": 0,
+            "threshold": 3000,
+            "visualComplete": 1734
+        },
+        "info": {
+            "ranBaseline": false,
+            "usedBaseline": false,
+            "assertMetric": "pageLoadTime",
+            "api_took": 0,
+            "api_version": "1.1.3",
+            "hasResources": true
+        },
+        "log": {
+            "team": "Sample team",
+            "test_info": "Sample App (navtiming)",
+            "env_tester": "test",
+            "browser": "chrome",
+            "env_target": "prod"
+        },
+        "flags": {
+            "assertBaseline": true,
+            "debug": false,
+            "esTrace": false,
+            "esCreate": false,
+            "passOnFailedAssert": false
+        },
+        "baseline": {
+            "days": 7,
+            "perc": 75,
+            "padding": 1.2
+        },
+        "nav": {
+            "loadEventStart": 830,
+            "domComplete": 829,
+            "domInteractive": 777,
+            "firstByteTime": 130,
+            "dnsTime": 0,
+            "redirectTime": 0,
+            "connectTime": 14,
+            "processingTime": 57
+        }
+    }
 }
 ```
 
 #### [POST] /v2/api/cicd/usertiming
 
-Processes data provided by the browser (from the injectjs code), retrieves baseline data from ElasticSearch,
-asserts the measured page performance against baseline or SLA, and saves results to ElasticSearch.
+Processes data provided by the browser (from the injectjs code), retrieves baseline data from ElasticSearch, asserts the measured performance against baseline or SLA, and saves results to ElasticSearch.
 
 Returns JSON object with results and debug/trace info, if requested.
 
@@ -431,7 +429,7 @@ Returns JSON object with results and debug/trace info, if requested.
 
 |Name|Required?|Type|Description|
 |-|-|-|-|
-|`injectJS`|yes|object|The object returned by the browser as a result of injecting the JS code that was returned by [`/v2/api/cicd/injectjs`](#post-v2apicicdinjectjs)
+|`injectJS`|yes|object|This is the FULL response object returned by the browser as a result of injecting the JS code that was returned by [`/v2/api/cicd/injectjs`](#post-v2apicicdinjectjs)
 
 For the remaining parameters, see here: [common parameters](#common-parameters-navtiming-usertiming-and-apitiming)
 
@@ -440,62 +438,62 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
 ```json
 
 {
-  "injectJS": {
-    "time": 1474997671801,
-    "measureArray": [
-      {
-        "name": "test",
-        "entryType": "measure",
-        "startTime": 236377.80000000002,
-        "duration":  5345.174999999988
-      }
-    ],
-    "url": "https://www.w3.org/webperf/",
-    "marks": [
-      {
-        "name": "test_start",
-        "entryType": "mark",
-        "startTime": 236377.80000000002,
-        "duration": 0
-      },
-      {
-        "name": "test_stop",
-        "entryType": "mark",
-        "startTime": 241722.975,
-        "duration": 0
-      }
-    ]
-  },
-  "sla": {
-    "pageLoadTime": 6000
-  },
-  "baseline": {
-    "days": 7,
-    "perc": 75,
-    "padding": 1.2,
-    "searchUrl": "*w3*webperf*",
-    "incl": {
-      "browser":"_log_",
-      "environment":"_log_"
+    "injectJS": {
+        "time": 1515175191685,
+        "measureArray": [
+            {
+                "name": "test",
+                "entryType": "measure",
+                "startTime": 119375,
+                "duration": 1583
+            }
+        ],
+        "url": "https://www.sample.com",
+        "marks": [
+            {
+                "name": "test_start",
+                "entryType": "mark",
+                "startTime": 119375,
+                "duration": 0
+            },
+            {
+                "name": "test_stop",
+                "entryType": "mark",
+                "startTime": 120958,
+                "duration": 0
+            }
+        ]
     },
-    "excl": {
-      "platform":""
-  }
-  },
-  "flags": {
-    "assertBaseline": true,
-    "debug": false,
-    "esTrace": false,
-    "esCreate": false,
-    "passOnFailedAssert": false
-  },
-  "log": {
-    "team": "Sample team",
-    "test_info": "Sample App (usertiming)",
-    "env_tester": "test",
-    "browser": "chrome",
-    "env_target": "prod"
-  }
+    "sla": {
+        "pageLoadTime": 6000
+    },
+    "baseline": {
+        "days": 7,
+        "perc": 75,
+        "padding": 1.2,
+        "searchUrl": "*sample*test*",
+        "incl": {
+            "browser": "_log_",
+            "environment": "_log_"
+        },
+        "excl": {
+            "platform": ""
+        }
+    },
+    "flags": {
+        "assertBaseline": true,
+        "debug": false,
+        "esTrace": false,
+        "esCreate": false,
+        "passOnFailedAssert": false
+    },
+    "log": {
+        "team": "Sample team",
+        "test_info": "Sample App (usertiming)",
+        "env_tester": "test",
+        "browser": "chrome",
+        "env_target": "prod"
+    }
 }
 
 ```
@@ -505,64 +503,60 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
 ```json
 
 {
-  "status": 200,
-  "api_version": "2.0.12",
-  "export": {
-    "perf": {
-      "flatSLA": 6000,
-      "measured": 3304,
-      "baseline": 0,
-      "threshold": 6000,
-      "visualComplete": 3304
-    },
-    "info": {
-      "ranBaseline": true,
-      "usedBaseline": false,
-      "assertType": "flat_sla",
-      "assertMetric": "pageLoadTime",
-      "api_took": 44,
-      "es_took": 3,
-      "api_version": "2.0.12",
-      "hasResources": false
-    },
-    "log": {
-      "team": "Sample team",
-      "test_info": "Sample App (usertiming)",
-      "env_tester": "test",
-      "browser": "chrome",
-      "env_target": "prod"
-    },
-    "flags": {
-      "assertBaseline": true,
-      "debug": false,
-      "esTrace": false,
-      "esCreate": false,
-      "passOnFailedAssert": false
-    },
-    "baseline": {
-      "days": 7,
-      "perc": 75,
-      "padding": 1.2,
-      "searchUrl": "*w3*webperf*",
-      "incl": {
-        "browser": "_log_",
-        "environment": "_log_"
-      },
-      "excl": {
-        "platform": ""
-      }
-    },
-    "et": "2017-09-29T23:22:41.765Z",
-    "@timestamp": "2017-09-29T23:22:41.765Z",
-    "status": "pass",
-    "@_uuid": "7b171d80-9b44-4721-8872-ce2f5a86f363",
-    "dl": "www.w3.org/webperf/"
-  },
-  "assert": true,
-  "esServer": "localhost",
-  "esIndex": "timings-perf",
-  "esSaved": false,
-  "resourceSaved": false
+    "status": 200,
+    "api_version": "1.1.3",
+    "assert": true,
+    "route": "usertiming",
+    "esSaved": "ElasticSearch is not in use or 'flags.esCreate=false'!",
+    "export": {
+        "et": "2018-01-05T18:00:58.805Z",
+        "@timestamp": "2018-01-05T18:00:58.805Z",
+        "status": "pass",
+        "@_uuid": "ae251cab-f2e7-4fa0-9ab3-56d7ba36daed",
+        "dl": "www.sample.com",
+        "perf": {
+            "flatSLA": 6000,
+            "measured": 3869,
+            "baseline": 0,
+            "threshold": 6000,
+            "visualComplete": 3869
+        },
+        "info": {
+            "ranBaseline": false,
+            "usedBaseline": false,
+            "assertMetric": "pageLoadTime",
+            "api_took": 0,
+            "api_version": "1.1.3",
+            "hasResources": false
+        },
+        "log": {
+            "team": "Sample team",
+            "test_info": "Sample App (usertiming)",
+            "env_tester": "test",
+            "browser": "chrome",
+            "env_target": "prod"
+        },
+        "flags": {
+            "assertBaseline": true,
+            "debug": false,
+            "esTrace": false,
+            "esCreate": false,
+            "passOnFailedAssert": false
+        },
+        "baseline": {
+            "days": 7,
+            "perc": 75,
+            "padding": 1.2,
+            "searchUrl": "*sample*test*",
+            "incl": {
+                "browser": "_log_",
+                "environment": "_log_"
+            },
+            "excl": {
+                "platform": ""
+            }
+        }
+    }
 }
 
 ```
@@ -579,7 +573,7 @@ Returns JSON object with results and debug/trace info, if requested.
 |Name|Required?|Type|Description|
 |-|-|-|-|
 |`url`|yes|string|The URL of the API that is being tested
-|`timing`|yes|object|The START and STOP timestamps. Example: `{"startTime": 1474997676867,"endTime": 1474997676905}
+|`timing`|yes|object|The START and STOP timestamps. Example: `{"timing": {"startTime": 1474997676867, "endTime": 1474997676905}}`
 
 For the remaining parameters, see here: [common parameters](#common-parameters-navtiming-usertiming-and-apitiming)
 
@@ -589,8 +583,8 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
 
 {
   "timing": {
-    "startTime": 1474997676867,
-    "endTime": 1474997676905
+    "startTime": 1515175107429,
+    "endTime": 1515175107471
   },
   "url": "http://api.sample.com/endpoint",
   "sla": {
@@ -619,56 +613,52 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
 ```json
 
 {
-  "status": 200,
-  "api_version": "2.0.12",
-  "export": {
-    "perf": {
-      "flatSLA": 200,
-      "measured": 17,
-      "baseline": 69,
-      "threshold": 82,
-      "visualComplete": 17
-    },
-    "info": {
-      "ranBaseline": true,
-      "usedBaseline": true,
-      "assertType": "baseline_padding",
-      "assertMetric": "pageLoadTime",
-      "api_took": 40,
-      "es_took": 1,
-      "api_version": "2.0.12",
-      "hasResources": false
-    },
-    "log": {
-      "team": "Sample team",
-      "test_info": "Sample App (apitiming)",
-      "env_tester": "linux",
-      "browser": "api_call",
-      "env_target": "prod"
-    },
-    "flags": {
-      "assertBaseline": true,
-      "debug": false,
-      "esTrace": false,
-      "esCreate": false,
-      "passOnFailedAssert": false
-    },
-    "baseline": {
-      "days": 7,
-      "perc": 75,
-      "padding": 1.2
-    },
-    "et": "2017-09-29T23:30:11.756Z",
-    "@timestamp": "2017-09-29T23:30:11.756Z",
-    "status": "pass",
-    "@_uuid": "b453ec35-52ab-4a61-a731-00c9229e0712",
-    "dl": "api.sample.com/endpoint"
-  },
-  "assert": true,
-  "esServer": "localhost",
-  "esIndex": "timings-perf",
-  "esSaved": false,
-  "resourceSaved": false
+    "status": 200,
+    "api_version": "1.1.3",
+    "assert": true,
+    "route": "apitiming",
+    "esSaved": "ElasticSearch is not in use or 'flags.esCreate=false'!",
+    "export": {
+        "et": "2018-01-05T17:57:31.387Z",
+        "@timestamp": "2018-01-05T17:57:31.387Z",
+        "status": "pass",
+        "@_uuid": "782f4d5b-b4f8-49bd-bf6b-bc68503e8cd7",
+        "dl": "api.sample.com/endpoint",
+        "perf": {
+            "flatSLA": 200,
+            "measured": 57,
+            "baseline": 0,
+            "threshold": 200,
+            "visualComplete": 57
+        },
+        "info": {
+            "ranBaseline": false,
+            "usedBaseline": false,
+            "assertMetric": "pageLoadTime",
+            "api_took": 0,
+            "api_version": "1.1.3",
+            "hasResources": false
+        },
+        "log": {
+            "team": "Sample team",
+            "test_info": "Sample App (apitiming)",
+            "env_tester": "linux",
+            "browser": "api_call",
+            "env_target": "prod"
+        },
+        "flags": {
+            "assertBaseline": true,
+            "debug": false,
+            "esTrace": false,
+            "esCreate": false,
+            "passOnFailedAssert": false
+        },
+        "baseline": {
+            "days": 7,
+            "perc": 75,
+            "padding": 1.2
+        }
+    }
 }
 
 ```
@@ -701,7 +691,7 @@ Returns JSON object with array of resources.
 
 {
   "status": 200,
-  "kibana_host": "10.33.170.109",
+  "kibana_host": "localhost",
   "kibana_port": 5601,
   "resources": [
     {
@@ -848,7 +838,7 @@ The "common parameters" are used by for following endpoints:
 |`baseline.days`|no|integer|Number of days for the baseline
 |`baseline.perc`|no|integer|The percentile for the baseline
 |`baseline.padding`|no|integer|Baseline multiplyer that enabled you to "pad" the baseline. Value has to be > 1
-|`baseline.searchUrl`|no|string|A custom search string/wildcard for the baseline. This will be applied to the 'dl' field query. Has to be a full, valid Kibana search string and **can not be empty**!
+|`baseline.searchUrl`|no|string|A custom search string/wildcard for the baseline. This will be applied to the 'dl' field query. Has to be a full, valid Kibana search string!
 |`baseline.incl`|no|object|This can be used to fine-tune the baseline query. The key-value pair will be used as an "include-filter" for the ElasticSearch query. Example: `{"browser": "chrome"}`
 |`baseline.excl`|no|object|This can be used to fine-tune the baseline query. The key-value pair will be used as an "exclude-filter" for the ElasticSearch query. Example: `{"status": "fail"}` to exclude all the failed tests
 |`flags`|no|object|Collection of flags for actions & return output. Sub-parameters:
@@ -972,10 +962,10 @@ Example of the Debug response:
     },
     "log": {
       "team": "perfeng",
-      "app_info": "test App (navtiming)",
-      "platform": "saucelabs-windows-firefox47",
+      "test_info": "test App (navtiming)",
+      "env_tester": "saucelabs-windows-firefox47",
       "browser": "firefox",
-      "environment": "test"
+      "env_target": "test"
     },
     "startTime": 1492102183494
   },
@@ -1021,8 +1011,8 @@ When you set `flags.esTrace` to `true`, the API will return the baseline query a
 ||- `response.hits.hits` = contains a few of the actual documents that matched the query
 ||- `response.aggregations` = here you can find the baseline aggregation!
 |ES_CREATE|Contains measured values of timing metrics|
-|export|Contains the JSON data that was (or would have been) saved to the ElasticSearch CICD index.|
-||NOTE: the `export` object will also be included when `flags.esCreate` is set to `false`
+|export|Contains the JSON data that was (or would have been) saved to ElasticSearch.|
+||NOTE: the `export` object is always in the response, even when `flags.esCreate` is set to `false`!
 
 Example of the `esTrace` output:
 
@@ -1101,12 +1091,12 @@ Example of the `esTrace` output:
                 "vis_pageLoadTime": 12170,
                 "et": "2017-03-31T02:41:10.101Z",
                 "@timestamp": "2017-03-31T02:41:10.101Z",
-                "app_info": "test App (navtiming)",
-                "platform": "saucelabs-windows-firefox47",
+                "test_info": "test App (navtiming)",
+                "env_tester": "saucelabs-windows-firefox47",
                 "browser": "firefox",
                 "server": "saucelabs",
                 "buildURL": "",
-                "environment": "test",
+                "env_target": "test",
                 "tags": "dt_firefox_regression",
                 "team": "WSB",
                 "flag_useRum": false,
@@ -1142,8 +1132,8 @@ Example of the `esTrace` output:
                 "vis_pageLoadTime": 2652,
                 "et": "2017-03-31T03:57:41.586Z",
                 "@timestamp": "2017-03-31T03:57:41.586Z",
-                "app_info": "test App (navtiming)",
-                "platform": "tempe-android-s5-atom",
+                "test_info": "test App (navtiming)",
+                "env_tester": "tempe-android-s5-atom",
                 "browser": "chrome",
                 "server": "tempe-lab",
                 "branch": "update-precheck",
@@ -1151,7 +1141,7 @@ Example of the `esTrace` output:
                 "buildVersion": "65fa65c",
                 "workflow": "pr",
                 "workflowStep": "uitest_android_chrome_real_perf",
-                "environment": "test",
+                "env_target": "test",
                 "tags": "perf-real-device",
                 "uuid": "check-widget-mutator",
                 "team": "WSB",
