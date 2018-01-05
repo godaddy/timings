@@ -44,8 +44,8 @@ class ESClass {
     this.client = new elasticsearch.Client(esConfig);
   }
 
-  async ping() {
-    await this.client.ping({ requestTimeout: 5000 })
+  async ping(timeout) {
+    await this.client.ping({ requestTimeout: (timeout || 5000) })
       .then(function (resp) {
         return resp;
       }, function (err) {

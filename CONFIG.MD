@@ -12,12 +12,12 @@ The config file can be located **anywhere on your local filesystem**. Point the 
 
 ## Startup commands
 
-Install type|Startup command
+Install type|Startup command (where `{path}` is the absolute path to the config file)
 ---|---
-docker-compose|`$ docker-compose -e CONFIGFILE={path} up`
+docker-compose|`$ CONFIGFILE={path} docker-compose up`
 git clone|`$ node ./server.js --config-file {path}`
 NPM global install|`$ timings --config-file {path}`
-Docker (stand-alone)|`$ docker run -d -v {path to config}:/src/.config.js -p {VM_port}:{Host_port} mverkerk/timings:{version}`
+Docker (stand-alone)|`$ docker run -d -v {path}:/src/.config.js -p {VM_port}:{Host_port} mverkerk/timings:{version}`
 
 NOTE: For non-docker installs, you may need elevated permissions to run the API on ports < 1024
 

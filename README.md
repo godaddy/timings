@@ -92,9 +92,9 @@ For more info, check the repo here: [https://github.com/Verkurkie/timings-docker
 Activity|Command
 ---|---
 Install|`$ git clone https://github.com/verkurkie/timings-docker`
-Startup|`$ cd timings-docker`<br>`$ docker-compose -e CONFIGFILE={path} up`
-Upgrade|`$ git pull`<br>`$ docker-compose -e CONFIGFILE={path} up --build`
-Config|Can Can be anywhere! Use `-e CONFIGFILE={path}` argument for docker-compose!
+Startup|`$ cd timings-docker`<br>`$ CONFIGFILE={path} docker-compose up`
+Upgrade|`$ git pull`<br>`$ CONFIGFILE={path} docker-compose up --build`
+Config|Can Can be anywhere! Set `$ CONFIGFILE={path}` variable before the docker-compose command!
 
 ## Git clone
 

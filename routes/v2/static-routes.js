@@ -9,6 +9,7 @@ const router = express.Router();
 const path = require('path');
 // const config = require('../../.config.js');
 const nconf = require('nconf');
+const esUtils = require('../../src/v2/es-utils');
 
 const htmlDir = path.join(__dirname, '../../public/');
 
@@ -21,20 +22,33 @@ router.get('/waterfall', function (req, res) {
 });
 
 router.get('/health*', function (req, res) {
-  res.send(health());
+  checkES(new esUtils.ESClass())
+    .then(function (resp) {
+      res.send(health(resp));
+    });
 });
 
 router.get('/v2/api/cicd/health*', function (req, res) {
-  res.send(health());
+  checkES(new esUtils.ESClass())
+    .then(function (resp) {
+      res.send(health(resp));
+    });
 });
 
-// // Catch-all -> Not Found page
-// router.get('*', function (req, res) {
-//   res.sendFile(htmlDir + '404.html');
-// });
+async function checkES(es) {
+  try {
+    await es.ping(500);
+    nconf.set('env:useES', true);
+    return { result: `ES server [${nconf.get('env:ES_HOST')}:${nconf.get('env:ES_PORT')}] is available!` };
+  } catch (err) {
+    return {
+      result: `ES server [${nconf.get('env:ES_HOST')}:${nconf.get('env:ES_PORT')}] could not be reached`,
+      error: err.message
+    };
+  }
+}
 
-function health() {
-
+function health(resp) {
   const ret = {
     server: {
       APP_HOST: nconf.get('env:HOST') + ':' + nconf.get('env:HTTP_PORT'),
@@ -68,10 +82,10 @@ function health() {
       KB_HOST: nconf.get('env:KB_HOST') || 'Not set!',
       KB_PORT: nconf.get('env:KB_PORT') || 'Not set!'
     };
+  } else {
+    ret.es = resp;
   }
-
   return ret;
-
 }
 
 function secToTimeString(sec) {
