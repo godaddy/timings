@@ -42,7 +42,10 @@ function waterfall(div, resources, fltr) {
                 if (fltr.indexOf("fltr_") === 0) {
                     // this is a type filter
                     var fltrType = fltr.replace("fltr_", "");
-                    if (entryFilter(entries[n], fltrType) === true) {
+                    if (entryFilter(entries[n], fltrType) !== (fltrType !== 'oth')) {
+                        entries.splice(n, 1);
+                        continue;
+                    } else if (fltrType === 'oth' && entries[n].mimeType !== 'other') {
                         entries.splice(n, 1);
                         continue;
                     }
@@ -609,25 +612,37 @@ function entryFilter(entry, fltrType) {
     var result = false;
     switch (fltrType) {
         case "xhr":
-            if (entry.initiatorType !== "xmlhttprequest") {
+            if (entry.mimeType.toLowerCase() === 'xhr' || entry.initiatorType === "xmlhttprequest") {
                 result = true;
             }
             break;
         case "js":
-            if (entry.initiatorType !== "link") {
+            if (entry.mimeType.toLowerCase() === "application/javascript" || entry.mimeType.toLowerCase() === "text/javascript") {
                 result = true;
             }
             break;
         case "css":
-            if (entry.initiatorType !== "link") {
+            if (entry.mimeType.toLowerCase() === "text/css") {
                 result = true;
             }
             break;
         case "img":
-            if (entry.initiatorType !== "img") {
+            if (entry.mimeType.indexOf("image/") === 0) {
                 result = true;
             }
             break;
+        case "med":
+            if (entry.mimeType.indexOf("audio/") === 0 || entry.mimeType.indexOf("video/") === 0) {
+                result = true;
+            }
+            break;
+        case "fnt":
+            if (entry.mimeType.indexOf("font/") === 0 || entry.mimeType.indexOf("application/font") === 0) {
+                result = true;
+            }
+            break;
+        default:
+            result = false
     }
     return result;
 };

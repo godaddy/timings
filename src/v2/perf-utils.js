@@ -7,6 +7,7 @@ const nconf = require('nconf');
 const luceneParse = require('lucene-parser');
 const uuidv4 = require('uuid/v4');
 const esUtils = require('./es-utils.js');
+const mime = require('mime-types');
 
 class PUClass {
   constructor(body, route) {
@@ -428,7 +429,12 @@ class PUClass {
       const hits = response.hits.hits;
       const resources = [];
       hits.forEach((hit) => {
-        resources.push(hit._source);
+        const resource = hit._source;
+        resource.mimeType = mime.lookup(resource.uri_path) || 'other';
+        if (resource.initiatorType === 'xmlhttprequest') {
+          resource.mimeType = 'xhr';
+        }
+        resources.push(resource);
       });
 
       returnJSON.status = 200;
