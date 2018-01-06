@@ -48,7 +48,7 @@ module.exports = {
             loadEventEnd: 1474997677534
           },
           visualCompleteTime: 1734,
-          url: 'www.w3.org/webperf/'
+          url: 'http://www.w3.org/webperf/'
         },
         sla: { pageLoadTime: 4000 },
         flags: commonFlags,
@@ -63,7 +63,7 @@ module.exports = {
             startTime: 236377.80000000002,
             duration: 5345.174999999988
           }],
-          url: 'www.w3.org/webperf/',
+          url: 'http://www.w3.org/webperf/',
           marks: [{
             name: 'test_start',
             entryType: 'mark',
@@ -87,7 +87,7 @@ module.exports = {
           startTime: 1474997676867,
           endTime: 1474997676905
         },
-        url: 'api.someapi.com',
+        url: 'http://api.someapi.com',
         sla: {
           pageLoadTime: 200
         },

@@ -160,7 +160,9 @@ function validateSchema(route, body) {
     }),
     injectjs: joi.object({
       injectType: joi.any().valid('navtiming', 'usertiming').required(),
-      visualCompleteMark: joi.string().allow('')
+      visualCompleteMark: joi.string().allow(''),
+      stripQueryString: joi.boolean(),
+      decoded: joi.boolean()
     })
   };
 

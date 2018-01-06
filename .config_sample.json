@@ -1,0 +1,38 @@
+{
+  "env": {
+    "ES_PROTOCOL": "http",
+    "ES_HOST": "",
+    "ES_PORT": 9200,
+    "ES_USER": "",
+    "ES_PASS": "",
+    "ES_SSL_CERT": "",
+    "ES_SSL_KEY": "",
+    "KB_HOST": "",
+    "KB_PORT": 5601,
+    "KB_INDEX": "",
+    "HTTP_PORT": 80
+  },
+  "params": {
+    "required": [
+      "log.test_info",
+      "log.env_tester",
+      "log.team",
+      "log.browser",
+      "log.env_target"
+    ],
+    "defaults": {
+      "baseline": {
+        "days": 7,
+        "perc": 75,
+        "padding": 1.2
+      },
+      "flags": {
+        "assertBaseline": true,
+        "debug": false,
+        "esTrace": false,
+        "esCreate": false,
+        "passOnFailedAssert": false
+      }
+    }
+  }
+}

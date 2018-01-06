@@ -18,10 +18,30 @@
 <body style="display: hidden;">
     <div class="col-sm-12">
         <div class="row">
-            <table id="title" class="table table-condensed table-bordered" width="100%">
+            <table id="title" class="table table-condensed table-bordered" width="100%" style="margin: 0px;">
                 <tbody>
-                    <tr class="info h2">
-                        <td colspan="42">Waterfall</td>
+                    <tr class="info">
+                        <td colspan="42">
+                            <div class="col-sm-2 h2"><strong>Waterfall</strong></div>
+                            <div class="col-sm-3 h2">
+                                <div class="input-group input-group-sm" style="width: 100%;">
+                                    <span class="input-group-addon" id="sizing-addon1">Filter: </span>
+                                    <input id="srch-term" name="srch-term" type="text" class="form-control" placeholder="Search" aria-describedby="sizing-addon3">
+                                </div>
+                            </div>
+                            <div class="col-sm-7 h2">
+                                <h4 style="margin: 0px;">
+                                    <span id="fltr_all" class="btn btn-sm btn-info btn-default">All</span>
+                                    <span id="fltr_xhr" class="btn btn-sm btn-default">XHR</span>
+                                    <span id="fltr_js" class="btn btn-sm btn-default">JS</span>
+                                    <span id="fltr_css" class="btn btn-sm btn-default">CSS</span>
+                                    <span id="fltr_img" class="btn btn-sm btn-default">IMG</span>
+                                    <span id="fltr_med" class="btn btn-sm btn-default">Media</span>
+                                    <span id="fltr_fnt" class="btn btn-sm btn-default">Font</span>
+                                    <span id="fltr_oth" class="btn btn-sm btn-default">Other</span>
+                                </h4>
+                            </div>
+                        </td>
                     </tr>
                     <tr class="warning">
                         <td class="h6" width='75%'><strong>Page URL</strong></td>
@@ -88,6 +108,19 @@
                 $('#title tbody>tr:nth-child(3)>td:nth-child(1)').text('No ID specified').css('color', 'red');
             };
 
+            $("[id^=fltr_]").on("click", function() {
+                $("[id^=fltr_]").removeClass("btn-info");
+                $(this).addClass("btn-info");
+                const fltr = (this.id === 'fltr_all') ? '' : this.id;
+                waterfall('#svg_canvas', window.resources, fltr);
+                fillTable('#tbl_resources', window.resources, fltr);
+            })
+
+            $("#srch-term").on("change paste keyup", function() {
+                const fltr = this.value;
+                waterfall('#svg_canvas', window.resources, fltr);
+                fillTable('#tbl_resources', window.resources, fltr);
+            })
 
             $(window).on('resize', function() {
                 drawPage(id);
@@ -124,12 +157,14 @@
             }
         };
 
-        function fillTable(div, resources) {
+        function fillTable(div, resources, fltr) {
             $('#info').css('visibility', '');
+            $('#filter').css('visibility', '');
             $(div).empty();
             var tbl_header = '<thead><tr>';
             tbl_header += '<th>#</th>';
             tbl_header += '<th>Resource</th>';
+            tbl_header += '<th>Content-type</th>';
             tbl_header += '<th>Request Start</th>';
             tbl_header += '<th>Duration</th>';
             tbl_header += '<th>DNS Lookup</th>';
@@ -143,6 +178,22 @@
 
             for (var n = 0; n < resources.length; n++) {
                 var entry = resources[n];
+                if (fltr && entry.hasOwnProperty("initiatorType")) {
+                    if (fltr.indexOf("fltr_") === 0) {
+                        // this is a type filter
+                        var fltrType = fltr.replace("fltr_", "");
+                        if (this.entryFilter(entry, fltrType) !== (fltrType !== 'oth')) {
+                            continue;
+                        } else if (fltrType === 'oth' && entry.mimeType !== 'other') {
+                            continue;
+                        }
+                    } else {
+                        // must be a text filter
+                        if (entry.uri.indexOf(fltr) < 0) {
+                            continue;
+                        }
+                    }
+                }
                 if (typeof entry === 'object' && !entry.hasOwnProperty("status")) {
                     // This entry is from the 'resources' data
                     if ("loadEventStart" in entry) {
@@ -191,7 +242,8 @@
                         uri = strShort(uri, 65, 'left');
                     }
 
-                    tbl_row += '<td class="static' + beforeOnload + '" nowrap><a href="' + link + '" target="_blank">' + uri + '</a>';
+                    tbl_row += '<td class="static' + beforeOnload + '" nowrap><a href="' + link + '" target="_blank">' + uri + '</a></td>';
+                    tbl_row += '<td class="static' + beforeOnload + '" nowrap>' + (entry.mimeType || 'other') + '</td>';
                     tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + (entry.start / 1000).toFixed(3) + ' s</td>';
                     tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + entry.duration.toFixed(2) + ' ms</td>';
                     tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + entry.dnsDuration.toFixed(2) + ' ms</td>';
