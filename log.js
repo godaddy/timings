@@ -23,8 +23,8 @@ var logger = new winston.Logger({
   exitOnError: false
 });
 
-if (!fs.existsSync('./logs/')) {
-  fs.mkdirSync('logs')
+if (!fs.existsSync('./logs/')) {  // eslint-disable-line no-sync
+  fs.mkdirSync('logs');   // eslint-disable-line no-sync
 }
 
 var accessLog = new winston.Logger({

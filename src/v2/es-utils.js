@@ -32,8 +32,8 @@ class ESClass {
       esConfig.host = [
         {
           ssl: {
-            cert: fs.readFileSync(this.env.ES_SSL_CERT).toString(),
-            key: fs.readFileSync(this.env.ES_SSL_KEY).toString(),
+            cert: fs.readFileSync(this.env.ES_SSL_CERT).toString(),   // eslint-disable-line no-sync
+            key: fs.readFileSync(this.env.ES_SSL_KEY).toString(),   // eslint-disable-line no-sync
             rejectUnauthorized: true
           }
         }
@@ -70,10 +70,16 @@ class ESClass {
   }
 
   async getTemplate(name) {
-    const response = await this.client
+    const exists = await this.client
       .indices
-      .getTemplate({ name: name });
-    return response;
+      .existsTemplate({ name: name });
+    if (exists) {
+      const response = await this.client
+        .indices
+        .getTemplate({ name: name });
+      return response;
+    }
+    return { error: { message: 'Not Found' }};
   }
 
   async defaultIndex(name, version) {
@@ -93,6 +99,21 @@ class ESClass {
       .indices
       .delete({ index: index });
     return response;
+  }
+
+  async delDocById(index, type, id) {
+    let exists = false;
+    if (id) {
+      // Check if it already exists
+      exists = await this.client
+        .exists({ index: index, type: type, id: id });
+    }
+    if (exists) {
+      const response = await this.client
+        .delete({ index: index, type: type, id: id });
+      return response;
+    }
+    return { _id: id, result: 'not_exists', statusCode: 200, reason: 'Does not exist' };
   }
 
   async reindex(src, dst) {
@@ -139,14 +160,19 @@ class ESClass {
       for (const index of Object.keys(importJson)) {
         const item = importJson[index];
         const _source = item._source;
+        let response;
 
-        if (item._type === 'index-pattern' && item._id === 'cicd-perf*') {
-          const apiHost = (this.env.HTTP_PORT !== 80) ? this.env.HOST + ':' + this.env.HTTP_PORT : this.env.HOST;
-          _source.fieldFormatMap = _source.fieldFormatMap.replace('__api__hostname', apiHost.toLowerCase());
+        if (_source === 'delete_this') {
+          response = await this.delDocById((this.env.KB_INDEX || '.kibana'), item._type, item._id);
+          this.checkEsResponse(response, 'delete [' + item._type + ']', item._id);
+        } else {
+          if (item._type === 'index-pattern' && item._id === 'cicd-perf*') {
+            const apiHost = (this.env.HTTP_PORT !== 80) ? this.env.HOST + ':' + this.env.HTTP_PORT : this.env.HOST;
+            _source.fieldFormatMap = _source.fieldFormatMap.replace('__api__hostname', apiHost.toLowerCase());
+          }
+          response = await this.index((this.env.KB_INDEX || '.kibana'), item._type, item._id, _source);
+          this.checkEsResponse(response, 'import [' + item._type + ']', item._source.title);
         }
-
-        const response = await this.index((this.env.KB_INDEX || '.kibana'), item._type, item._id, _source);
-        this.checkEsResponse(response, 'import [' + item._type + ']', item._source.title);
       }
       return true;
     } catch (err) {
@@ -173,7 +199,8 @@ class ESClass {
       result = 'ERROR';
       reason = response.error.reason;
     }
-    this.logger.debug(`[${result}] - action: ${job} - item: ${item} - status: ${response.statuscode || response.status || 'n/a'} - reason: ${reason}`);
+    this.logger.debug(`[${result}] - action: ${job} - item: ${item} - status: ${response.statuscode ||
+      response.status || 'n/a'} - reason: ${reason}`);
     return true;
   }
 }

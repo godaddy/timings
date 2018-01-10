@@ -172,17 +172,19 @@ class PUClass {
     const query = { bool: { must: [], must_not: [] }};
     const aggs = { baseline: { percentiles: { field: baselineAgg, percents: [baselineParams.perc] }}};
 
-    // Check the URL
-    // First, remove the trailing '*' -> the Lucene parszer will automatically add it
-    let tmpSearchUrl = baselineParams.searchUrl;
-    if (tmpSearchUrl && tmpSearchUrl.trim().substr(tmpSearchUrl.trim().length - 1) === '*') {
-      tmpSearchUrl = tmpSearchUrl.substring(0, tmpSearchUrl.trim().length - 1);
-    }
-    // Then, decide what URL to filter on
-    this.queryUrl = tmpSearchUrl || this.dl.replace('https://', '').replace('http://', '');
+    // Decide what URL to filter on
+    this.queryUrl = (baselineParams.searchUrl && baselineParams.searchUrl.indexOf('*') >= 0) ? baselineParams.searchUrl : this.dl;
+    this.queryUrl = this.queryUrl.replace('https://', '').replace('http://', '');
 
-    // Add the URL and the time range
+    // Now, remove the trailing '*' -> the Lucene parser will automatically add it!
+    if (this.queryUrl && this.queryUrl.trim().substr(this.queryUrl.trim().length - 1) === '*') {
+      this.queryUrl = this.queryUrl.substring(0, this.queryUrl.trim().length - 1);
+    }
+
+    // And finally, sanitize it for Lucene query
     luceneParse.setSearchTerm(this.queryUrl);
+
+    // Add the URL and the time range to the query object
     const mustUrl = { query_string: { default_field: 'dl', query: luceneParse.getFormattedSearchTerm() }};
     const mustRange = { range: { et: { from: 'now-' + baselineParams.days + 'd', to: 'now' }}};
     query.bool.must.push(mustUrl, mustRange);

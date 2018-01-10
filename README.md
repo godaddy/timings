@@ -1,14 +1,19 @@
 # TIMINGS API
 
-The timings API can be used in CI/CD pipelines for the asserting of **web UI or API performance** during functional/integration tests!
+[![npm version](https://badge.fury.io/js/timings.svg)](https://www.npmjs.com/package/timings)
+[![Node version](https://img.shields.io/node/v/timings.svg?style=flat)](http://nodejs.org/download/)
+[![HitCount](http://hits.dwyl.io/godaddy/timings.svg)](http://hits.dwyl.io/godaddy/timings)
+[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/godaddy/timings/issues)
 
-## **tl;dr**
+## **TL;DR**
 
-Install and run this API in your local network. The easiest deployment is with docker-compose (see here: [timings-docker](https://github.com/Verkurkie/timings-docker/))
+The timings API is a solution for asserting **web UI or API performance** during functional/integration tests!
+
+Run this API in your local network => install one of the clients on your dev/test machine => add a few lines of code => assert perf & collect data!
 
 Call the API **from your functional test script(s)** (using platform specific [clients](#the-clients) or directly) to:
 
-1. [UI tests only] Grab a snippet of JavaScript code from [`/v2/api/cicd/injectjs`](#post-v2apicicdinjectjs)
+1. [UI tests only] Grab a snippet of JavaScript code from the API [`/v2/api/cicd/injectjs`](#post-v2apicicdinjectjs)
 1. [UI tests only] Decode the `"inject_code"` key from the response and inject it into your browser/webdriver
 1. [UI tests only] Send the browser's response (json object) from step 2 back to the API ([/v2/api/cicd/navtiming](#post-v2apicicdnavtiming) or [/v2/api/cicd/usertiming](#post-v2apicicdusertiming))
 1. [API tests only] Send timestamps to the API ([/v2/api/cicd/apitiming](#post-v2apicicdapitiming))
@@ -838,7 +843,7 @@ The "common parameters" are used by for following endpoints:
 |`baseline.days`|no|integer|Number of days for the baseline
 |`baseline.perc`|no|integer|The percentile for the baseline
 |`baseline.padding`|no|integer|Baseline multiplyer that enabled you to "pad" the baseline. Value has to be > 1
-|`baseline.searchUrl`|no|string|A custom search string/wildcard for the baseline. This will be applied to the 'dl' field query. Has to be a full, valid Kibana search string!
+|`baseline.searchUrl`|no|string|A custom search string/wildcard for the baseline. This will be applied to the 'dl' field query. Has to be a full, valid Kibana search string and must contain at least one `'*'` character/wildcard!
 |`baseline.incl`|no|object|This can be used to fine-tune the baseline query. The key-value pair will be used as an "include-filter" for the ElasticSearch query. Example: `{"browser": "chrome"}`
 |`baseline.excl`|no|object|This can be used to fine-tune the baseline query. The key-value pair will be used as an "exclude-filter" for the ElasticSearch query. Example: `{"status": "fail"}` to exclude all the failed tests
 |`flags`|no|object|Collection of flags for actions & return output. Sub-parameters:
