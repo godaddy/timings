@@ -160,18 +160,22 @@ class ESClass {
       for (const index of Object.keys(importJson)) {
         const item = importJson[index];
         const _source = item._source;
-        let response;
-
         if (_source === 'delete_this') {
-          response = await this.delDocById((this.env.KB_INDEX || '.kibana'), item._type, item._id);
-          this.checkEsResponse(response, 'delete [' + item._type + ']', item._id);
+          this.checkEsResponse(
+            await this.delDocById((this.env.KB_INDEX || '.kibana'), item._type, item._id),
+            'delete [' + item._type + ']',
+            item._id
+          );
         } else {
           if (item._type === 'index-pattern' && item._id === 'cicd-perf*') {
             const apiHost = (this.env.HTTP_PORT !== 80) ? this.env.HOST + ':' + this.env.HTTP_PORT : this.env.HOST;
             _source.fieldFormatMap = _source.fieldFormatMap.replace('__api__hostname', apiHost.toLowerCase());
           }
-          response = await this.index((this.env.KB_INDEX || '.kibana'), item._type, item._id, _source);
-          this.checkEsResponse(response, 'import [' + item._type + ']', item._source.title);
+          this.checkEsResponse(
+            await this.index((this.env.KB_INDEX || '.kibana'), item._type, item._id, _source),
+            'import [' + item._type + ']',
+            item._source.title
+          );
         }
       }
       return true;

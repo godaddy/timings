@@ -19,7 +19,7 @@ nconf
   })
   .env({
     lowerCase: true,
-    whitelist: ['configfile', 'node_env', 'http_port', 'debug', 'kb_index', 'kb_rename', 'es_upgrade', 'es_host', 
+    whitelist: ['configfile', 'node_env', 'http_port', 'debug', 'kb_index', 'kb_rename', 'es_upgrade', 'es_host',
       'es_port', 'es_protocol', 'es_user', 'es_passwd', 'es_ssl_cert', 'es_ssl_key', 'kb_host', 'kb_port'
     ],
     parseValues: true
@@ -32,14 +32,14 @@ let cfgConfig = {};
 let cfgFile = path.resolve(nconf.get('configfile') || nconf.get('configFile') || './.config.js');
 let cfgReason;
 const cfgFileExt = cfgFile.substr((cfgFile.lastIndexOf('.') + 1));
-if (cfgFile && fs.existsSync(cfgFile)) {
+if (cfgFile && fs.existsSync(cfgFile)) {       // eslint-disable-line no-sync
   switch (cfgFileExt) {
     case 'js':
       cfgConfig = require(cfgFile);
       break;
     case 'json':
       try {
-        cfgConfig = JSON.parse(fs.readFileSync(cfgFile, { encoding: 'utf-8' }));
+        cfgConfig = JSON.parse(fs.readFileSync(cfgFile, { encoding: 'utf-8' }));       // eslint-disable-line no-sync
       } catch (err) {
         cfgReason = err.message;
       }
@@ -47,7 +47,7 @@ if (cfgFile && fs.existsSync(cfgFile)) {
     case 'yaml':
     case 'yml':
       try {
-        cfgConfig = yaml.safeLoad(fs.readFileSync(cfgFile, { encoding: 'utf-8' }));
+        cfgConfig = yaml.safeLoad(fs.readFileSync(cfgFile, { encoding: 'utf-8' }));      // eslint-disable-line no-sync
       } catch (err) {
         cfgReason = `${err.name} - ${err.reason}`;
         cfgFile = `defaults`;
@@ -160,63 +160,56 @@ async function setupES(es) {
     await es.ping();
     logger.debug(` >> SUCCESS! found it on port [${env.ES_PORT}]!`);
     nconf.set('env:useES', true);
+
     logger.debug(`Checking if upgrades to ES are needed ...`);
 
-    let needUpgrade = false;
-    const newVersion = parseInt(env.APP_VERSION.replace(/\./g,''), 10);
-    const currTemplate = await es.getTemplate(env.INDEX_PERF);
+    const newVer = parseInt(env.APP_VERSION.replace(/\./g, ''), 10);
+    await checkUpgrade(es, newVer);
 
-    if (currTemplate.hasOwnProperty(env.INDEX_PERF)) {
-      const currentVersion = currTemplate[env.INDEX_PERF].version;
-      if (!currentVersion || (newVersion > currentVersion)) {
-        logger.debug(` >> upgrading API from v.${currentVersion} - installing v.${newVersion} ...`);
-        needUpgrade = true;
-      }
-    } else if (currTemplate.hasOwnProperty('error')) {
-      if (currTemplate.error.message === 'Not Found') {
-        logger.debug(` >> first time setup - installing v.${newVersion} ...`);
-        needUpgrade = true;
-      }
-    }
-    if (nconf.get('es_upgrade') === true) {
-      logger.debug(` >> forced upgrade (ENV variable 'ES_UPGRADE' was set) - installing v.${newVersion} ...`);
-      needUpgrade = true;
-    }
-    if (needUpgrade === true) {
-      // Delete any stale index patterns
-      // upgr.delIndexPattern('cicd-perf');
-      // upgr.delIndexPattern('cicd-perf-res');
-      // upgr.delIndexPattern('cicd-perf-errorlog');
-
-      // Import/update latest visualizations and dashboards
-      let importFile = fs.readFileSync('./.kibana_items.json', 'utf8');
-      const replText = nconf.get('env:KB_RENAME');
-      if (replText && typeof replText === 'string') {
-        importFile = importFile.replace(/TIMINGS/g, replText.toUpperCase());
-      }
-      const importJson = JSON.parse(importFile);
-      let esResponse = await es.kbImport(importJson);
-      if (esResponse === true) {
-        await es.defaultIndex(env.INDEX_PERF + '*', '5.6.2')
-      }
-      // upgr.setDefaultIndex(env.INDEX_PERF + '*', '5.6.2');
-
-      // Make sure the latest template is present
-      const templateJson = require('./.es_template.js');
-      templateJson.version = newVersion;
-      await es.putTemplate('cicd-perf', templateJson);
-
-      // Reindexing indices if needed
-      // upgr.reindex('.kibana', '.kibana-perf');
-      // upgr.delIndex('.kibana-perf');
-      // upgr.reindex('cicd-perf-errorlog', 'cicd-errorlog');
-      // upgr.delIndex('cicd-perf-errorlog');
-    } else {
-      logger.debug(` >> no upgrades needed ...`);
-    }
   } catch (err) {
     logger.debug(`Could not reach Elasticsearch Host [${env.ES_HOST}:${env.ES_PORT}] - error message: ${err.message}`);
     nconf.set('env:useES', false);
   }
+  return true;
+}
+
+async function checkUpgrade(es, newVer) {
+  let currVer;
+  const currTemplate = await es.getTemplate(env.INDEX_PERF);
+
+  if (currTemplate.hasOwnProperty(env.INDEX_PERF)) {
+    currVer = currTemplate[env.INDEX_PERF].version;
+  }
+
+  if (!currVer || newVer > currVer || nconf.get('es_upgrade') === true ||
+    (currTemplate.hasOwnProperty('error') && currTemplate.error.message === 'Not Found')) {
+
+    doUpgrade(es, currVer, newVer);
+
+  } else {
+    logger.debug(` >> no upgrades needed ... current version: v.${currVer}`);
+  }
+}
+
+async function doUpgrade(es, currVer, newVer) {
+  // Import/update latest visualizations and dashboards
+  logger.debug(` >> Upgrading Elasticsearch to v.${newVer} ... ` +
+    `[Force: ${nconf.get('es_upgrade')} - New: ${!currVer} - Upgr: ${currVer < newVer}]`);
+
+  let importFile = fs.readFileSync('./.kibana_items.json', 'utf8');      // eslint-disable-line no-sync
+  const replText = nconf.get('env:KB_RENAME');
+  if (replText && typeof replText === 'string') {
+    importFile = importFile.replace(/TIMINGS/g, replText.toUpperCase());
+  }
+  const importJson = JSON.parse(importFile);
+  const esResponse = await es.kbImport(importJson);
+  if (esResponse === true) {
+    await es.defaultIndex(env.INDEX_PERF + '*', '5.6.2');
+  }
+
+  // Make sure the latest template is present
+  const templateJson = require('./.es_template.js');
+  templateJson.version = newVer;
+  await es.putTemplate('cicd-perf', templateJson);
   return true;
 }

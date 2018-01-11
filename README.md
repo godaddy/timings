@@ -69,7 +69,7 @@ Enjoy!
 
 ## **The API**
 
-The timings API is a node/express based API the uses ElasticSearch and Kibana (we'll call that "ELK") to store & visualize data. The idea behind the API is to submit/validate/store/assert performance measurements as part of regular functional test cycles. 
+The timings API is a node/express based API the uses ElasticSearch and Kibana (we'll call that "ELK") to store & visualize data. The idea behind the API is to submit/validate/store/assert performance measurements as part of regular functional test cycles.
 
 The API can be run in various ways (see below) and it _can_ be run without ELK although that is not recommended (you miss out on a lot of the goodies!). You can run ELK yourself or you can make use of the convenient [timings-docker](https://github.com/Verkurkie/timings-docker) repo!
 
@@ -84,7 +84,7 @@ The API can be installed on both Windows and Linux Operating systems. Linux is h
 
 The recommended method is "**docker-compose**" as it includes ELK and requires the least amount of setup/configuration! You can also clone this repo and run the API with `node` from inside the cloned directory, or you can install it **globally** with `npm i -g` (from the public NPM registry), or you can build/pull/run a stand-alone Docker container.
 
-**NOTE**: It is important that you **create a config file** before you start the API! Your config file can be in JS, JSON or YML format (examples are provided in the root of this repo). 
+**NOTE**: It is important that you **create a config file** before you start the API! Your config file can be in JS, JSON or YML format (examples are provided in the root of this repo).
 
 You need to point the API at the config file using the `--config-file` argument. If you fail to do this, the API will use defaults settings such as `""` for the elasticsearch server (= don't use ElasticSearch)! Please refer to [CONFIG.MD](CONFIG.MD) for more details.
 
@@ -131,7 +131,7 @@ Activity|Command
 ---|---
 Installation|`$ docker pull mverkerk/timings:{version}`
 Startup|`$ docker run \`<br>`-d -v {path to config}:/src/.config.js \`<br>`-p {VM_port}:{Host_port} \`<br>`mverkerk/timings:{version}`
-Upgrade|Just point at the latest version or use `mverkerk/timings:latest` in the startup command.<br>You can find the latest version here: https://hub.docker.com/r/mverkerk/timings/tags/
+Upgrade|Just point at the latest version or use `mverkerk/timings:latest` in the startup command.<br>You can find the latest version here: [https://hub.docker.com/r/mverkerk/timings/tags/](https://hub.docker.com/r/mverkerk/timings/tags/)
 Config|Your config file can be stored anywhere you want. Use the `-v` argument to mount the config file in the container.<br>`{path to config}` = the **absolute** path to your config file<br>`{VM_port}` = the listening port of the API server inside the container<br>`{Host_port}` = the port that you want the **docker host** to listen on. This is the port used to connect to the API!!<br>`{version}` = the desired version of the timings API. You can also use `"latest"`
 
 ### **Upgrading the API**
@@ -149,10 +149,10 @@ You can also use `docker-compose` using the `docker-compose-elk.yml` file in [ht
 1. Use the correct keys in the `env` object of your config file. See [CONFIG.MD](CONFIG.MD).
 1. Set Environment Variables for `ES_PROTOCOL`, `ES_HOST`, `ES_PORT`, `KB_HOST` and `KB_PORT`
 
-- **The API also supports authentication for elasticsearch!**
-  - use `ES_USER` and `ES_PASS` for Basic Auth
-  - use `ES_SSL_CERT` and `ES_SSL_KEY` for SSL Auth
-  - **NOTE:** If both are provided, SSL auth will be used!
+* **The API also supports authentication for elasticsearch!**
+  * use `ES_USER` and `ES_PASS` for Basic Auth
+  * use `ES_SSL_CERT` and `ES_SSL_KEY` for SSL Auth
+  * **NOTE:** If both are provided, SSL auth will be used!
 
 ## **THE CLIENTS**
 
