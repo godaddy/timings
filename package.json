@@ -10,8 +10,9 @@
         "start-dev-debug": "node --debug ./server --env dev",
         "start-test": "node ./server --env test",
         "start-test-debug": "node --debug ./server --env test",
-        "test": "mocha --recursive --timeout 30000",
-        "lint": "eslint-godaddy public/"
+        "test": "mocha test/**/*.js",
+        "eslint": "eslint -c .eslintrc src routes public/js",
+        "publish": "npm run eslint && npm test"
     },
     "engines": {
         "node": ">=8.0.0",
@@ -54,6 +55,8 @@
         "eslint-config-godaddy": "^2.0.0",
         "eslint-plugin-json": "^1.2.0",
         "eslint-plugin-mocha": "^4.11.0",
-        "mocha": "^2.5.3"
+        "mocha": "^2.5.3",
+        "semantic-release": "^11.0.2",
+        "supertest": "^3.0.0"
     }
 }
