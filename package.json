@@ -3,13 +3,7 @@
     "version": "1.1.5",
     "description": "RESTful API for performance engineering",
     "scripts": {
-        "start": "node ./server --env prod",
-        "start-local": "node ./server --env local",
-        "start-local-debug": "node --debug ./server --env local",
-        "start-dev": "node ./server --env dev",
-        "start-dev-debug": "node --debug ./server --env dev",
-        "start-test": "node ./server --env test",
-        "start-test-debug": "node --debug ./server --env test",
+        "start": "node ./server",
         "test": "mocha test/**/*.js",
         "eslint": "eslint -c .eslintrc src routes public/js",
         "publish": "npm run eslint && npm test"
