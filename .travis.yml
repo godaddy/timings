@@ -7,9 +7,7 @@ cache:
     - "node_modules"
 
 env:
-  - NODE_ENV=local
-  - DEBUG=true
-  - HTTP_PORT=8080
+  - NODE_ENV=local DEBUG=true HTTP_PORT=8080
 
 script:
   - npm start &
