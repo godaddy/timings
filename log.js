@@ -2,6 +2,7 @@ const fs = require('fs');
 var winston = require('winston');
 winston.emitErrs = true;
 
+/* eslint no-sync: 0 */
 var logger = new winston.Logger({
   transports: [
     new winston.transports.File({
@@ -23,8 +24,8 @@ var logger = new winston.Logger({
   exitOnError: false
 });
 
-if (!fs.existsSync('./logs/')) {  // eslint-disable-line no-sync
-  fs.mkdirSync('logs');   // eslint-disable-line no-sync
+if (!fs.existsSync('./logs/')) {
+  fs.mkdirSync('logs');
 }
 
 var accessLog = new winston.Logger({

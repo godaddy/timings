@@ -174,11 +174,11 @@ class PUClass {
 
     // Decide what URL to filter on
     this.queryUrl = (baselineParams.searchUrl && baselineParams.searchUrl.indexOf('*') >= 0) ? baselineParams.searchUrl : this.dl;
-    this.queryUrl = this.queryUrl.replace('https://', '').replace('http://', '');
+    this.queryUrl = this.queryUrl.replace('https://', '').replace('http://', '').trim();
 
     // Now, remove the trailing '*' -> the Lucene parser will automatically add it!
-    if (this.queryUrl && this.queryUrl.trim().substr(this.queryUrl.trim().length - 1) === '*') {
-      this.queryUrl = this.queryUrl.substring(0, this.queryUrl.trim().length - 1);
+    if (this.queryUrl && this.queryUrl.substr(this.queryUrl.length - 1) === '*') {
+      this.queryUrl = this.queryUrl.substring(0, this.queryUrl.length - 1);
     }
 
     // And finally, sanitize it for Lucene query

@@ -66,6 +66,7 @@ app.use(function (err, req, res, next) {
     status: res.statusCode,
     message: err.toString().substr(0, 500).replace(/"/g, "'")
   });
+  next();
 });
 
 module.exports = app;

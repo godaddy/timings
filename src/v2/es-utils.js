@@ -6,6 +6,7 @@ const elasticsearch = require('elasticsearch');
 const logger = require('../../log.js');
 const nconf = require('nconf');
 
+/* eslint no-sync: 0 */
 class ESClass {
   constructor() {
     this.env = nconf.get('env');
@@ -32,8 +33,8 @@ class ESClass {
       esConfig.host = [
         {
           ssl: {
-            cert: fs.readFileSync(this.env.ES_SSL_CERT).toString(),   // eslint-disable-line no-sync
-            key: fs.readFileSync(this.env.ES_SSL_KEY).toString(),   // eslint-disable-line no-sync
+            cert: fs.readFileSync(this.env.ES_SSL_CERT).toString(),
+            key: fs.readFileSync(this.env.ES_SSL_KEY).toString(),
             rejectUnauthorized: true
           }
         }
@@ -79,7 +80,7 @@ class ESClass {
         .getTemplate({ name: name });
       return response;
     }
-    return { error: { message: 'Not Found' }};
+    return false;
   }
 
   async defaultIndex(name, version) {

@@ -9,6 +9,7 @@ const logger = require('./log.js');
 const pkg = require('./package.json');
 const esUtils = require('./src/v2/es-utils');
 
+/* eslint no-sync: 0 */
 // Add arguments and environment variables to nconf
 nconf
   .argv({
@@ -32,14 +33,14 @@ let cfgConfig = {};
 let cfgFile = path.resolve(nconf.get('configfile') || nconf.get('configFile') || './.config.js');
 let cfgReason;
 const cfgFileExt = cfgFile.substr((cfgFile.lastIndexOf('.') + 1));
-if (cfgFile && fs.existsSync(cfgFile)) {       // eslint-disable-line no-sync
+if (cfgFile && fs.existsSync(cfgFile)) {
   switch (cfgFileExt) {
     case 'js':
       cfgConfig = require(cfgFile);
       break;
     case 'json':
       try {
-        cfgConfig = JSON.parse(fs.readFileSync(cfgFile, { encoding: 'utf-8' }));       // eslint-disable-line no-sync
+        cfgConfig = JSON.parse(fs.readFileSync(cfgFile, { encoding: 'utf-8' }));
       } catch (err) {
         cfgReason = err.message;
       }
@@ -47,7 +48,7 @@ if (cfgFile && fs.existsSync(cfgFile)) {       // eslint-disable-line no-sync
     case 'yaml':
     case 'yml':
       try {
-        cfgConfig = yaml.safeLoad(fs.readFileSync(cfgFile, { encoding: 'utf-8' }));      // eslint-disable-line no-sync
+        cfgConfig = yaml.safeLoad(fs.readFileSync(cfgFile, { encoding: 'utf-8' }));
       } catch (err) {
         cfgReason = `${err.name} - ${err.reason}`;
         cfgFile = `defaults`;
@@ -58,7 +59,7 @@ if (cfgFile && fs.existsSync(cfgFile)) {       // eslint-disable-line no-sync
       cfgFile = `defaults`;
   }
 } else {
-  cfgReason = cfgFile ? `Could not find/access file [${cfgFile}]` : `No custom file provided`;
+  cfgReason = `Could not find or access config file, or no file provided`;
   cfgFile = 'defaults';
 }
 
@@ -147,8 +148,8 @@ async function startServer() {
   }
   const app = require('./src/app');
   app.set('port', env.HTTP_PORT || 80);
-  const server = app.listen(app.get('port'), () => {
-    logger.debug(`TIMINGS API ["${env.NODE_ENV}"] is running on port [${server.address().port}]`);
+  app.listen(app.get('port'), () => {
+    logger.debug(`TIMINGS API ["${env.NODE_ENV}"] is running on port [${app.get('port')}]`);
     const cfgMsg = cfgReason ? ` - reason: ${cfgReason}` : '';
     logger.debug(` >> using config: [${env.APP_CONFIG}] ${cfgMsg}`);
   });
@@ -181,8 +182,7 @@ async function checkUpgrade(es, newVer) {
     currVer = currTemplate[env.INDEX_PERF].version;
   }
 
-  if (!currVer || newVer > currVer || nconf.get('es_upgrade') === true ||
-    (currTemplate.hasOwnProperty('error') && currTemplate.error.message === 'Not Found')) {
+  if (!currVer || newVer > currVer || nconf.get('es_upgrade') === true) {
 
     doUpgrade(es, currVer, newVer);
 
@@ -196,7 +196,7 @@ async function doUpgrade(es, currVer, newVer) {
   logger.debug(` >> Upgrading Elasticsearch to v.${newVer} ... ` +
     `[Force: ${nconf.get('es_upgrade')} - New: ${!currVer} - Upgr: ${currVer < newVer}]`);
 
-  let importFile = fs.readFileSync('./.kibana_items.json', 'utf8');      // eslint-disable-line no-sync
+  let importFile = fs.readFileSync('./.kibana_items.json', 'utf8');
   const replText = nconf.get('env:KB_RENAME');
   if (replText && typeof replText === 'string') {
     importFile = importFile.replace(/TIMINGS/g, replText.toUpperCase());
