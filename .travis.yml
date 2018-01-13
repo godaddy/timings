@@ -6,10 +6,6 @@ cache:
   directories:
     - "node_modules"
 
-before_script:
-  # Start the API
-  - npm start
-
 script:
-  # Run tests
+  - node server.js &
   - npm run test
