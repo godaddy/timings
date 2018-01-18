@@ -1,10 +1,28 @@
 /* eslint no-console: 0 */
 const expect = require('chai').expect;
-const supertest = require('supertest');
-const api = supertest('http://localhost:8080');
 const params = require('../params/params');
+const env = require('../config/env.json');
+const nconf = require('nconf');
+nconf
+  .argv({
+    e: {
+      alias: 'env',
+      describe: 'environment to test against'
+    }
+  });
+const nodeEnv = nconf.get('env') || 'ci';
 
-describe('Endpoint ', function () {
+let request;
+if (nodeEnv === 'ci') {
+  console.log(`CI test against [Local app]`);
+  // require('../../src/config');
+  request = require('supertest')(require('../../src/app'));
+} else {
+  console.log(`Testing against this API: [${env[nodeEnv]}]`);
+  request = require('supertest')(env[nodeEnv]);
+}
+
+describe('POST endpoint ', function () {
   this.timeout(5000); // How long to wait for a response (ms)
 
   before(function () {
@@ -15,26 +33,10 @@ describe('Endpoint ', function () {
 
   });
 
-  // GET - Health
-  it('should get the health JSON', (done) => {
-    api.get('/health')
-      .set('Accept', 'application/json')
-      .expect(200)
-      .end((err, res) => {
-        if (err) {
-          console.log(JSON.stringify(res.body));
-        }
-        expect(res.body).to.be.an('object');
-        expect(res.body).to.have.property('server');
-        expect(res.body).to.have.property('system');
-        done();
-      });
-  });
-
   // POST - injectJS
   it('[/injectjs] should get the correct inject code', (done) => {
     const objParams = params.v2.cicd.injectjs;
-    api.post('/v2/api/cicd/injectjs')
+    request.post('/v2/api/cicd/injectjs')
       .send(objParams)
       .expect('Content-Type', /json/)
       .expect(200)
@@ -52,7 +54,7 @@ describe('Endpoint ', function () {
 
   // POST - injectJS [FAIL]
   it('[/injectjs FAIL] should get the correct error', (done) => {
-    api.post('/v2/api/cicd/injectjs')
+    request.post('/v2/api/cicd/injectjs')
       .send({ inject_type: 'error' })
       .expect('Content-Type', /json/)
       .expect(422)
@@ -71,7 +73,7 @@ describe('Endpoint ', function () {
   // POST - navtiming
   it('[/navtiming] should retrieve a successful navtiming response', (done) => {
     const objParams = params.v2.cicd.navtiming;
-    api.post('/v2/api/cicd/navtiming')
+    request.post('/v2/api/cicd/navtiming')
       .send(objParams)
       .expect('Content-Type', /json/)
       .expect(200)
@@ -95,7 +97,7 @@ describe('Endpoint ', function () {
     const objParams = params.v2.cicd.navtiming;
     // Following line causes the failure [wrong url format]
     objParams.injectJS.url = objParams.injectJS.url.replace('http://', '').replace('https://', '');
-    api.post('/v2/api/cicd/navtiming')
+    request.post('/v2/api/cicd/navtiming')
       .send(objParams)
       .expect('Content-Type', /json/)
       .expect(422)
@@ -114,7 +116,7 @@ describe('Endpoint ', function () {
   // POST - usertiming
   it('[/usertiming] should retrieve a successful usertiming response', (done) => {
     const objParams = params.v2.cicd.usertiming;
-    api.post('/v2/api/cicd/usertiming')
+    request.post('/v2/api/cicd/usertiming')
       .send(objParams)
       .expect('Content-Type', /json/)
       .expect(200)
@@ -138,7 +140,7 @@ describe('Endpoint ', function () {
     const objParams = params.v2.cicd.usertiming;
     // Following line causes the failure [wrong url format]
     objParams.injectJS.url = objParams.injectJS.url.replace('http://', '').replace('https://', '');
-    api.post('/v2/api/cicd/usertiming')
+    request.post('/v2/api/cicd/usertiming')
       .send(objParams)
       .expect('Content-Type', /json/)
       .expect(422)
@@ -157,7 +159,7 @@ describe('Endpoint ', function () {
   // POST - apitiming
   it('[/apitiming] should retrieve a successful apitiming response', (done) => {
     const objParams = params.v2.cicd.apitiming;
-    api.post('/v2/api/cicd/apitiming')
+    request.post('/v2/api/cicd/apitiming')
       .send(objParams)
       .expect('Content-Type', /json/)
       .expect(200)
@@ -181,7 +183,7 @@ describe('Endpoint ', function () {
     const objParams = params.v2.cicd.apitiming;
     // Following line causes the failure [wrong url format]
     objParams.url = objParams.url.replace('http://', '').replace('https://', '');
-    api.post('/v2/api/cicd/apitiming')
+    request.post('/v2/api/cicd/apitiming')
       .send(objParams)
       .expect('Content-Type', /json/)
       .expect(422)
@@ -197,27 +199,29 @@ describe('Endpoint ', function () {
       });
   });
 
-  // it('[/resources] should retrieve an array of resources', (done) => {
-  //   const objParams = params.v2.cicd.resources;
-  //   api.post('/v2/api/cicd/resources')
-  //     .send(objParams)
-  //     .expect('Content-Type', /json/)
-  //     .expect(200)
-  //     .end((err, res) => {
-  //       if (err) {
-  //         console.log(JSON.stringify(res.body));
-  //       }
-  //       expect(res.body).to.be.an('object');
-  //       expect(res.body).to.have.property('kibana_host');
-  //       expect(res.body).to.have.property('kibana_port');
-  //       expect(res.body).to.have.property('resources');
-  //       expect(res.body.resources).to.be.an('array');
-  //       done();
-  //     });
-  // });
+  // POST - Resources
+  it('[/resources] should retrieve a successful resources response', (done) => {
+    const objParams = params.v2.cicd.resources;
+    request.post('/v2/api/cicd/resources')
+      .send(objParams)
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('kibana_host');
+        expect(res.body).to.have.property('kibana_port');
+        expect(res.body).to.have.property('resources');
+        expect(res.body.resources).to.be.an('array');
+        done();
+      });
+  });
 
+  // POST - Resources [FAIL]
   it('[/resources FAIL] should get the correct error', (done) => {
-    api.post('/v2/api/cicd/resources')
+    request.post('/v2/api/cicd/resources')
       .send({})
       .expect('Content-Type', /json/)
       .expect(422)
@@ -232,11 +236,92 @@ describe('Endpoint ', function () {
         done();
       });
   });
+});
 
-  it('[/waterfall] should return HTML', (done) => {
-    api.get('/waterfall')
-      .expect('Content-Type', /html/)
+describe('GET endpoint ', function () {
+  this.timeout(5000); // How long to wait for a response (ms)
+
+  before(function () {
+
+  });
+
+  after(function () {
+
+  });
+
+  // GET - Home
+  it('[/] should return Swagger page', (done) => {
+    request.get('/')
       .expect(200)
+      .expect('Content-Type', /text\/html/)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res).to.be.an('object');
+        expect(res).to.have.property('ok');
+        expect(res.ok).to.be.true;
+        expect(res).to.have.property('text');
+        expect(res.text).to.contain('Swagger docs');
+        done();
+      });
+  });
+
+  // GET - Home
+  it('[/fail] should return Error page', (done) => {
+    request.get('/fail')
+      .expect(404)
+      .expect('Content-Type', /text\/html/)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res).to.be.an('object');
+        expect(res).to.have.property('ok');
+        expect(res.ok).to.be.false;
+        expect(res).to.have.property('text');
+        expect(res.text).to.contain('You found the 404 page');
+        done();
+      });
+  });
+
+  // GET - Health
+  it('[/health] should get the health JSON', (done) => {
+    request.get('/health')
+      .set('Accept', 'application/json')
+      .expect(200)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('server');
+        expect(res.body).to.have.property('system');
+        done();
+      });
+  });
+
+  // GET - Health
+  it('[/healthcheck] should get the health JSON', (done) => {
+    request.get('/healthcheck')
+      .set('Accept', 'application/json')
+      .expect(200)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('server');
+        expect(res.body).to.have.property('system');
+        done();
+      });
+  });
+
+  // GET - waterfall
+  it('[/waterfall] should return Waterfall page', (done) => {
+    request.get('/waterfall')
+      .expect(200)
+      .expect('Content-Type', /text\/html/)
       .end((err, res) => {
         if (err) {
           console.log(JSON.stringify(res.body));

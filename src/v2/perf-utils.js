@@ -13,8 +13,10 @@ class PUClass {
   constructor(body, route) {
     this.body = body;
     this.route = route.replace('/', '');
-    this.es = new esUtils.ESClass();
     this.env = nconf.get('env');
+    if (this.env.useES === true) {
+      this.es = new esUtils.ESClass();
+    }
     this.defaults = nconf.get('params:defaults');
     // this.logger = logger;
     this.debugMsg = [];
@@ -385,7 +387,7 @@ class PUClass {
         returnJSON.esTrace = this.esTrace;
       }
     } else {
-      returnJSON.esSaved = "ElasticSearch is not in use or 'flags.esCreate=false'!";
+      returnJSON.esSaved = "ElasticSearch is not available or 'flags.esCreate=false'!";
     }
     if (this.objParams.flags.debug === true) {
       returnJSON.debugMsg = this.debugMsg;
@@ -409,9 +411,14 @@ class PUClass {
     // Collect POST data
     if (this.env.useES === false) {
       // Send something back to the user
-      const err = new Error('Resources not available - ELK could not be reached or is not configured');
-      err.status = 400;
-      return cb(err);
+      // const err = new Error('Resources not available - ELK could not be reached or is not configured');
+      // err.status = 400;
+      return cb(null, {
+        status: 200,
+        kibana_host: this.env.KB_HOST,
+        kibana_port: this.env.KB_PORT,
+        resources: []
+      });
     }
 
     const returnJSON = { status: 400 };

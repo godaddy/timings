@@ -1,5 +1,6 @@
 # TIMINGS API
 
+[![Build Status](https://travis-ci.org/godaddy/timings.svg?branch=master)](https://travis-ci.org/godaddy/timings)
 [![npm version](https://badge.fury.io/js/timings.svg)](https://www.npmjs.com/package/timings)
 [![Node version](https://img.shields.io/node/v/timings.svg?style=flat)](http://nodejs.org/download/)
 [![HitCount](http://hits.dwyl.io/godaddy/timings.svg)](http://hits.dwyl.io/godaddy/timings)
@@ -147,7 +148,7 @@ You can also use `docker-compose` using the `docker-compose-elk.yml` file in [ht
 **IMPORTANT:** If you run Elasticsearch and Kibana yourself, you **HAVE** to point the API to their respective hostnames! You can do this in **one** of the following ways (ENV vars take priority!):
 
 1. Use the correct keys in the `env` object of your config file. See [CONFIG.MD](CONFIG.MD).
-1. Set Environment Variables for `ES_PROTOCOL`, `ES_HOST`, `ES_PORT`, `KB_HOST` and `KB_PORT`
+1. Set Environment Variables for `ES_PROTOCOL`, `ES_HOST`, `ES_PORT`, `ES_VERSION`, `KB_HOST` and `KB_PORT`
 
 * **The API also supports authentication for elasticsearch!**
   * use `ES_USER` and `ES_PASS` for Basic Auth
@@ -369,7 +370,7 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
     "api_version": "1.1.3",
     "assert": true,
     "route": "navtiming",
-    "esSaved": "ElasticSearch is not in use or 'flags.esCreate=false'!",
+    "esSaved": "ElasticSearch is not available or 'flags.esCreate=false'!",
     "export": {
         "et": "2018-01-05T18:03:52.418Z",
         "@timestamp": "2018-01-05T18:03:52.418Z",
@@ -512,7 +513,7 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
     "api_version": "1.1.3",
     "assert": true,
     "route": "usertiming",
-    "esSaved": "ElasticSearch is not in use or 'flags.esCreate=false'!",
+    "esSaved": "ElasticSearch is not available or 'flags.esCreate=false'!",
     "export": {
         "et": "2018-01-05T18:00:58.805Z",
         "@timestamp": "2018-01-05T18:00:58.805Z",
@@ -622,7 +623,7 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
     "api_version": "1.1.3",
     "assert": true,
     "route": "apitiming",
-    "esSaved": "ElasticSearch is not in use or 'flags.esCreate=false'!",
+    "esSaved": "ElasticSearch is not available or 'flags.esCreate=false'!",
     "export": {
         "et": "2018-01-05T17:57:31.387Z",
         "@timestamp": "2018-01-05T17:57:31.387Z",

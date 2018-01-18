@@ -1,15 +1,16 @@
 language: node_js
-
 node_js: 8
-
 cache:  
   directories:
     - "node_modules"
-
-env:
-  - NODE_ENV=local DEBUG=true HTTP_PORT=8080
-
+notifications:
+  email: false
+before_install:
+  - npm i -g npm@^5.0.0
+before_script:
+  - npm prune
 script:
-  - npm start &
-  - sleep 10
   - npm run test
+
+after_success:
+  - npm run semantic-release

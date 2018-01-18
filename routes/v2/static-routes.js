@@ -1,15 +1,9 @@
-/**
- * Created by mverkerk on 9/25/2016.
- */
-
 const os = require('os');
 const express = require('express');
 // eslint-disable-next-line new-cap
 const router = express.Router();
 const path = require('path');
-// const config = require('../../.config.js');
 const nconf = require('nconf');
-const esUtils = require('../../src/v2/es-utils');
 
 const htmlDir = path.join(__dirname, '../../public/');
 
@@ -21,34 +15,11 @@ router.get('/waterfall', function (req, res) {
   res.sendFile(htmlDir + 'waterfall.html');
 });
 
-router.get('/health*', function (req, res) {
-  checkES(new esUtils.ESClass())
-    .then(function (resp) {
-      res.send(health(resp));
-    });
+router.get(['/health*', '/v2/api/cicd/health*'], function (req, res) {
+  res.send(health());
 });
 
-router.get('/v2/api/cicd/health*', function (req, res) {
-  checkES(new esUtils.ESClass())
-    .then(function (resp) {
-      res.send(health(resp));
-    });
-});
-
-async function checkES(es) {
-  try {
-    await es.ping(500);
-    nconf.set('env:useES', true);
-    return { result: `ES server [${nconf.get('env:ES_HOST')}:${nconf.get('env:ES_PORT')}] is available!` };
-  } catch (err) {
-    return {
-      result: `ES server [${nconf.get('env:ES_HOST')}:${nconf.get('env:ES_PORT')}] could not be reached`,
-      error: err.message
-    };
-  }
-}
-
-function health(resp) {
+function health() {
   const ret = {
     server: {
       APP_HOST: nconf.get('env:HOST') + ':' + nconf.get('env:HTTP_PORT'),
@@ -74,6 +45,7 @@ function health(resp) {
       ES_PROTOCOL: nconf.get('env:ES_PROTOCOL') || 'Not set!',
       ES_HOST: nconf.get('env:ES_HOST') || 'Not set!',
       ES_PORT: nconf.get('env:ES_PORT') || 'Not set!',
+      ES_VERSION: nconf.get('env:ES_VERSION') || 'Not set!',
       INDEX_PERF: nconf.get('env:INDEX_PERF') || 'Not set!',
       INDEX_RES: nconf.get('env:INDEX_RES') || 'Not set!',
       INDEX_ERR: nconf.get('env:INDEX_ERR') || 'Not set!'
@@ -83,7 +55,7 @@ function health(resp) {
       KB_PORT: nconf.get('env:KB_PORT') || 'Not set!'
     };
   } else {
-    ret.es = resp;
+    ret.es = `ElasticSearch is not available or 'flags.esCreate=false'!`;
   }
   return ret;
 }
