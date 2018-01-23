@@ -1,233 +1,337 @@
-// Require the dev-dependencies
 /* eslint no-console: 0 */
-
-const chai = require('chai');
-const chaiHttp = require('chai-http');
-const server = require('../config/env.json');
+const expect = require('chai').expect;
 const params = require('../params/params');
+const env = require('../config/env.json');
+const nconf = require('nconf');
+nconf
+  .argv({
+    e: {
+      alias: 'env',
+      describe: 'environment to test against'
+    }
+  });
+const nodeEnv = nconf.get('env') || 'ci';
 
-const expect = chai.expect;
-const should = chai.should();
+let request;
+if (nodeEnv === 'ci') {
+  console.log(`CI test against [Local app]`);
+  // require('../../src/config');
+  request = require('supertest')(require('../../src/app'));
+} else {
+  console.log(`Testing against this API: [${env[nodeEnv]}]`);
+  request = require('supertest')(env[nodeEnv]);
+}
 
-const env = process.env.NODE_ENV || 'local';
+describe('POST endpoint ', function () {
+  this.timeout(5000); // How long to wait for a response (ms)
 
-console.log('Testing against API host: ' + server[env]);
+  before(function () {
 
-chai.use(chaiHttp);
-// Our parent block
-describe('Test APIs V2', () => {
-  describe('/POST injectjs', () => {
-    it('[/injectjs] should retrieve the injectJS code', (done) => {
-      const objParams = params.v2.cicd.injectjs;
-      chai.request(server[env])
-        .post('/v2/api/cicd/injectjs')
-        .send(objParams)
-        .end((err, res) => {
-          if (err) {
-            console.log(JSON.stringify(res.body));
-          }
-          should.not.exist(err);
-          res.should.have.status(200);
-          res.body.should.be.a('object');
-          res.body.should.have.property('inject_code');
-          done();
-        });
-    });
   });
-  describe('/POST injectjs [fail]', () => {
-    it('[/injectjs] should receive an error when there is no injectType', (done) => {
-      const objParams = { visualCompleteMark: 'something' };
-      chai.request(server[env])
-        .post('/v2/api/cicd/injectjs')
-        .send(objParams)
-        .end((err, res) => {
-          if (!err) {
-            console.log(JSON.stringify(res.body));
-          }
-          should.exist(err);
-          res.should.have.status(422);
-          res.body.should.be.a('object');
-          res.body.should.have.property('status');
-          res.body.should.have.property('message');
-          expect(res.body.message).to.contain("'injectType' is required");
-          done();
-        });
-    });
+
+  after(function () {
+
   });
-  describe('/POST navtiming', () => {
-    it('[/navtiming] should retrieve a successful navtiming response', (done) => {
-      const objParams = params.v2.cicd.navtiming;
-      chai.request(server[env])
-        .post('/v2/api/cicd/navtiming')
-        .send(objParams)
-        .end((err, res) => {
-          if (err) {
-            console.log(JSON.stringify(res.body));
-          }
-          should.not.exist(err);
-          res.should.have.status(200);
-          res.body.should.be.a('object');
-          res.body.should.have.property('assert');
-          res.body.should.have.property('export');
-          res.body.should.have.property('debugMsg');
-          res.body.should.have.property('params');
-          res.body.should.have.property('timingInfo');
-          res.body.should.have.property('esTrace');
-          expect(res.body.assert).to.be.true;
-          expect(res.body.esSaved).to.be.false;
-        });
-      done();
-    });
+
+  // POST - injectJS
+  it('[/injectjs] should get the correct inject code', (done) => {
+    const objParams = params.v2.cicd.injectjs;
+    request.post('/v2/api/cicd/injectjs')
+      .send(objParams)
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('inject_code');
+        expect(res.body.inject_code).to.be.a('string');
+        expect(res.body.inject_code).to.contain('20visualCompleteTime');
+        done();
+      });
   });
-  describe('/POST navtiming [fail]', () => {
-    it('[/navtiming] should retrieve an error when there are no parameters in the POST', (done) => {
-      const objParams = {};
-      chai.request(server[env])
-        .post('/v2/api/cicd/navtiming')
-        .send(objParams)
-        .end((err, res) => {
-          if (!err) {
-            console.log(JSON.stringify(res.body));
-          }
-          should.exist(err);
-          res.should.have.status(422);
-          res.body.should.be.a('object');
-          res.body.should.have.property('status');
-          res.body.should.have.property('message');
-          expect(res.body.message).to.contain("'sla' is required");
-        });
-      done();
-    });
+
+  // POST - injectJS [FAIL]
+  it('[/injectjs FAIL] should get the correct error', (done) => {
+    request.post('/v2/api/cicd/injectjs')
+      .send({ inject_type: 'error' })
+      .expect('Content-Type', /json/)
+      .expect(422)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('message');
+        expect(res.body.message).to.be.a('string');
+        expect(res.body.message).to.contain('ValidationError');
+        done();
+      });
   });
-  describe('/POST usertiming', () => {
-    it('[/usertiming] should retrieve a successful usertiming response', (done) => {
-      const objParams = params.v2.cicd.usertiming;
-      chai.request(server[env])
-        .post('/v2/api/cicd/usertiming')
-        .send(objParams)
-        .end((err, res) => {
-          if (err) {
-            console.log(JSON.stringify(res.body));
-          }
-          should.not.exist(err);
-          res.should.have.status(200);
-          res.body.should.be.a('object');
-          res.body.should.have.property('assert');
-          res.body.should.have.property('export');
-          res.body.should.have.property('debugMsg');
-          res.body.should.have.property('params');
-          res.body.should.have.property('timingInfo');
-          res.body.should.have.property('esTrace');
-          expect(res.body.assert).to.be.true;
-          expect(res.body.esSaved).to.be.false;
-        });
-      done();
-    });
+
+  // POST - navtiming
+  it('[/navtiming] should retrieve a successful navtiming response', (done) => {
+    const objParams = params.v2.cicd.navtiming;
+    request.post('/v2/api/cicd/navtiming')
+      .send(objParams)
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('assert');
+        expect(res.body.assert).to.be.true;
+        expect(res.body).to.have.property('export');
+        expect(res.body).to.have.property('debugMsg');
+        expect(res.body).to.have.property('params');
+        expect(res.body).to.have.property('timingInfo');
+        done();
+      });
   });
-  describe('/POST usertiming [fail]', () => {
-    it('[/usertiming] should retrieve an error when there are no parameters in the POST', (done) => {
-      const objParams = {};
-      chai.request(server[env])
-        .post('/v2/api/cicd/usertiming')
-        .send(objParams)
-        .end((err, res) => {
-          if (!err) {
-            console.log(JSON.stringify(res.body));
-          }
-          should.exist(err);
-          res.should.have.status(422);
-          res.body.should.be.a('object');
-          res.body.should.have.property('status');
-          res.body.should.have.property('message');
-          expect(res.body.message).to.contain("'sla' is required");
-        });
-      done();
-    });
+
+  // POST - navtiming [FAIL]
+  it('[/navtiming FAIL] should get the correct error', (done) => {
+    const objParams = params.v2.cicd.navtiming;
+    // Following line causes the failure [wrong url format]
+    objParams.injectJS.url = objParams.injectJS.url.replace('http://', '').replace('https://', '');
+    request.post('/v2/api/cicd/navtiming')
+      .send(objParams)
+      .expect('Content-Type', /json/)
+      .expect(422)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('message');
+        expect(res.body.message).to.be.a('string');
+        expect(res.body.message).to.contain('must be a valid uri');
+        done();
+      });
   });
-  describe('/POST apitiming', () => {
-    it('[/apitiming] should retrieve a successful apitiming response', (done) => {
-      const objParams = params.v2.cicd.apitiming;
-      chai.request(server[env])
-        .post('/v2/api/cicd/apitiming')
-        .send(objParams)
-        .end((err, res) => {
-          if (err) {
-            console.log(JSON.stringify(res.body));
-          }
-          should.not.exist(err);
-          res.should.have.status(200);
-          res.body.should.be.a('object');
-          res.body.should.have.property('assert');
-          res.body.should.have.property('export');
-          res.body.should.have.property('debugMsg');
-          res.body.should.have.property('params');
-          res.body.should.have.property('timingInfo');
-          res.body.should.have.property('esTrace');
-          expect(res.body.assert).to.be.true;
-          expect(res.body.esSaved).to.be.false;
-        });
-      done();
-    });
+
+  // POST - usertiming
+  it('[/usertiming] should retrieve a successful usertiming response', (done) => {
+    const objParams = params.v2.cicd.usertiming;
+    request.post('/v2/api/cicd/usertiming')
+      .send(objParams)
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('assert');
+        expect(res.body.assert).to.be.true;
+        expect(res.body).to.have.property('export');
+        expect(res.body).to.have.property('debugMsg');
+        expect(res.body).to.have.property('params');
+        expect(res.body).to.have.property('timingInfo');
+        done();
+      });
   });
-  describe('/POST apitiming [fail]', () => {
-    it('[/apitiming] should retrieve an error when there are no parameters in the POST', (done) => {
-      const objParams = {};
-      chai.request(server[env])
-        .post('/v2/api/cicd/apitiming')
-        .send(objParams)
-        .end((err, res) => {
-          if (!err) {
-            console.log(JSON.stringify(res.body));
-          }
-          should.exist(err);
-          res.should.have.status(422);
-          res.body.should.be.a('object');
-          res.body.should.have.property('status');
-          res.body.should.have.property('message');
-          expect(res.body.message).to.contain("'sla' is required");
-        });
-      done();
-    });
+
+  // POST - usertiming [FAIL]
+  it('[/usertiming FAIL] should get the correct error', (done) => {
+    const objParams = params.v2.cicd.usertiming;
+    // Following line causes the failure [wrong url format]
+    objParams.injectJS.url = objParams.injectJS.url.replace('http://', '').replace('https://', '');
+    request.post('/v2/api/cicd/usertiming')
+      .send(objParams)
+      .expect('Content-Type', /json/)
+      .expect(422)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('message');
+        expect(res.body.message).to.be.a('string');
+        expect(res.body.message).to.contain('must be a valid uri');
+        done();
+      });
   });
-  describe('/POST resources', () => {
-    it('[/resources] should retrieve an array of resources', (done) => {
-      const objParams = params.v2.cicd.resources;
-      chai.request(server[env])
-        .post('/v2/api/cicd/resources')
-        .send(objParams)
-        .end((err, res) => {
-          if (err) {
-            console.log(JSON.stringify(res.body));
-          }
-          should.not.exist(err);
-          res.should.have.status(200);
-          res.body.should.be.a('object');
-          res.body.should.have.property('kibana_host');
-          res.body.should.have.property('kibana_port');
-          res.body.should.have.property('resources');
-          res.body.resources.should.be.a('array');
-        });
-      done();
-    });
+
+  // POST - apitiming
+  it('[/apitiming] should retrieve a successful apitiming response', (done) => {
+    const objParams = params.v2.cicd.apitiming;
+    request.post('/v2/api/cicd/apitiming')
+      .send(objParams)
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('assert');
+        expect(res.body.assert).to.be.true;
+        expect(res.body).to.have.property('export');
+        expect(res.body).to.have.property('debugMsg');
+        expect(res.body).to.have.property('params');
+        expect(res.body).to.have.property('timingInfo');
+        done();
+      });
   });
-  describe('/POST resources [fail]', () => {
-    it('[/resources] should retrieve an error when there is no ID in the POST', (done) => {
-      const objParams = {};
-      chai.request(server[env])
-        .post('/v2/api/cicd/resources')
-        .send(objParams)
-        .end((err, res) => {
-          if (!err) {
-            console.log(JSON.stringify(res.body));
-          }
-          should.exist(err);
-          res.should.have.status(422);
-          res.body.should.be.a('object');
-          res.body.should.have.property('status');
-          res.body.should.have.property('message');
-          expect(res.body.message).to.contain("'id' is required");
-        });
-      done();
-    });
+
+  // POST - apitiming [FAIL]
+  it('[/apitiming FAIL] should get the correct error', (done) => {
+    const objParams = params.v2.cicd.apitiming;
+    // Following line causes the failure [wrong url format]
+    objParams.url = objParams.url.replace('http://', '').replace('https://', '');
+    request.post('/v2/api/cicd/apitiming')
+      .send(objParams)
+      .expect('Content-Type', /json/)
+      .expect(422)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('message');
+        expect(res.body.message).to.be.a('string');
+        expect(res.body.message).to.contain('must be a valid uri');
+        done();
+      });
+  });
+
+  // POST - Resources
+  it('[/resources] should retrieve a successful resources response', (done) => {
+    const objParams = params.v2.cicd.resources;
+    request.post('/v2/api/cicd/resources')
+      .send(objParams)
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('kibana_host');
+        expect(res.body).to.have.property('kibana_port');
+        expect(res.body).to.have.property('resources');
+        expect(res.body.resources).to.be.an('array');
+        done();
+      });
+  });
+
+  // POST - Resources [FAIL]
+  it('[/resources FAIL] should get the correct error', (done) => {
+    request.post('/v2/api/cicd/resources')
+      .send({})
+      .expect('Content-Type', /json/)
+      .expect(422)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('message');
+        expect(res.body.message).to.be.a('string');
+        expect(res.body.message).to.contain('\'id\' is required');
+        done();
+      });
+  });
+});
+
+describe('GET endpoint ', function () {
+  this.timeout(5000); // How long to wait for a response (ms)
+
+  before(function () {
+
+  });
+
+  after(function () {
+
+  });
+
+  // GET - Home
+  it('[/] should return Swagger page', (done) => {
+    request.get('/')
+      .expect(200)
+      .expect('Content-Type', /text\/html/)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res).to.be.an('object');
+        expect(res).to.have.property('ok');
+        expect(res.ok).to.be.true;
+        expect(res).to.have.property('text');
+        expect(res.text).to.contain('Swagger docs');
+        done();
+      });
+  });
+
+  // GET - Home
+  it('[/fail] should return Error page', (done) => {
+    request.get('/fail')
+      .expect(404)
+      .expect('Content-Type', /text\/html/)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res).to.be.an('object');
+        expect(res).to.have.property('ok');
+        expect(res.ok).to.be.false;
+        expect(res).to.have.property('text');
+        expect(res.text).to.contain('You found the 404 page');
+        done();
+      });
+  });
+
+  // GET - Health
+  it('[/health] should get the health JSON', (done) => {
+    request.get('/health')
+      .set('Accept', 'application/json')
+      .expect(200)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('server');
+        expect(res.body).to.have.property('system');
+        done();
+      });
+  });
+
+  // GET - Health
+  it('[/healthcheck] should get the health JSON', (done) => {
+    request.get('/healthcheck')
+      .set('Accept', 'application/json')
+      .expect(200)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('server');
+        expect(res.body).to.have.property('system');
+        done();
+      });
+  });
+
+  // GET - waterfall
+  it('[/waterfall] should return Waterfall page', (done) => {
+    request.get('/waterfall')
+      .expect(200)
+      .expect('Content-Type', /text\/html/)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res).to.be.an('object');
+        expect(res).to.have.property('ok');
+        expect(res.ok).to.be.true;
+        expect(res).to.have.property('text');
+        expect(res.text).to.contain('Waterfall');
+        done();
+      });
   });
 });

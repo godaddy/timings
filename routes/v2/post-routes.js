@@ -111,8 +111,8 @@ function validateSchema(route, body) {
   const reqLogs = nconf.get('params:required');
   if (reqLogs.length > 0) {
     // reqLogs.push('log');
-    for (let index of Object.keys(reqLogs)) {
-      let requiredLog = reqLogs[index];
+    for (const index of Object.keys(reqLogs)) {
+      const requiredLog = reqLogs[index];
       if (requiredLog.indexOf('log.') === 0) {
         logObj[requiredLog.substring(4)] = joi.string();
       }

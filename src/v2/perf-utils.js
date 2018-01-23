@@ -13,8 +13,10 @@ class PUClass {
   constructor(body, route) {
     this.body = body;
     this.route = route.replace('/', '');
-    this.es = new esUtils.ESClass();
     this.env = nconf.get('env');
+    if (this.env.useES === true) {
+      this.es = new esUtils.ESClass();
+    }
     this.defaults = nconf.get('params:defaults');
     // this.logger = logger;
     this.debugMsg = [];
@@ -172,17 +174,19 @@ class PUClass {
     const query = { bool: { must: [], must_not: [] }};
     const aggs = { baseline: { percentiles: { field: baselineAgg, percents: [baselineParams.perc] }}};
 
-    // Check the URL
-    // First, remove the trailing '*' -> the Lucene parszer will automatically add it
-    let tmpSearchUrl = baselineParams.searchUrl;
-    if (tmpSearchUrl && tmpSearchUrl.trim().substr(tmpSearchUrl.trim().length - 1) === '*') {
-      tmpSearchUrl = tmpSearchUrl.substring(0, tmpSearchUrl.trim().length - 1);
-    }
-    // Then, decide what URL to filter on
-    this.queryUrl = tmpSearchUrl || this.dl.replace('https://', '').replace('http://', '');
+    // Decide what URL to filter on
+    this.queryUrl = (baselineParams.searchUrl && baselineParams.searchUrl.indexOf('*') >= 0) ? baselineParams.searchUrl : this.dl;
+    this.queryUrl = this.queryUrl.replace('https://', '').replace('http://', '').trim();
 
-    // Add the URL and the time range
+    // Now, remove the trailing '*' -> the Lucene parser will automatically add it!
+    if (this.queryUrl && this.queryUrl.substr(this.queryUrl.length - 1) === '*') {
+      this.queryUrl = this.queryUrl.substring(0, this.queryUrl.length - 1);
+    }
+
+    // And finally, sanitize it for Lucene query
     luceneParse.setSearchTerm(this.queryUrl);
+
+    // Add the URL and the time range to the query object
     const mustUrl = { query_string: { default_field: 'dl', query: luceneParse.getFormattedSearchTerm() }};
     const mustRange = { range: { et: { from: 'now-' + baselineParams.days + 'd', to: 'now' }}};
     query.bool.must.push(mustUrl, mustRange);
@@ -383,7 +387,7 @@ class PUClass {
         returnJSON.esTrace = this.esTrace;
       }
     } else {
-      returnJSON.esSaved = "ElasticSearch is not in use or 'flags.esCreate=false'!";
+      returnJSON.esSaved = "ElasticSearch is not available or 'flags.esCreate=false'!";
     }
     if (this.objParams.flags.debug === true) {
       returnJSON.debugMsg = this.debugMsg;
@@ -407,9 +411,14 @@ class PUClass {
     // Collect POST data
     if (this.env.useES === false) {
       // Send something back to the user
-      const err = new Error('Resources not available - ELK could not be reached or is not configured');
-      err.status = 400;
-      return cb(err);
+      // const err = new Error('Resources not available - ELK could not be reached or is not configured');
+      // err.status = 400;
+      return cb(null, {
+        status: 200,
+        kibana_host: this.env.KB_HOST,
+        kibana_port: this.env.KB_PORT,
+        resources: []
+      });
     }
 
     const returnJSON = { status: 400 };

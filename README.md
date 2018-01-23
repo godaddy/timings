@@ -1,14 +1,20 @@
 # TIMINGS API
 
-The timings API can be used in CI/CD pipelines for the asserting of **web UI or API performance** during functional/integration tests!
+[![Build Status](https://travis-ci.org/godaddy/timings.svg?branch=master)](https://travis-ci.org/godaddy/timings)
+[![npm version](https://badge.fury.io/js/timings.svg)](https://www.npmjs.com/package/timings)
+[![Node version](https://img.shields.io/node/v/timings.svg?style=flat)](http://nodejs.org/download/)
+[![HitCount](http://hits.dwyl.io/godaddy/timings.svg)](http://hits.dwyl.io/godaddy/timings)
+[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/godaddy/timings/issues)
 
-## **tl;dr**
+## **TL;DR**
 
-Install and run this API in your local network. The easiest deployment is with docker-compose (see here: [timings-docker](https://github.com/Verkurkie/timings-docker/))
+The timings API is a solution for asserting **web UI or API performance** during functional/integration tests!
+
+Run this API in your local network => install one of the clients on your dev/test machine => add a few lines of code => assert perf & collect data!
 
 Call the API **from your functional test script(s)** (using platform specific [clients](#the-clients) or directly) to:
 
-1. [UI tests only] Grab a snippet of JavaScript code from [`/v2/api/cicd/injectjs`](#post-v2apicicdinjectjs)
+1. [UI tests only] Grab a snippet of JavaScript code from the API [`/v2/api/cicd/injectjs`](#post-v2apicicdinjectjs)
 1. [UI tests only] Decode the `"inject_code"` key from the response and inject it into your browser/webdriver
 1. [UI tests only] Send the browser's response (json object) from step 2 back to the API ([/v2/api/cicd/navtiming](#post-v2apicicdnavtiming) or [/v2/api/cicd/usertiming](#post-v2apicicdusertiming))
 1. [API tests only] Send timestamps to the API ([/v2/api/cicd/apitiming](#post-v2apicicdapitiming))
@@ -64,7 +70,7 @@ Enjoy!
 
 ## **The API**
 
-The timings API is a node/express based API the uses ElasticSearch and Kibana (we'll call that "ELK") to store & visualize data. The idea behind the API is to submit/validate/store/assert performance measurements as part of regular functional test cycles. 
+The timings API is a node/express based API the uses ElasticSearch and Kibana (we'll call that "ELK") to store & visualize data. The idea behind the API is to submit/validate/store/assert performance measurements as part of regular functional test cycles.
 
 The API can be run in various ways (see below) and it _can_ be run without ELK although that is not recommended (you miss out on a lot of the goodies!). You can run ELK yourself or you can make use of the convenient [timings-docker](https://github.com/Verkurkie/timings-docker) repo!
 
@@ -79,7 +85,7 @@ The API can be installed on both Windows and Linux Operating systems. Linux is h
 
 The recommended method is "**docker-compose**" as it includes ELK and requires the least amount of setup/configuration! You can also clone this repo and run the API with `node` from inside the cloned directory, or you can install it **globally** with `npm i -g` (from the public NPM registry), or you can build/pull/run a stand-alone Docker container.
 
-**NOTE**: It is important that you **create a config file** before you start the API! Your config file can be in JS, JSON or YML format (examples are provided in the root of this repo). 
+**NOTE**: It is important that you **create a config file** before you start the API! Your config file can be in JS, JSON or YML format (examples are provided in the root of this repo).
 
 You need to point the API at the config file using the `--config-file` argument. If you fail to do this, the API will use defaults settings such as `""` for the elasticsearch server (= don't use ElasticSearch)! Please refer to [CONFIG.MD](CONFIG.MD) for more details.
 
@@ -126,7 +132,7 @@ Activity|Command
 ---|---
 Installation|`$ docker pull mverkerk/timings:{version}`
 Startup|`$ docker run \`<br>`-d -v {path to config}:/src/.config.js \`<br>`-p {VM_port}:{Host_port} \`<br>`mverkerk/timings:{version}`
-Upgrade|Just point at the latest version or use `mverkerk/timings:latest` in the startup command.<br>You can find the latest version here: https://hub.docker.com/r/mverkerk/timings/tags/
+Upgrade|Just point at the latest version or use `mverkerk/timings:latest` in the startup command.<br>You can find the latest version here: [https://hub.docker.com/r/mverkerk/timings/tags/](https://hub.docker.com/r/mverkerk/timings/tags/)
 Config|Your config file can be stored anywhere you want. Use the `-v` argument to mount the config file in the container.<br>`{path to config}` = the **absolute** path to your config file<br>`{VM_port}` = the listening port of the API server inside the container<br>`{Host_port}` = the port that you want the **docker host** to listen on. This is the port used to connect to the API!!<br>`{version}` = the desired version of the timings API. You can also use `"latest"`
 
 ### **Upgrading the API**
@@ -142,12 +148,12 @@ You can also use `docker-compose` using the `docker-compose-elk.yml` file in [ht
 **IMPORTANT:** If you run Elasticsearch and Kibana yourself, you **HAVE** to point the API to their respective hostnames! You can do this in **one** of the following ways (ENV vars take priority!):
 
 1. Use the correct keys in the `env` object of your config file. See [CONFIG.MD](CONFIG.MD).
-1. Set Environment Variables for `ES_PROTOCOL`, `ES_HOST`, `ES_PORT`, `KB_HOST` and `KB_PORT`
+1. Set Environment Variables for `ES_PROTOCOL`, `ES_HOST`, `ES_PORT`, `ES_VERSION`, `KB_HOST` and `KB_PORT`
 
-- **The API also supports authentication for elasticsearch!**
-  - use `ES_USER` and `ES_PASS` for Basic Auth
-  - use `ES_SSL_CERT` and `ES_SSL_KEY` for SSL Auth
-  - **NOTE:** If both are provided, SSL auth will be used!
+* **The API also supports authentication for elasticsearch!**
+  * use `ES_USER` and `ES_PASS` for Basic Auth
+  * use `ES_SSL_CERT` and `ES_SSL_KEY` for SSL Auth
+  * **NOTE:** If both are provided, SSL auth will be used!
 
 ## **THE CLIENTS**
 
@@ -364,7 +370,7 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
     "api_version": "1.1.3",
     "assert": true,
     "route": "navtiming",
-    "esSaved": "ElasticSearch is not in use or 'flags.esCreate=false'!",
+    "esSaved": "ElasticSearch is not available or 'flags.esCreate=false'!",
     "export": {
         "et": "2018-01-05T18:03:52.418Z",
         "@timestamp": "2018-01-05T18:03:52.418Z",
@@ -507,7 +513,7 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
     "api_version": "1.1.3",
     "assert": true,
     "route": "usertiming",
-    "esSaved": "ElasticSearch is not in use or 'flags.esCreate=false'!",
+    "esSaved": "ElasticSearch is not available or 'flags.esCreate=false'!",
     "export": {
         "et": "2018-01-05T18:00:58.805Z",
         "@timestamp": "2018-01-05T18:00:58.805Z",
@@ -617,7 +623,7 @@ For the remaining parameters, see here: [common parameters](#common-parameters-n
     "api_version": "1.1.3",
     "assert": true,
     "route": "apitiming",
-    "esSaved": "ElasticSearch is not in use or 'flags.esCreate=false'!",
+    "esSaved": "ElasticSearch is not available or 'flags.esCreate=false'!",
     "export": {
         "et": "2018-01-05T17:57:31.387Z",
         "@timestamp": "2018-01-05T17:57:31.387Z",
@@ -838,7 +844,7 @@ The "common parameters" are used by for following endpoints:
 |`baseline.days`|no|integer|Number of days for the baseline
 |`baseline.perc`|no|integer|The percentile for the baseline
 |`baseline.padding`|no|integer|Baseline multiplyer that enabled you to "pad" the baseline. Value has to be > 1
-|`baseline.searchUrl`|no|string|A custom search string/wildcard for the baseline. This will be applied to the 'dl' field query. Has to be a full, valid Kibana search string!
+|`baseline.searchUrl`|no|string|A custom search string/wildcard for the baseline. This will be applied to the 'dl' field query. Has to be a full, valid Kibana search string and must contain at least one `'*'` character/wildcard!
 |`baseline.incl`|no|object|This can be used to fine-tune the baseline query. The key-value pair will be used as an "include-filter" for the ElasticSearch query. Example: `{"browser": "chrome"}`
 |`baseline.excl`|no|object|This can be used to fine-tune the baseline query. The key-value pair will be used as an "exclude-filter" for the ElasticSearch query. Example: `{"status": "fail"}` to exclude all the failed tests
 |`flags`|no|object|Collection of flags for actions & return output. Sub-parameters:

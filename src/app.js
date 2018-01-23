@@ -3,13 +3,11 @@ const path = require('path');
 const express = require('express');
 const logger = require('../log.js');
 const cookieParser = require('cookie-parser');
-const pjson = require('../package.json');
+require('./config');
 
 const app = express();
 
-const APP_VERSION = pjson.version;
 const API_VERSIONS = { version2: '/v2' };
-app.set('APP_VERSION', APP_VERSION);
 app.set('API_VERSIONS', API_VERSIONS);
 
 // CORS middleware
@@ -66,6 +64,7 @@ app.use(function (err, req, res, next) {
     status: res.statusCode,
     message: err.toString().substr(0, 500).replace(/"/g, "'")
   });
+  next();
 });
 
 module.exports = app;

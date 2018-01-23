@@ -1,3 +1,12 @@
+<a name="1.1.5"></a>
+## 1.1.5 (2018-01-10)
+
+* 1.1.5 ([d57f8fb](https://github.com/godaddy/timings/commit/d57f8fb))
+* Release 1.1.4 ([d380054](https://github.com/godaddy/timings/commit/d380054))
+* Release 1.1.5 - updates and fixes ([0a7c13f](https://github.com/godaddy/timings/commit/0a7c13f))
+
+
+
 <a name="1.1.4"></a>
 ## 1.1.4 (2018-01-06)
 
