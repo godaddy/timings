@@ -7,7 +7,7 @@
     "test": "mocha test/**/*.js",
     "eslint": "eslint -c .eslintrc src routes public/js",
     "publish": "npm run eslint && npm run test",
-    "semantic-release": "semantic-release"
+    "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
   "engines": {
     "node": ">=8.0.0",
