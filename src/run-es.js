@@ -1,6 +1,6 @@
 const fs = require('fs');
-const logger = require('../log.js');
 const nconf = require('nconf');
+const logger = require('../log.js');
 const esUtils = require('./v2/es-utils');
 
 /* eslint no-sync: 0 */
@@ -8,8 +8,8 @@ class Elastic {
   constructor() {
     this.env = nconf.get('env');
     this.es = new esUtils.ESClass();
-    this.currVer = '';
-    this.newVer = '';
+    this.currVer;
+    this.newVer = this.env.APP_VERSION ? parseInt(this.env.APP_VERSION.replace(/\./g, ''), 10) : 0;
   }
 
   async setup() {
@@ -21,20 +21,19 @@ class Elastic {
 
       logger.debug(`Checking if upgrades to ES are needed ...`);
 
-      const newVer = parseInt(this.env.APP_VERSION.replace(/\./g, ''), 10);
-      await this.checkVer(this.es, newVer);
+      await this.checkVer();
 
     } catch (err) {
-      logger.debug(`Could not reach Elasticsearch Host [${this.env.ES_HOST}:${this.env.ES_PORT}] - error message: ${err.message}`);
+      logger.debug(`Elasticsearch error [${this.env.ES_HOST}:${this.env.ES_PORT}] - error message: ${err.message}`);
       nconf.set('env:useES', false);
     }
-    return true;
+    return;
   }
 
   async checkVer() {
     const currTemplate = await this.es.getTemplate(this.env.INDEX_PERF);
 
-    if (currTemplate.hasOwnProperty(this.env.INDEX_PERF)) {
+    if (currTemplate && currTemplate.hasOwnProperty(this.env.INDEX_PERF)) {
       this.currVer = currTemplate[this.env.INDEX_PERF].version;
     }
 
@@ -65,7 +64,7 @@ class Elastic {
     const templateJson = require('./.es_template.js');
     templateJson.version = this.newVer;
     await this.es.putTemplate('cicd-perf', templateJson);
-    return true;
+    return;
   }
 }
 

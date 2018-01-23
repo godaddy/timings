@@ -2,9 +2,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const yaml = require('js-yaml');
+const nconf = require('nconf');
 const pkg = require('../package.json');
 const logger = require('../log.js');
-const nconf = require('nconf');
 
 /* eslint no-sync: 0 */
 // Add arguments and environment variables to nconf
@@ -61,19 +61,19 @@ if (cfgFile && fs.existsSync(cfgFile)) {
 }
 
 // Check for missing keys
-if (!cfgConfig.hasOwnProperty('env')) {
+if (!cfgConfig.env) {
   cfgConfig.env = {};
 }
-if (!cfgConfig.hasOwnProperty('params')) {
+if (!cfgConfig.params) {
   cfgConfig.params = {};
 }
-if (!cfgConfig.params.hasOwnProperty('defaults')) {
+if (!cfgConfig.params.defaults) {
   cfgConfig.params.defaults = {};
 }
-if (!cfgConfig.params.defaults.hasOwnProperty('baseline')) {
+if (!cfgConfig.params.defaults.baseline) {
   cfgConfig.params.defaults.baseline = {};
 }
-if (!cfgConfig.params.defaults.hasOwnProperty('flags')) {
+if (!cfgConfig.params.defaults.flags) {
   cfgConfig.params.defaults.flags = {};
 }
 

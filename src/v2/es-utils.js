@@ -3,8 +3,8 @@
 */
 const fs = require('fs');
 const elasticsearch = require('elasticsearch');
-const logger = require('../../log.js');
 const nconf = require('nconf');
+const logger = require('../../log.js');
 
 /* eslint no-sync: 0 */
 class ESClass {
@@ -80,7 +80,7 @@ class ESClass {
         .getTemplate({ name: name });
       return response;
     }
-    return false;
+    return;
   }
 
   async defaultIndex(name, version) {
