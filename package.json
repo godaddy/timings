@@ -51,7 +51,7 @@
     "eslint-plugin-json": "^1.2.0",
     "eslint-plugin-mocha": "^4.11.0",
     "mocha": "^2.5.3",
-    "semantic-release": "^11.0.2",
+    "semantic-release": "^12.2.2",
     "supertest": "^3.0.0"
   }
 }
