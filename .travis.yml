@@ -1,27 +1,16 @@
 language: node_js
-
-cache:  
+cache:
   directories:
-    - node_modules
-
+    - ~/.npm
 notifications:
   email: false
-
 node_js:
   - '9'
   - '8'
-
-before_install:
-  - npm install -g greenkeeper-lockfile@1
-before_script: greenkeeper-lockfile-update
-after_script: greenkeeper-lockfile-upload
-
 script:
   - npm run test
-
 after_success:
-  - npm run semantic-release
-
+  - npm run travis-deploy-once "npm run semantic-release"
 branches:
   except:
     - /^v\d+\.\d+\.\d+$/

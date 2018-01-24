@@ -7,7 +7,8 @@
     "test": "mocha test/**/*.js",
     "eslint": "eslint -c .eslintrc src routes public/js",
     "publish": "npm run eslint && npm run test",
-    "semantic-release": "semantic-release pre && npm publish && semantic-release post"
+    "semantic-release": "semantic-release",
+    "travis-deploy-once": "travis-deploy-once"
   },
   "engines": {
     "node": ">=8.0.0",
@@ -51,7 +52,8 @@
     "eslint-plugin-json": "^1.2.0",
     "eslint-plugin-mocha": "^4.11.0",
     "mocha": "^2.5.3",
-    "semantic-release": "^12.2.2",
-    "supertest": "^3.0.0"
+    "semantic-release": "^12.2.4",
+    "supertest": "^3.0.0",
+    "travis-deploy-once": "^4.3.3"
   }
 }
