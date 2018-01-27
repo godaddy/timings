@@ -23,7 +23,6 @@ function health() {
   const ret = {
     server: {
       APP_HOST: nconf.get('env:HOST') + ':' + nconf.get('env:HTTP_PORT'),
-      APP_NAME: nconf.get('env:APP_NAME'),
       APP_VERSION: nconf.get('env:APP_VERSION'),
       APP_CONFIG: nconf.get('env:APP_CONFIG'),
       NODE_ENV: nconf.get('env:NODE_ENV'),
