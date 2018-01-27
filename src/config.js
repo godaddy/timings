@@ -3,7 +3,6 @@ const os = require('os');
 const path = require('path');
 const yaml = require('js-yaml');
 const nconf = require('nconf');
-const pkg = require('../package.json');
 const logger = require('../log.js');
 
 /* eslint no-sync: 0 */
@@ -94,8 +93,6 @@ const cfgNconf = {
     KB_RENAME: nconf.get('kb_rename') || cfgConfig.env.KB_RENAME || '',
     HTTP_PORT: nconf.get('http_port') || cfgConfig.env.HTTP_PORT || 80,
     DEBUG: nconf.get('debug') || cfgConfig.env.DEBUG || false,
-    APP_NAME: pkg.name,
-    APP_VERSION: pkg.version,
     APP_CONFIG: cfgFile,
     HOST: os.hostname(),
     NODE_ENV: nconf.get('node_env') || 'development',

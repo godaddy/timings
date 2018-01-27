@@ -19,7 +19,7 @@ class Elastic {
       logger.debug(` >> SUCCESS! found it on port [${this.env.ES_PORT}]!`);
       nconf.set('env:useES', true);
 
-      logger.debug(`Checking if upgrades to ES are needed ...`);
+      logger.debug(`Checking if ES needs upgrade ...`);
 
       await this.checkVer();
 
@@ -40,7 +40,7 @@ class Elastic {
     if (!this.currVer || this.newVer > this.currVer || nconf.get('es_upgrade') === true) {
       this.doUpgrade();
     } else {
-      logger.debug(` >> no upgrades needed ... current version: v.${this.currVer}`);
+      logger.debug(` >> no upgrades needed ... ES already has v${this.env.APP_VERSION} template`);
     }
   }
 
@@ -61,7 +61,7 @@ class Elastic {
     }
 
     // Make sure the latest template is present
-    const templateJson = require('./.es_template.js');
+    const templateJson = require('../.es_template.js');
     templateJson.version = this.newVer;
     await this.es.putTemplate('cicd-perf', templateJson);
     return;
