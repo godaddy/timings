@@ -10,6 +10,7 @@ node_js:
 script:
   - npm run test
 after_success:
+  - ./build/version.sh
   - npm run travis-deploy-once "npm run semantic-release"
 branches:
   except:
