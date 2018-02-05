@@ -6,6 +6,9 @@ if [ -n "${version}" ]; then
   search='("api_version":[[:space:]]*").+(")'
   replace="\1${version/v/}\2"
   sed -i -r "s/${search}/${replace}/g" "package.json"
+  git add .
+  git commit -m "Set custom version field to ${version}"
+  git push origin
 else
   echo "Could not find GIT version ..."
 fi
