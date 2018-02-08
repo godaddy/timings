@@ -23,7 +23,6 @@ coverage
 test_results
 
 # Build artifacts
-/build
 .npmrc
 
 # Dependencies

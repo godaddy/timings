@@ -95,7 +95,7 @@ const cfgNconf = {
     HTTP_PORT: nconf.get('http_port') || cfgConfig.env.HTTP_PORT || 80,
     DEBUG: nconf.get('debug') || cfgConfig.env.DEBUG || false,
     APP_NAME: pkg.name,
-    APP_VERSION: pkg.version,
+    APP_VERSION: pkg['timings-api'].api_version || '0.0.0',
     APP_CONFIG: cfgFile,
     HOST: os.hostname(),
     NODE_ENV: nconf.get('node_env') || 'development',

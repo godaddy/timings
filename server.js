@@ -20,6 +20,6 @@ if (env.ES_HOST && typeof env.ES_HOST === 'string') {
 function startListen() {
   app.set('port', env.HTTP_PORT || 80);
   app.listen(app.get('port'), () => {
-    logger.debug(`TIMINGS API ["${env.NODE_ENV}"] is running on port [${app.get('port')}]`);
+    logger.debug(`TIMINGS API ["${env.NODE_ENV}-v${nconf.get('env:APP_VERSION')}"] is running on port [${app.get('port')}]`);
   });
 }
