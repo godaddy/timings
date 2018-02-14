@@ -12,6 +12,10 @@ script:
 after_success:
   - npm run travis-deploy-once "npm run semantic-release"
   - ./build/version.sh
-branches:
-  except:
-    - /^v\d+\.\d+\.\d+$/
+  branches:
+    except:
+      - /^v\d+\.\d+\.\d+$/
+  env:
+  global:
+  - GH_REF: github.com/godaddy/timings.git
+  - secure: S9O5zqQlod8vZ7pgwbYBBNWBhbRQfkREbkz+FFjpsf54Uu6QxG+wq4RaH6DzRcBpEkeXMBfYBR+X/WA2rPcJMPjiMQmEiG2wmX/qGE77hrGR3DYz6FNtQ7O1+5M69uROdBbwwTcb/0koIPkFSwPxxSF8fs57BFGNHVeM425bJGNT6VcclDk1x3GdKZkoaO27b/lJWl9jdJ6JZ9KqEoWn3Fbl6o0MbAcZooFHkrb3Akgc+I3eS1ztuLdnoXMaaHei2jUw0GszII9AYt76SWkuF0u84rE9f+lO/+FPbtdPF/TaJiXvg1E99LqdWy3giNdWA0jD+jqnhUaHVet+OQMRVUjsHPxqPnt98H1LRzt1lw5JRqKjhfpHL/F74N8WU1XvJPjS774CDpNSrZsOrzYimzzH47IJIZ8HaYYtLMUoAw+/WM1rhLxX/yvc/SMgiHoc//GPjpmRkvq+n5AsHSEvtIoEiQzbvC6y4WdMAITq1l6QrB65Mvr4l7yFMAMFhVc3sU/tFwg+XYBUecE6yuqOReGz/xD/odoqvBm6F0T9V0stD0GT8YSQteAwUJ4xacxOOjtS80ETtOBAglllObe9IbPn3CVnWI3jL3+RiOxRo1MRHnvdVsP9uTpevPBE60zmDd4VPn5BG/8KB7G05YctQDzajqoR6qR2aM7nfrUPGeE=
