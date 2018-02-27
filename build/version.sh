@@ -1,5 +1,11 @@
 #!/bin/bash
-version=$(npx semantic-release --dry-run | grep "next release version is " | sed -nE 's/(.*?(\bnext\srelease\sversion\sis\s)(.*?))$/\3/p')
+semantic_dr=$(npx semantic-release --dry-run)
+version=$(echo $semantic_dr | grep "Found version " | sed -nE 's/(.*?(Found version )(.*?)( of package.*?)$)/\3/p')
+version_new=$(echo $semantic_dr | grep "next release version is " | sed -nE 's/(.*?(\bnext\srelease\sversion\sis\s)(.*?))$/\3/p')
+
+if [ -n "${version_new}" ]; then
+  version=$version_new
+fi
 
 if [ -n "${version}" ]; then
   echo "found version: $version"

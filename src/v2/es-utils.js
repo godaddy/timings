@@ -4,6 +4,7 @@
 const fs = require('fs');
 const elasticsearch = require('elasticsearch');
 const nconf = require('nconf');
+const waitOn = require('wait-port');
 const logger = require('../../log.js');
 
 /* eslint no-sync: 0 */
@@ -16,8 +17,7 @@ class ESClass {
     const esConfig = {
       host: this.env.ES_PROTOCOL + '://' + this.env.ES_HOST + ':' + this.env.ES_PORT,
       requestTimeout: 5000,
-      log: 'error',
-      apiVersion: '5.x'
+      log: 'error'
     };
 
     // Check if user/passwd are provided - configure basic auth
@@ -50,6 +50,37 @@ class ESClass {
       .then(function (resp) {
         return resp;
       }, function (err) {
+        throw (err);
+      });
+  }
+
+  async healthy(timeout, status) {
+    const resp = await this.client.cluster.health({
+      level: 'cluster',
+      waitForStatus: status || 'green',
+      timeout: timeout || '90s'
+    });
+    if (resp.hasOwnProperty('body') && resp.body.status !== 'red') {
+      return (resp.body);
+    }
+    const info = await this.client.info();
+    return Object.assign(resp, info);
+  }
+
+  async waitPort() {
+    const opts = {
+      host: this.env.ES_HOST,
+      port: this.env.ES_PORT,
+      output: 'silent',
+      timeout: 120000
+    };
+    await waitOn(opts)
+      .then((open) => {
+        if (!open) {
+          throw new Error(`timeout on port [${opts.port}]`);
+        }
+      })
+      .catch((err) => {
         throw (err);
       });
   }
@@ -191,19 +222,19 @@ class ESClass {
     let reason = response.reason || 'n/a';
     if (response.hasOwnProperty('result')) {
       result = response.result.toUpperCase();
-    } else if (response.hasOwnProperty('total')) {
-      if (response.hasOwnProperty('created') && response.created > 0)
-        result = 'CREATED (' + response.created + ' items)';
-      if (response.hasOwnProperty('deleted') && response.deleted > 0)
-        result = 'DELETED (' + response.deleted + ' items)';
-      if (response.hasOwnProperty('updated') && response.updated > 0)
-        result = 'UPDATED (' + response.updated + ' items)';
-    } else if (response.hasOwnProperty('acknowledged')) {
+    }
+    if (response.hasOwnProperty('total')) {
+      const totalCount = response.created + response.deleted + response.updated;
+      result = 'CHANGED (' + totalCount + ' items)';
+    }
+    if (response.hasOwnProperty('acknowledged')) {
       result = 'ACKNOWLEDGED';
-    } else if (response.hasOwnProperty('error')) {
+    }
+    if (response.hasOwnProperty('error')) {
       result = 'ERROR';
       reason = response.error.reason;
     }
+
     this.logger.debug(`[${result}] - action: ${job} - item: ${item} - status: ${response.statuscode ||
       response.status || 'n/a'} - reason: ${reason}`);
     return true;
