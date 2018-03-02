@@ -26,7 +26,7 @@ class Elastic {
       } else {
         logger.debug(`[Elasticsearch] - ${this.esHostPort} - ERROR - message: ${err.message}`);
       }
-      return (err);
+      return;
     }
     logger.debug(`[Elasticsearch] - ${this.esHostPort} - READY - [v.${this.esHealth.version.number}]` +
       ` - [status = ${this.esHealth.status.toUpperCase()}]`);

@@ -81,7 +81,7 @@ class ESClass {
         }
       })
       .catch((err) => {
-        throw (err);
+        throw err;
       });
   }
 
