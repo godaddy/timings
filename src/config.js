@@ -130,7 +130,7 @@ nconf
 
 const env = nconf.get('env');
 
-logger.debug(`[timings API] - ${env.HOST}:${env.HTTP_PORT} - using config: [${env.APP_CONFIG}] - ${cfgReason}`);
+logger.debug(`[ timings API ] - ${env.HOST}:${env.HTTP_PORT} - [CONFIG] using config: [${env.APP_CONFIG}] - ${cfgReason}`);
 
 if (env.DEBUG !== true) {
   logger.transports.console.silent = true;

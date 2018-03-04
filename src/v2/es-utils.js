@@ -9,9 +9,9 @@ const logger = require('../../log.js');
 
 /* eslint no-sync: 0 */
 class ESClass {
+  // Class to handle interactions with elasticsearch
   constructor() {
     this.env = nconf.get('env');
-    this.logger = logger;
 
     // Basic ES config - no auth
     const esConfig = {
@@ -45,51 +45,39 @@ class ESClass {
     this.client = new elasticsearch.Client(esConfig);
   }
 
-  async ping(timeout) {
-    await this.client.ping({ requestTimeout: (timeout || 5000) })
-      .then(function (resp) {
-        return resp;
-      }, function (err) {
-        throw (err);
-      });
-  }
-
-  async healthy(timeout, status) {
+  async healthy(timeoutSec = 90, status = 'green') {
     const resp = await this.client.cluster.health({
       level: 'cluster',
-      waitForStatus: status || 'green',
-      timeout: timeout || '90s'
+      waitForStatus: status,
+      timeout: timeoutSec.toString() + 's'
     });
     if (resp.hasOwnProperty('body') && resp.body.status !== 'red') {
       return (resp.body);
     }
-    const info = await this.client.info();
-    return Object.assign(resp, info);
+    return resp;
   }
 
-  async waitPort() {
+  async waitPort(timeoutMs = 120000) {
     const opts = {
       host: this.env.ES_HOST,
       port: this.env.ES_PORT,
       output: 'silent',
-      timeout: 120000
+      timeout: timeoutMs
     };
-    await waitOn(opts)
-      .then((open) => {
-        if (!open) {
-          throw new Error(`timeout on port [${opts.port}]`);
-        }
-      })
-      .catch((err) => {
-        throw err;
-      });
+    try {
+      if (!await waitOn(opts)) throw new Error(`timeout on port [${opts.port}]`);
+    } catch (err) {throw err;}
+  }
+
+  async info() {
+    return await this.client.info();
   }
 
   async templExists(template) {
     const response = await this.client
       .indices
       .existsTemplate({ name: template });
-    this.logger.debug('Template [cicd-perf] exists: ' + (response === true));
+    this.logElastic('debug', `Template [cicd-perf] exists: ${response === true}`);
     return response;
   }
 
@@ -97,7 +85,7 @@ class ESClass {
     const response = await this.client
       .indices
       .putTemplate({ name: name, body: body });
-    this.logger.debug('Template [' + name + '] exists/created: ' + (response.acknowledged === true));
+    this.logElastic('debug', `Template [${name}] exists/created: ${response.acknowledged === true}`);
     return response;
   }
 
@@ -212,32 +200,20 @@ class ESClass {
       }
       return true;
     } catch (err) {
-      this.logger.debug('Error in kbImport: ' + err.message);
+      this.logElastic('error', `Error in kbImport: ${err.message}`);
       return false;
     }
   }
 
   async checkEsResponse(response, job, item) {
-    let result;
-    let reason = response.reason || 'n/a';
-    if (response.hasOwnProperty('result')) {
-      result = response.result.toUpperCase();
-    }
-    if (response.hasOwnProperty('total')) {
-      const totalCount = response.created + response.deleted + response.updated;
-      result = 'CHANGED (' + totalCount + ' items)';
-    }
-    if (response.hasOwnProperty('acknowledged')) {
-      result = 'ACKNOWLEDGED';
-    }
     if (response.hasOwnProperty('error')) {
-      result = 'ERROR';
-      reason = response.error.reason;
+      this.logElastic('error', `action: ${job} - item: ${item} - reason: ${response.error.reason}`);
     }
+    return;
+  }
 
-    this.logger.debug(`[${result}] - action: ${job} - item: ${item} - status: ${response.statuscode ||
-      response.status || 'n/a'} - reason: ${reason}`);
-    return true;
+  logElastic(level, msg) {
+    logger[level](`[Elasticsearch] - ${this.env.ES_HOST}:${this.env.ES_PORT} - ${msg}`);
   }
 }
 
