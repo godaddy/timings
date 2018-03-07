@@ -1,4 +1,8 @@
-[{
+[
+    {
+        "lastUpdate": 1520397917810
+    },
+    {
         "_type": "index-pattern",
         "_id": "cicd-resource*",
         "_source": {
@@ -58,7 +62,7 @@
         "_id": "TIMINGS-Resources",
         "_type": "dashboard",
         "_source": {
-            "title": "TIMINGS-Resources",
+            "title": "TIMINGS Resources",
             "hits": 0,
             "description": "",
             "panelsJSON": "[{\"col\":1,\"id\":\"[TIMINGS]-Resource-duration-breakdown\",\"panelIndex\":1,\"row\":1,\"size_x\":6,\"size_y\":4,\"type\":\"visualization\"},{\"col\":7,\"id\":\"[TIMINGS]-Resource-timings\",\"panelIndex\":2,\"row\":1,\"size_x\":6,\"size_y\":4,\"type\":\"visualization\"},{\"col\":1,\"id\":\"[TIMINGS]-List-of-Resources\",\"panelIndex\":3,\"row\":5,\"size_x\":8,\"size_y\":7,\"type\":\"visualization\"},{\"col\":9,\"id\":\"6cdb3d80-845a-11e7-a313-8d4ec725b2f9\",\"panelIndex\":4,\"row\":5,\"size_x\":4,\"size_y\":7,\"type\":\"visualization\"}]",

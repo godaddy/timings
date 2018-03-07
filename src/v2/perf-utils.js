@@ -202,9 +202,6 @@ class PUClass {
     }
 
     // Clean up query
-    if (query.bool.must.length < 1) {
-      delete query.bool.must;
-    }
     if (query.bool.must_not.length < 1) {
       delete query.bool.must_not;
     }
