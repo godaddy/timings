@@ -4,20 +4,20 @@
 const fs = require('fs');
 const elasticsearch = require('elasticsearch');
 const nconf = require('nconf');
+const waitOn = require('wait-port');
 const logger = require('../../log.js');
 
 /* eslint no-sync: 0 */
 class ESClass {
+  // Class to handle interactions with elasticsearch
   constructor() {
     this.env = nconf.get('env');
-    this.logger = logger;
 
     // Basic ES config - no auth
     const esConfig = {
       host: this.env.ES_PROTOCOL + '://' + this.env.ES_HOST + ':' + this.env.ES_PORT,
       requestTimeout: 5000,
-      log: 'error',
-      apiVersion: '5.x'
+      log: 'error'
     };
 
     // Check if user/passwd are provided - configure basic auth
@@ -45,20 +45,39 @@ class ESClass {
     this.client = new elasticsearch.Client(esConfig);
   }
 
-  async ping(timeout) {
-    await this.client.ping({ requestTimeout: (timeout || 5000) })
-      .then(function (resp) {
-        return resp;
-      }, function (err) {
-        throw (err);
-      });
+  async healthy(timeoutSec = 90, status = 'green') {
+    const resp = await this.client.cluster.health({
+      level: 'cluster',
+      waitForStatus: status,
+      timeout: timeoutSec.toString() + 's'
+    });
+    if (resp.hasOwnProperty('body') && resp.body.status !== 'red') {
+      return (resp.body);
+    }
+    return resp;
+  }
+
+  async waitPort(timeoutMs = 120000) {
+    const opts = {
+      host: this.env.ES_HOST,
+      port: this.env.ES_PORT,
+      output: 'silent',
+      timeout: timeoutMs
+    };
+    try {
+      if (!await waitOn(opts)) throw new Error(`timeout on port [${opts.port}]`);
+    } catch (err) {throw err;}
+  }
+
+  async info() {
+    return await this.client.info();
   }
 
   async templExists(template) {
     const response = await this.client
       .indices
       .existsTemplate({ name: template });
-    this.logger.debug('Template [cicd-perf] exists: ' + (response === true));
+    this.logElastic('debug', `Template [cicd-perf] exists: ${response === true}`);
     return response;
   }
 
@@ -66,7 +85,7 @@ class ESClass {
     const response = await this.client
       .indices
       .putTemplate({ name: name, body: body });
-    this.logger.debug('Template [' + name + '] exists/created: ' + (response.acknowledged === true));
+    this.logElastic('debug', `Template [${name}] exists/created: ${response.acknowledged === true}`);
     return response;
   }
 
@@ -162,7 +181,7 @@ class ESClass {
         const item = importJson[index];
         const _source = item._source;
         if (_source === 'delete_this') {
-          this.checkEsResponse(
+          this.checkImportErrors(
             await this.delDocById((this.env.KB_INDEX || '.kibana'), item._type, item._id),
             'delete [' + item._type + ']',
             item._id
@@ -172,7 +191,7 @@ class ESClass {
             const apiHost = (this.env.HTTP_PORT !== 80) ? this.env.HOST + ':' + this.env.HTTP_PORT : this.env.HOST;
             _source.fieldFormatMap = _source.fieldFormatMap.replace('__api__hostname', apiHost.toLowerCase());
           }
-          this.checkEsResponse(
+          this.checkImportErrors(
             await this.index((this.env.KB_INDEX || '.kibana'), item._type, item._id, _source),
             'import [' + item._type + ']',
             item._source.title
@@ -181,32 +200,19 @@ class ESClass {
       }
       return true;
     } catch (err) {
-      this.logger.debug('Error in kbImport: ' + err.message);
+      this.logElastic('error', `Error in kbImport: ${err.message}`);
       return false;
     }
   }
 
-  async checkEsResponse(response, job, item) {
-    let result;
-    let reason = response.reason || 'n/a';
-    if (response.hasOwnProperty('result')) {
-      result = response.result.toUpperCase();
-    } else if (response.hasOwnProperty('total')) {
-      if (response.hasOwnProperty('created') && response.created > 0)
-        result = 'CREATED (' + response.created + ' items)';
-      if (response.hasOwnProperty('deleted') && response.deleted > 0)
-        result = 'DELETED (' + response.deleted + ' items)';
-      if (response.hasOwnProperty('updated') && response.updated > 0)
-        result = 'UPDATED (' + response.updated + ' items)';
-    } else if (response.hasOwnProperty('acknowledged')) {
-      result = 'ACKNOWLEDGED';
-    } else if (response.hasOwnProperty('error')) {
-      result = 'ERROR';
-      reason = response.error.reason;
+  async checkImportErrors(response, job, item) {
+    if (response.hasOwnProperty('error')) {
+      this.logElastic('error', `action: ${job} - item: ${item} - reason: ${response.error.reason}`);
     }
-    this.logger.debug(`[${result}] - action: ${job} - item: ${item} - status: ${response.statuscode ||
-      response.status || 'n/a'} - reason: ${reason}`);
-    return true;
+  }
+
+  logElastic(level, msg) {
+    logger[level](`[Elasticsearch] - ${this.env.ES_HOST}:${this.env.ES_PORT} - ${msg}`);
   }
 }
 
