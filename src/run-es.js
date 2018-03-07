@@ -38,37 +38,44 @@ class Elastic {
     this.es.logElastic('debug', `[UPGRADE] checking if upgrades are needed ...`);
     const currTemplate = await this.es.getTemplate(this.env.INDEX_PERF);
 
-    if (currTemplate && currTemplate.hasOwnProperty(this.env.INDEX_PERF)) {
-      this.currVer = currTemplate[this.env.INDEX_PERF].version;
+    if (
+      currTemplate &&
+      currTemplate.hasOwnProperty(this.env.INDEX_PERF) &&
+      currTemplate[this.env.INDEX_PERF].mappings._default_.hasOwnProperty('_meta')
+    ) {
+      this.currVer = currTemplate[this.env.INDEX_PERF].mappings._default_._meta.lastUpdate;
     }
+    let importFile = fs.readFileSync('./.kibana_items.json', 'utf8');
+    const importJson = JSON.parse(importFile);
+    this.newVer = importJson[0].lastUpdate || this.currVer;
 
     if (!this.currVer || this.newVer > this.currVer || nconf.get('es_upgrade') === true) {
-      this.doUpgrade();
+      const replText = nconf.get('env:KB_RENAME');
+      if (replText && typeof replText === 'string') {
+        importFile = importFile.replace(/TIMINGS/g, replText.toUpperCase());
+      }
+      const importJson = JSON.parse(importFile);
+      if (importJson[0].hasOwnProperty('lastUpdate')) importJson.shift();
+      this.doUpgrade(importJson);
     } else {
-      this.es.logElastic('debug', `[UPGRADE] already up-to-date [v${this.env.APP_VERSION}]`);
+      this.es.logElastic('debug', `[UPGRADE] Kibana items already up-to-date`);
     }
   }
 
-  async doUpgrade() {
+  async doUpgrade(importJson) {
     // Import/update latest visualizations and dashboards
-    this.es.logElastic('debug', `[UPGRADE] upgrading to v.${this.newVer} ... [Force: ${nconf.get('es_upgrade')} ` +
+    this.es.logElastic('debug', `[UPGRADE] upgrading Kibana items ... [Force: ${nconf.get('es_upgrade')} ` +
       `- New: ${!this.currVer} - Upgr: ${this.currVer < this.newVer}]`);
 
-    let importFile = fs.readFileSync('./.kibana_items.json', 'utf8');
-    const replText = nconf.get('env:KB_RENAME');
-    if (replText && typeof replText === 'string') {
-      importFile = importFile.replace(/TIMINGS/g, replText.toUpperCase());
-    }
-    const importJson = JSON.parse(importFile);
     const esResponse = await this.es.kbImport(importJson);
     if (esResponse === true) {
-      this.es.logElastic('debug', `[IMPORT] - imported ${Object.keys(importJson).length} item(s) into Kibana!`);
+      this.es.logElastic('debug', `[IMPORT] - imported/updated ${Object.keys(importJson).length} Kibana item(s)!`);
       await this.es.defaultIndex(this.env.INDEX_PERF + '*', this.env.ES_VERSION);
     }
 
     // Make sure the latest template is present
     const templateJson = require('../.es_template.js');
-    templateJson.version = this.newVer;
+    templateJson.mappings._default_._meta = { lastUpdate: this.newVer };
     await this.es.putTemplate('cicd-perf', templateJson);
     return;
   }
