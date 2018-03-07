@@ -181,7 +181,7 @@ class ESClass {
         const item = importJson[index];
         const _source = item._source;
         if (_source === 'delete_this') {
-          this.checkEsResponse(
+          this.checkImportErrors(
             await this.delDocById((this.env.KB_INDEX || '.kibana'), item._type, item._id),
             'delete [' + item._type + ']',
             item._id
@@ -191,7 +191,7 @@ class ESClass {
             const apiHost = (this.env.HTTP_PORT !== 80) ? this.env.HOST + ':' + this.env.HTTP_PORT : this.env.HOST;
             _source.fieldFormatMap = _source.fieldFormatMap.replace('__api__hostname', apiHost.toLowerCase());
           }
-          this.checkEsResponse(
+          this.checkImportErrors(
             await this.index((this.env.KB_INDEX || '.kibana'), item._type, item._id, _source),
             'import [' + item._type + ']',
             item._source.title
@@ -205,11 +205,10 @@ class ESClass {
     }
   }
 
-  async checkEsResponse(response, job, item) {
+  async checkImportErrors(response, job, item) {
     if (response.hasOwnProperty('error')) {
       this.logElastic('error', `action: ${job} - item: ${item} - reason: ${response.error.reason}`);
     }
-    return;
   }
 
   logElastic(level, msg) {
