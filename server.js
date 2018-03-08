@@ -16,7 +16,5 @@ startListen();
 
 function startListen() {
   app.set('port', env.HTTP_PORT || 80);
-  app.listen(app.get('port'), () => {
-    logger.debug(`[ timings API ] - ${env.HOST}:${env.HTTP_PORT} - [READY] - [timings API v${env.APP_VERSION}] is running!`);
-  });
+  app.listen(app.get('port'));
 }

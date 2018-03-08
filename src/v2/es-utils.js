@@ -45,16 +45,20 @@ class ESClass {
     this.client = new elasticsearch.Client(esConfig);
   }
 
-  async healthy(timeoutSec = 90, status = 'green') {
-    const resp = await this.client.cluster.health({
-      level: 'cluster',
-      waitForStatus: status,
-      timeout: timeoutSec.toString() + 's'
-    });
-    if (resp.hasOwnProperty('body') && resp.body.status !== 'red') {
-      return (resp.body);
+  async healthy(timeoutMs = 90000, status = 'green') {
+    try {
+      let health = await this.client.cluster.health({
+        level: 'cluster',
+        waitForStatus: status,
+        requestTimeout: timeoutMs
+      });
+      if (health.hasOwnProperty('body')) {health = health.body;}
+      this.logElastic('debug', `[HEALTHCHECK] - status is [${health.status.toUpperCase()}] ...`);
+      return health;
+    } catch (err) {
+      this.logElastic('error', `[HEALTHCHECK] could not retrieve cluster status!! Check ES logs for issues!`);
+      throw err;
     }
-    return resp;
   }
 
   async waitPort(timeoutMs = 120000) {
@@ -66,11 +70,12 @@ class ESClass {
     };
     try {
       if (!await waitOn(opts)) throw new Error(`timeout on port [${opts.port}]`);
+      this.logElastic('debug', `[PORTCHECK] - port ${opts.port} is live ...`);
     } catch (err) {throw err;}
   }
 
-  async info() {
-    return await this.client.info();
+  async info(timeoutMs = 60000) {
+    return await this.client.info({ requestTimeout: timeoutMs });
   }
 
   async templExists(template) {
