@@ -1,6 +1,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const git = require('git-rev');
 const yaml = require('js-yaml');
 const nconf = require('nconf');
 const pkg = require('../package.json');
@@ -27,7 +28,7 @@ nconf
 let cfgConfig = {};
 
 // Check if there is a user provided config file
-let cfgFile = path.resolve(nconf.get('configfile') || nconf.get('configFile') || './.config.js');
+let cfgFile = path.resolve(nconf.get('configfile') || './.config.js');
 let cfgReason = '';
 const cfgFileExt = cfgFile.substr((cfgFile.lastIndexOf('.') + 1));
 if (cfgFile && fs.existsSync(cfgFile)) {
@@ -95,7 +96,7 @@ const cfgNconf = {
     HTTP_PORT: nconf.get('http_port') || cfgConfig.env.HTTP_PORT || 80,
     DEBUG: nconf.get('debug') || cfgConfig.env.DEBUG || false,
     APP_NAME: pkg.name,
-    APP_VERSION: pkg['timings-api'].api_version || '0.0.0',
+    // APP_VERSION: pkg['timings-api'].api_version || '0.0.0',
     APP_CONFIG: cfgFile,
     HOST: os.hostname(),
     NODE_ENV: nconf.get('node_env') || 'development',
@@ -123,16 +124,20 @@ const cfgNconf = {
   }
 };
 
+// Add git/npm version
+git.tag(tag => {
+  nconf.set('env:APP_VERSION', tag.replace('v', ''));
+  const env = nconf.get('env');
+  logger.debug(`[timings API] - ${env.HOST}:${env.HTTP_PORT}` +
+    ` - [READY] v${env.APP_VERSION} - using config: [${env.APP_CONFIG}] - ${cfgReason}`);
+});
+
 // Load config object into nconf
 nconf
   .use('memory')
   .defaults(cfgNconf);
 
-const env = nconf.get('env');
-
-logger.debug(`[ timings API ] - ${env.HOST}:${env.HTTP_PORT} - [CONFIG] using config: [${env.APP_CONFIG}] - ${cfgReason}`);
-
-if (env.DEBUG !== true) {
+if (nconf.get('env:DEBUG') !== true) {
   logger.transports.console.silent = true;
 }
 

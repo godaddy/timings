@@ -16,8 +16,9 @@ class Elastic {
     try {
       this.es.logElastic('debug', `[WAIT] waiting for Elasticsearch healthy state ...`);
       await this.es.waitPort(60000);
-      this.esHealth = await this.es.healthy(60, 'yellow');
+      await this.es.healthy(60000, 'yellow');
       this.esInfo = await this.es.info();
+      this.es.logElastic('debug', `[READY] - [Elasticsearch v.${this.esInfo.version.number}] is up!`);
       nconf.set('env:ES_VERSION', this.esInfo.version.number);
     } catch (err) {
       if (err.hasOwnProperty('path') && err.path === '/_cluster/health' && err.body.status === 'red') {
@@ -27,8 +28,6 @@ class Elastic {
       }
       return;
     }
-    this.es.logElastic('debug', `[READY] - [Elasticsearch v.${this.esInfo.version.number}] ` +
-      `status = ${this.esHealth.status.toUpperCase()}`);
     nconf.set('env:useES', true);
     await this.checkVer();
     return;
