@@ -18,8 +18,8 @@ nconf
   })
   .env({
     lowerCase: true,
-    whitelist: ['configfile', 'node_env', 'http_port', 'debug', 'kb_index', 'kb_rename', 'es_upgrade', 'es_host',
-      'es_port', 'es_version', 'es_protocol', 'es_user', 'es_passwd', 'es_ssl_cert', 'es_ssl_key', 'kb_host', 'kb_port'
+    whitelist: ['configfile', 'node_env', 'api_host', 'host', 'http_port', 'debug', 'kb_index', 'kb_rename', 'es_upgrade',
+      'es_host', 'es_port', 'es_version', 'es_protocol', 'es_user', 'es_passwd', 'es_ssl_cert', 'es_ssl_key', 'kb_host', 'kb_port'
     ],
     parseValues: true
   });
@@ -98,7 +98,7 @@ const cfgNconf = {
     APP_NAME: pkg.name,
     // APP_VERSION: pkg['timings-api'].api_version || '0.0.0',
     APP_CONFIG: cfgFile,
-    HOST: os.hostname(),
+    HOST: nconf.get('api_host') || nconf.get('host') || os.hostname(),
     NODE_ENV: nconf.get('node_env') || 'development',
     INDEX_PERF: 'cicd-perf',
     INDEX_RES: 'cicd-resource',
