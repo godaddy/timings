@@ -12,7 +12,7 @@ if [ ! -z "$NPM_NEW" -a "$NPM_NEW" != " " ]; then
     docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
     # build docker container
     echo "building new docker container ..."
-    docker build -t godaddy/timings:${version_post} -t godaddy/timings:latest .
+    docker build -t godaddy/timings:${NPM_NEW} -t godaddy/timings:latest .
 
     # push docker container
     echo "pushing new docker container ..."
