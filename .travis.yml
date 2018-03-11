@@ -1,3 +1,4 @@
+sudo: required # is required to use docker in travis
 language: node_js
 cache:
   directories:
@@ -7,10 +8,16 @@ notifications:
 node_js:
   - '9'
   - '8'
+services:
+  - docker # required, but travis uses older version of docker :(
 script:
   - npm run test
 after_success:
+  - export NPM_OLD=$(npm view timings version)
   - npm run travis-deploy-once "npm run semantic-release"
+  - export NPM_NEW=$(npm view timings version)
+  - echo "Release info - old [$NPM_OLD] -> new [$NPM_NEW]"
+  - ./build/build.sh
 branches:
   except:
     - /^v\d+\.\d+\.\d+$/
