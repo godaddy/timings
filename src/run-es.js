@@ -7,7 +7,7 @@ class Elastic {
   constructor() {
     this.env = nconf.get('env');
     this.es = new esUtils.ESClass();
-    this.currVer;
+    this.currVer = 0;
     this.newVer = this.env.APP_VERSION ? parseInt(this.env.APP_VERSION.replace(/\./g, ''), 10) : 0;
   }
 
@@ -40,22 +40,19 @@ class Elastic {
     if (
       currTemplate &&
       currTemplate.hasOwnProperty(this.env.INDEX_PERF) &&
-      currTemplate[this.env.INDEX_PERF].mappings._default_.hasOwnProperty('_meta')
+      currTemplate[this.env.INDEX_PERF].hasOwnProperty('version')
     ) {
-      this.currVer = currTemplate[this.env.INDEX_PERF].mappings._default_._meta.lastUpdate;
+      this.currVer = currTemplate[this.env.INDEX_PERF].version;
     }
     let importFile = fs.readFileSync('./.kibana_items.json', 'utf8');
-    const importJson = JSON.parse(importFile);
-    this.newVer = importJson[0].lastUpdate || this.currVer;
+    this.newVer = parseInt(nconf.get('env:APP_VERSION').replace(/\./g, ''), 10) || this.currVer;
 
     if (!this.currVer || this.newVer > this.currVer || nconf.get('es_upgrade') === true) {
       const replText = nconf.get('env:KB_RENAME');
       if (replText && typeof replText === 'string') {
         importFile = importFile.replace(/TIMINGS/g, replText.toUpperCase());
       }
-      const importJson = JSON.parse(importFile);
-      if (importJson[0].hasOwnProperty('lastUpdate')) importJson.shift();
-      this.doUpgrade(importJson);
+      this.doUpgrade(JSON.parse(importFile));
     } else {
       this.es.logElastic('debug', `[UPGRADE] Kibana items already up-to-date`);
     }
@@ -74,7 +71,7 @@ class Elastic {
 
     // Make sure the latest template is present
     const templateJson = require('../.es_template.js');
-    templateJson.mappings._default_._meta = { lastUpdate: this.newVer };
+    templateJson.version = this.newVer;
     await this.es.putTemplate('cicd-perf', templateJson);
     return;
   }
