@@ -10,7 +10,7 @@ if (env.ES_HOST) {
   const checkES = new runES.Elastic();
   checkES.setup();
 } else {
-  logger.debug(`[Elasticsearch] no host provided in config [${env.APP_CONFIG}] - results will NOT be saved!`);
+  logger.info(`[timings API] no Elasticsearch info provided in config [${env.APP_CONFIG}] - data will NOT be saved!`);
 }
 startListen();
 

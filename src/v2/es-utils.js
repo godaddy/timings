@@ -53,7 +53,7 @@ class ESClass {
         requestTimeout: timeoutMs
       });
       if (health.hasOwnProperty('body')) {health = health.body;}
-      this.logElastic('debug', `[HEALTHCHECK] - status is [${health.status.toUpperCase()}] ...`);
+      this.logElastic('info', `[HEALTHCHECK] - status is [${health.status.toUpperCase()}] ...`);
       return health;
     } catch (err) {
       this.logElastic('error', `[HEALTHCHECK] could not retrieve cluster status!! Check ES logs for issues!`);
@@ -70,7 +70,7 @@ class ESClass {
     };
     try {
       if (!await waitOn(opts)) throw new Error(`timeout on port [${opts.port}]`);
-      this.logElastic('debug', `[PORTCHECK] - port ${opts.port} is live ...`);
+      this.logElastic('info', `[PORTCHECK] - port ${opts.port} is live ...`);
     } catch (err) {throw err;}
   }
 
@@ -82,7 +82,7 @@ class ESClass {
     const response = await this.client
       .indices
       .existsTemplate({ name: template });
-    this.logElastic('debug', `Template [cicd-perf] exists: ${response === true}`);
+    this.logElastic('info', `- Template [cicd-perf] exists: ${response === true}`);
     return response;
   }
 
@@ -90,7 +90,7 @@ class ESClass {
     const response = await this.client
       .indices
       .putTemplate({ name: name, body: body });
-    this.logElastic('debug', `Template [${name}] exists/created: ${response.acknowledged === true}`);
+    this.logElastic('info', `- Template [${name}] exists/created: ${response.acknowledged === true}`);
     return response;
   }
 
@@ -203,6 +203,7 @@ class ESClass {
           );
         }
       }
+      this.logElastic('info', `- Imported/updated ${Object.keys(importJson).length} Kibana item(s)!`);
       return true;
     } catch (err) {
       this.logElastic('error', `Error in kbImport: ${err.message}`);
