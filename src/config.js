@@ -29,39 +29,31 @@ let cfgConfig = {};
 
 // Check if there is a user provided config file
 let cfgFile = path.resolve(nconf.get('configfile') || './.config.js');
-let cfgReason = '';
-const cfgFileExt = cfgFile.substr((cfgFile.lastIndexOf('.') + 1));
-if (cfgFile && fs.existsSync(cfgFile)) {
-  const cfgRead = fs.readFileSync(cfgFile, { encoding: 'utf-8' });
-  logger.info(`timings API config [${cfgFile}]:\n\n${cfgRead}\n`);
-  switch (cfgFileExt) {
-    case 'js':
-      cfgConfig = require(cfgFile);
-      break;
-    case 'json':
-      try {
+const cfgRead = fs.existsSync(cfgFile) ? fs.readFileSync(cfgFile, { encoding: 'utf-8' }) : '';
+if (cfgRead) {
+  const cfgFileExt = cfgFile.substr((cfgFile.lastIndexOf('.') + 1));
+  try {
+    switch (cfgFileExt) {
+      case 'js':
+        cfgConfig = require(cfgFile);
+        break;
+      case 'json':
         cfgConfig = JSON.parse(cfgRead);
-      } catch (err) {
-        cfgReason = err.message;
-      }
-      break;
-    case 'yaml':
-    case 'yml':
-      try {
+        break;
+      case 'yaml':
+      case 'yml':
         cfgConfig = yaml.safeLoad(cfgRead);
-      } catch (err) {
-        cfgReason = `${err.name} - ${err.reason}`;
+        break;
+      default:
         cfgFile = `defaults`;
-      }
-      break;
-    default:
-      cfgReason = `Unknown file type [${cfgFileExt.toUpperCase()}]`;
-      cfgFile = `defaults`;
+    }
+  } catch (err) {
+    cfgFile = `defaults`;
   }
 } else {
-  cfgReason = `Could not find or access config file, or no file provided`;
   cfgFile = 'defaults';
 }
+logger.info(`[timings API] - [CONFIG] using config [${cfgFile}]`);
 
 // Check for missing keys
 if (!cfgConfig.env) {
@@ -131,7 +123,6 @@ git.tag(tag => {
   nconf.set('env:APP_VERSION', tag.replace('v', ''));
   const env = nconf.get('env');
   logger.info(`[timings API] - v${env.APP_VERSION} is running on ${env.HOST}:${env.HTTP_PORT}`);
-  logger.info(`[timings API] - > using config: [${env.APP_CONFIG}] - ${cfgReason}`);
 });
 
 // Load config object into nconf
@@ -140,7 +131,8 @@ nconf
   .defaults(cfgNconf);
 
 if (nconf.get('env:DEBUG') !== true) {
-  logger.transports.console.silent = true;
+  logger.transports.console.level = 'info';
 }
+logger.debug(`[timings API] - [CONFIG] Following settings are in use: \n${JSON.stringify(nconf.get(), null, 2)}`);
 
 module.exports.nconf = nconf;
