@@ -32,13 +32,15 @@ let cfgFile = path.resolve(nconf.get('configfile') || './.config.js');
 let cfgReason = '';
 const cfgFileExt = cfgFile.substr((cfgFile.lastIndexOf('.') + 1));
 if (cfgFile && fs.existsSync(cfgFile)) {
+  const cfgRead = fs.readFileSync(cfgFile, { encoding: 'utf-8' });
+  logger.info(`timings API config [${cfgFile}]:\n\n${cfgRead}\n`);
   switch (cfgFileExt) {
     case 'js':
       cfgConfig = require(cfgFile);
       break;
     case 'json':
       try {
-        cfgConfig = JSON.parse(fs.readFileSync(cfgFile, { encoding: 'utf-8' }));
+        cfgConfig = JSON.parse(cfgRead);
       } catch (err) {
         cfgReason = err.message;
       }
@@ -46,7 +48,7 @@ if (cfgFile && fs.existsSync(cfgFile)) {
     case 'yaml':
     case 'yml':
       try {
-        cfgConfig = yaml.safeLoad(fs.readFileSync(cfgFile, { encoding: 'utf-8' }));
+        cfgConfig = yaml.safeLoad(cfgRead);
       } catch (err) {
         cfgReason = `${err.name} - ${err.reason}`;
         cfgFile = `defaults`;
@@ -128,8 +130,8 @@ const cfgNconf = {
 git.tag(tag => {
   nconf.set('env:APP_VERSION', tag.replace('v', ''));
   const env = nconf.get('env');
-  logger.debug(`[timings API] - ${env.HOST}:${env.HTTP_PORT}` +
-    ` - [READY] v${env.APP_VERSION} - using config: [${env.APP_CONFIG}] - ${cfgReason}`);
+  logger.info(`[timings API] - v${env.APP_VERSION} is running on ${env.HOST}:${env.HTTP_PORT}`);
+  logger.info(`[timings API] - > using config: [${env.APP_CONFIG}] - ${cfgReason}`);
 });
 
 // Load config object into nconf

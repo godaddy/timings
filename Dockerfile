@@ -17,6 +17,7 @@ RUN npm install
 
 # Add source files
 COPY . /src/
+RUN touch /src/.config.js
 
 # Silent start because we want to have our log format as the first log
 CMD ["npm", "start"]
