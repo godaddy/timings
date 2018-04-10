@@ -2,7 +2,7 @@
 
 Configuration of the WebService/API can be done through a **JavaScript**, **JSON** or **YAML** config file and/or through **Environment Variables**. Environment variables always have priority!
 
-The config file can be located **anywhere on your local filesystem**. Point the API to the file by using the `-c` or `--config-file` argument or the `CONFIGFILE` environment variable(see [Startup commands](#startup-commands) below).
+The config file can be located **anywhere on your local filesystem**. Point the API to the file by using the `-c` or `--configfile` argument or the `CONFIGFILE` environment variable(see [Startup commands](#startup-commands) below).
 
 - If you don't provide a config file or ENV vars, the API will use the default settings (see [Default Settings](#default-settings) below)!
   - Note that the defaults settings don't have entries for Elasticsearch and Kibana! You have to use a config file to point at ELK servers/clusters!!
@@ -15,8 +15,8 @@ The config file can be located **anywhere on your local filesystem**. Point the 
 Install type|Startup command (where `{path}` is the absolute path to the config file)
 ---|---
 docker-compose|`$ CONFIGFILE={path} docker-compose up`
-git clone|`$ node ./server.js --config-file {path}`
-NPM global install|`$ timings --config-file {path}`
+git clone|`$ node ./server.js --configfile {path}`
+NPM global install|`$ timings --configfile {path}`
 Docker (stand-alone)|`$ docker run -d -v {path}:/src/.config.js -p {VM_port}:{Host_port} mverkerk/timings:{version}`
 
 NOTE: For non-docker installs, you may need elevated permissions to run the API on ports < 1024

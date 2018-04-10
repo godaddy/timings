@@ -48,9 +48,9 @@ class PUClass {
       if (this.env.useES === true) {
         const blQuery = this.buildBaselineQuery();
         this.esTrace.push({ type: 'ES_SEARCH', host: this.env.ES_HOST,
-          index: this.env.INDEX_PERF + '*/' + this.route, search_query: blQuery
+          index: `${this.env.INDEX_PERF}-*`, search_query: blQuery
         });
-        const response = await this.es.search(this.env.INDEX_PERF + '*', this.route, blQuery);
+        const response = await this.es.search(`${this.env.INDEX_PERF}-*`, this.route, blQuery);
         this.esTrace.push({ type: 'ES_RESPONSE', response: response });
         this.es_took = response.took;
         if (response.hasOwnProperty('aggregations')) {
@@ -67,8 +67,8 @@ class PUClass {
       // Store results in ES
       if (this.env.useES === true && this.objParams.flags.esCreate === true) {
         this.esTrace.push({ type: 'ES_CREATE', exportData });
-        const response = await this.es.index(this.env.INDEX_PERF + '-' + indexDay, this.route, '', exportData);
-        this.esSaved = response.created;
+        const response = await this.es.index(`${this.env.INDEX_PERF}-${indexDay}`, this.route, '', exportData);
+        this.esSaved = (response.result === 'created');
         if (this.esSaved && this.route === 'navtiming') {
           const resBody = this.getResourcesBody(exportData['@_uuid']);
           this.resourcesSaved = await this.es.bulk(resBody);
@@ -175,21 +175,25 @@ class PUClass {
     const aggs = { baseline: { percentiles: { field: baselineAgg, percents: [baselineParams.perc] }}};
 
     // Decide what URL to filter on
-    this.queryUrl = (baselineParams.searchUrl && baselineParams.searchUrl.indexOf('*') >= 0) ? baselineParams.searchUrl : this.dl;
-    this.queryUrl = this.queryUrl.replace('https://', '').replace('http://', '').trim();
+    let mustUrl = { wildcard: { dl: { value: baselineParams.searchUrl }}};
+    if (!baselineParams.searchUrl || baselineParams.searchUrl.indexOf('*') < 0) {
+      // Not a wildcard search - sanitize the 'dl' field!
+      this.queryUrl = this.dl;
+      this.queryUrl = this.queryUrl.replace('https://', '').replace('http://', '').trim();
 
-    // Now, remove the trailing '*' -> the Lucene parser will automatically add it!
-    if (this.queryUrl && this.queryUrl.substr(this.queryUrl.length - 1) === '*') {
-      this.queryUrl = this.queryUrl.substring(0, this.queryUrl.length - 1);
+      // Sanitize it for Lucene query
+      luceneParse.setSearchTerm(this.queryUrl);
+
+      // Add the URL and the time range to the query object
+      mustUrl = { query_string: { default_field: 'dl', query: luceneParse.getFormattedSearchTerm() }};
     }
 
-    // And finally, sanitize it for Lucene query
-    luceneParse.setSearchTerm(this.queryUrl);
-
-    // Add the URL and the time range to the query object
-    const mustUrl = { query_string: { default_field: 'dl', query: luceneParse.getFormattedSearchTerm() }};
+    // Now, remove the trailing '*' -> the Lucene parser will automatically add it!
     const mustRange = { range: { et: { from: 'now-' + baselineParams.days + 'd', to: 'now' }}};
     query.bool.must.push(mustUrl, mustRange);
+    if (parseInt(this.env.ES_MAJOR, 10) > 5) {
+      query.bool.must.push({ term: { type: { value: this.route }}});
+    }
 
     // Add baseline includes
     if (baselineParams.hasOwnProperty('incl') && Object.keys(baselineParams.incl).length > 0) {
@@ -508,7 +512,8 @@ class PUClass {
         'responseStart': resource.responseStart,
         'responseDuration': resource.responseStart > 0 ? resource.responseEnd - resource.responseStart : 0
       };
-      body += '{ "index" : { "_index" : "' + this.env.INDEX_RES + '-' + indexDay + '", "_type" : "resource" } }\n';
+      const type = (parseInt(this.env.ES_MAJOR, 10) > 5) ? 'doc' : 'resource';
+      body += `{ "index" : { "_index" : "${this.env.INDEX_RES}-${indexDay}", "_type" : "${type}" } }\n`;
       body += JSON.stringify(res) + '\n';
     });
     return body;
@@ -551,10 +556,10 @@ class PUClass {
       'loadEventStart': timing.loadEventStart - timing.navigationStart,
       'loadEventDuration': timing.loadEventEnd - timing.loadEventStart
     };
-    let body = '{ "index" : { "_index" : "' + this.env.INDEX_RES + '-' + indexDay + '", "_type" : "resource" } }\n';
-    body += JSON.stringify(nt) + '\n';
-
-    return body;
+    const type = (parseInt(this.env.ES_MAJOR, 10) > 5) ? 'doc' : 'resource';
+    let navEntry = `{ "index" : { "_index" : "${this.env.INDEX_RES}-${indexDay}", "_type" : "${type}" } }\n`;
+    navEntry += JSON.stringify(nt) + '\n';
+    return navEntry;
   }
 
   // OTHER //
@@ -591,7 +596,12 @@ class PUClass {
       body.err_status = err.status ? err.status : 400;
 
       // console.log("Error to ELK: " + JSON.stringify(body, null, 2));
-      this.es.index(this.env.INDEX_ERR + '-' + indexDay, 'error_' + body.route, '', body);
+      let type = 'error_' + body.route;
+      if (parseInt(this.env.ES_MAJOR, 10) > 5) {
+        body.type = type;
+        type = 'doc';
+      }
+      this.es.index(this.env.INDEX_ERR + '-' + indexDay, type, '', body);
     }
   }
 
