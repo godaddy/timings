@@ -19,48 +19,24 @@ nconf
   .env({
     lowerCase: true,
     whitelist: ['configfile', 'node_env', 'api_host', 'host', 'http_port', 'debug', 'kb_index', 'kb_rename', 'es_upgrade',
-      'es_host', 'es_port', 'es_version', 'es_protocol', 'es_user', 'es_passwd', 'es_ssl_cert', 'es_ssl_key', 'kb_host', 'kb_port'
+      'es_host', 'es_port', 'es_protocol', 'es_user', 'es_passwd', 'es_ssl_cert', 'es_ssl_key', 'kb_host', 'kb_port'
     ],
     parseValues: true
   });
 
-// Build config object
-let cfgConfig = {};
+// Load defaults first - use './.config.js for docker-compose
+let cfgFile = path.resolve('./.config.js');
+let cfgConfig = require(cfgFile);
 
-// Check if there is a user provided config file
-let cfgFile = path.resolve(nconf.get('configfile') || './.config.js');
-let cfgReason = '';
-const cfgFileExt = cfgFile.substr((cfgFile.lastIndexOf('.') + 1));
-if (cfgFile && fs.existsSync(cfgFile)) {
-  const cfgRead = fs.readFileSync(cfgFile, { encoding: 'utf-8' });
-  logger.info(`timings API config [${cfgFile}]:\n\n${cfgRead}\n`);
-  switch (cfgFileExt) {
-    case 'js':
-      cfgConfig = require(cfgFile);
-      break;
-    case 'json':
-      try {
-        cfgConfig = JSON.parse(cfgRead);
-      } catch (err) {
-        cfgReason = err.message;
-      }
-      break;
-    case 'yaml':
-    case 'yml':
-      try {
-        cfgConfig = yaml.safeLoad(cfgRead);
-      } catch (err) {
-        cfgReason = `${err.name} - ${err.reason}`;
-        cfgFile = `defaults`;
-      }
-      break;
-    default:
-      cfgReason = `Unknown file type [${cfgFileExt.toUpperCase()}]`;
-      cfgFile = `defaults`;
+if (nconf.get('configfile') && fs.existsSync(path.resolve(nconf.get('configfile')))) {
+  // User supplied config file - overwrite config!
+  cfgFile = path.resolve(nconf.get('configfile'));
+  const cfgFileExt = cfgFile.substr((cfgFile.lastIndexOf('.') + 1));
+  if (cfgFileExt === 'js') {
+    cfgConfig = require(cfgFile);
+  } else {
+    cfgConfig = yaml.safeLoad(fs.readFileSync(cfgFile, { encoding: 'utf-8' }));
   }
-} else {
-  cfgReason = `Could not find or access config file, or no file provided`;
-  cfgFile = 'defaults';
 }
 
 // Check for missing keys
@@ -80,18 +56,17 @@ if (!cfgConfig.params.defaults.flags) {
   cfgConfig.params.defaults.flags = {};
 }
 
-// Combine all variables into one object - ENV is leading!
+// Combine ENV variables with config - ENV is leading!
 const cfgNconf = {
   env: {
     ES_PROTOCOL: nconf.get('es_protocol') || cfgConfig.env.ES_PROTOCOL || 'http',
     ES_HOST: nconf.get('es_host') || cfgConfig.env.ES_HOST || nconf.get('kb_host') ||  cfgConfig.env.KB_HOST || '',
     ES_PORT: nconf.get('es_port') || cfgConfig.env.ES_PORT || 9200,
-    ES_VERSION: nconf.get('es_version') || cfgConfig.env.ES_VERSION || '5.6.2',
     ES_USER: nconf.get('es_user') || cfgConfig.env.ES_USER || '',
     ES_PASS: nconf.get('es_pass') || cfgConfig.env.ES_PASS || '',
     ES_SSL_CERT: nconf.get('es_ssl_cert') || cfgConfig.env.ES_SSL_CERT || '',
     ES_SSL_KEY: nconf.get('es_ssl_key') || cfgConfig.env.ES_SSL_KEY || '',
-    KB_HOST: nconf.get('kb_host') || cfgConfig.env.KB_HOST || nconf.get('es_host') ||  cfgConfig.env.ES_HOST || '',
+    KB_HOST: nconf.get('kb_host') || cfgConfig.env.KB_HOST || nconf.get('es_host') || cfgConfig.env.ES_HOST || '',
     KB_PORT: nconf.get('kb_port') || cfgConfig.env.KB_PORT || 5601,
     KB_INDEX: nconf.get('kb_index') || cfgConfig.env.KB_INDEX || '.kibana',
     KB_RENAME: nconf.get('kb_rename') || cfgConfig.env.KB_RENAME || '',
@@ -126,21 +101,23 @@ const cfgNconf = {
   }
 };
 
-// Add git/npm version
+// Add git release
 git.tag(tag => {
   nconf.set('env:APP_VERSION', tag.replace('v', ''));
   const env = nconf.get('env');
-  logger.info(`[timings API] - v${env.APP_VERSION} is running on ${env.HOST}:${env.HTTP_PORT}`);
-  logger.info(`[timings API] - > using config: [${env.APP_CONFIG}] - ${cfgReason}`);
+  logger.debug(`[timings API] - [CONFIG] Following settings are in use: \n${JSON.stringify(nconf.get(), null, 2)}`);
+  logger.info(`[timings API] - [CONFIG] using config [${cfgFile}]`);
+  logger.info(`[timings API] - [READY] v${env.APP_VERSION} is running at http://${env.HOST}:${env.HTTP_PORT}`);
 });
 
-// Load config object into nconf
+// Finally, load config object into nconf
 nconf
   .use('memory')
   .defaults(cfgNconf);
 
+// Set logging level based on DEBUG variable
 if (nconf.get('env:DEBUG') !== true) {
-  logger.transports.console.silent = true;
+  logger.transports.console.level = 'info';
 }
 
 module.exports.nconf = nconf;

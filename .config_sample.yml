@@ -3,7 +3,6 @@ env:
   ES_PROTOCOL: http
   ES_HOST: ~
   ES_PORT: 9200
-  ES_VERSION: '5.6.2'
   ES_USER: ~
   ES_PASS: ~
   ES_SSL_CERT: ~

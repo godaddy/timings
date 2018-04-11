@@ -1,3 +1,6 @@
+// This is the default config
+// This file will be overwritten in case the API is run with the docker-compose solution (https://www.github.com/verkurkie/timings-docker)
+
 const config = {
   "env": {                          // Server-side settings
     "ES_PROTOCOL": "http",            // Scheme used by the ElasticSearch server/cluster (default: "http")
