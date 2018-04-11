@@ -168,25 +168,24 @@ class ESClass {
     this.logElastic('info', `[ALIAS] successfully added alias [${alias}] to [${index}]!`);
   }
 
-  async getKBVer() {
-    let index = (this.env.KB_INDEX || '.kibana');
-    let exists = await this.client
+  async getAlias(alias) {
+    return await this.client
       .indices
-      .getAlias({ name: index })
-      .catch(err => {
-        exists = !err;
-      });
-    if (exists && typeof exists === 'object') {
-      index = Object.keys(exists)[0];
-    }
+      .getAlias({ name: alias });
+  }
+
+  async getKBVer() {
+    let index;
     try {
-      const settings = await this.client
-        .indices
-        .getSettings({ index: index, includeDefaults: true, human: true });
-      return (settings[index].settings.index.version.created_string || '0');
+      index = await this.getAlias((this.env.KB_INDEX || '.kibana'));
     } catch (err) {
-      if (err) return '0';
+      if (err) index = '.kibana';
     }
+    if (typeof index === 'object') index = Object.keys(index)[0];
+    const settings = await this.client
+      .indices
+      .getSettings({ index: index, includeDefaults: true, human: true });
+    return (settings[index].settings.index.version.created_string || '0');
   }
 
   async getTmplVer() {
