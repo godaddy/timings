@@ -67,8 +67,8 @@ class ESClass {
     this.logElastic('info', `[INFO] found elastic v${this.env.ES_VERSION} ...`);
   }
 
-  async putTemplate(name, body) {
-    await this.client
+  putTemplate(name, body) {
+    this.client
       .indices
       .putTemplate({ name: name, body: body });
     this.logElastic('info', `[TEMPLATE] created/updated [${name}]`);

@@ -61,20 +61,27 @@ class Elastic {
   }
 
   async upgradeReindex(index) {
-    const indexSettings = await this.es.getSettings(index);
-    if (!indexSettings.hasOwnProperty(index)) return;
-    const indexVer = indexSettings[index].settings.index.version.created_string || '0';
-    // Make sure we don't attempt reindex of v6.x indices!
-    if (parseInt(indexVer.substr(0, 1), 10) > 5) return;
+    try {
+      const indexSettings = await this.es.getSettings(index);
+      if (!indexSettings.hasOwnProperty(index)) return;
+      const indexVer = indexSettings[index].settings.index.version.created_string || '0';
+      // Make sure we don't attempt reindex of v6.x indices!
+      if (parseInt(indexVer.substr(0, 1), 10) > 5) return;
 
-    const srcConvert = (index === this.env.KB_INDEX) ? 'ctx._source=[ctx._type:ctx._source];' : '';
-    await this.es.reindex(
-      index, '-v6',
-      {
-        source: srcConvert + 'ctx._source.type=ctx._type;ctx._id=ctx._type + ":" + ctx._id;ctx._type="doc";',
-        lang: 'painless'
+      const srcConvert = (index === this.env.KB_INDEX) ? 'ctx._source=[ctx._type:ctx._source];' : '';
+      await this.es.reindex(
+        index, '-v6',
+        {
+          source: srcConvert + 'ctx._source.type=ctx._type;ctx._id=ctx._type + ":" + ctx._id;ctx._type="doc";',
+          lang: 'painless'
+        }
+      );
+    } catch (err) {
+      if (err) {
+        this.es.logElastic('warn', `[REINDEX] skip reindex [${index}] - ${err.displayName || 'unknown'}!`);
+        return;
       }
-    );
+    }
   }
 
   importFile(file) {
@@ -95,16 +102,19 @@ class Elastic {
     nconf.set('env:KB_VERSION', await this.es.getKBVer());
     nconf.set('env:KB_MAJOR', parseInt(nconf.get('env:KB_VERSION').substr(0, 1), 10));
     this.env = nconf.get('env');
-    this.es.logElastic('info', `[UPDATE] ` +
-      `Force: ${nconf.get('es_upgrade')} - ` +
-      `New: ${!this.env.KB_MAJOR} - ` +
-      `Update: ${this.env.CURR_VERSION < this.env.NEW_VERSION} - ` +
-      `Upgrade: ${this.env.KB_MAJOR < this.env.ES_MAJOR}`);
-    return (
+    const upgrade = (
       (this.env.CURR_VERSION < this.env.NEW_VERSION) ||
       (this.env.KB_MAJOR < this.env.ES_MAJOR) ||
       nconf.get('es_upgrade') === true
     );
+    if (upgrade === true) {
+      this.es.logElastic('info', `[UPDATE] ` +
+      `Force: ${nconf.get('es_upgrade')} - ` +
+      `New: ${!this.env.KB_MAJOR} - ` +
+      `Update: ${this.env.CURR_VERSION < this.env.NEW_VERSION} - ` +
+      `Upgrade: ${this.env.KB_MAJOR < this.env.ES_MAJOR}`);
+    }
+    return upgrade;
   }
 }
 
