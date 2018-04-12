@@ -1,8 +1,6 @@
 const nconf = require('nconf');
 
 // Elastic Templates
-const kb_index = (nconf.get('env:KB_INDEX') || '.kibana');
-
 const template = {
   elk5: {
     'cicd-perf': {
@@ -114,7 +112,7 @@ const template = {
   }
 };
 
-template.elk5[kb_index] = {
+template.elk5['kibana'] = {
   template: '.kibana*',
   settings: {
     number_of_shards: 1
@@ -340,7 +338,7 @@ template.elk5[kb_index] = {
   }
 }
 
-template.elk6[kb_index] = {
+template.elk6['kibana'] = {
   template: '.kibana*',
   "settings" : {
     "number_of_shards" : 1,
