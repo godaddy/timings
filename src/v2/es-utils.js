@@ -182,10 +182,16 @@ class ESClass {
       if (err) index = '.kibana';
     }
     if (typeof index === 'object') index = Object.keys(index)[0];
-    const settings = await this.client
+    const exists = await this.client
       .indices
-      .getSettings({ index: index, includeDefaults: true, human: true });
-    return (settings[index].settings.index.version.created_string || '0');
+      .exists({ index: index });
+    if (exists) {
+      const settings = await this.client
+        .indices
+        .getSettings({ index: index, includeDefaults: true, human: true });
+      return (settings[index].settings.index.version.created_string || '0');
+    }
+    return '0';
   }
 
   async getTmplVer() {
