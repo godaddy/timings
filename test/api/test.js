@@ -2,17 +2,12 @@
 const expect = require('chai').expect;
 const params = require('../params/params');
 const env = require('../config/env.json');
-const nconf = require('nconf');
-nconf
-  .argv({
-    e: {
-      alias: 'env',
-      describe: 'environment to test against'
-    }
-  });
-const nodeEnv = nconf.get('env') || 'ci';
+require('../../src/config');
+
+const nodeEnv = process.env.NODE_ENV || 'ci';
 
 let request;
+console.log('nodeEnv: ' + nodeEnv);
 if (nodeEnv === 'ci') {
   console.log(`CI test against [Local app]`);
   // require('../../src/config');

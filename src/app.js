@@ -3,7 +3,6 @@ const path = require('path');
 const express = require('express');
 const logger = require('../log.js');
 const cookieParser = require('cookie-parser');
-require('./config');
 
 const app = express();
 

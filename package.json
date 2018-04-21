@@ -32,30 +32,29 @@
   "dependencies": {
     "body-parser": "^1.18.2",
     "cookie-parser": "^1.4.3",
-    "elasticsearch": "~12.1.3",
-    "express": "^4.16.2",
+    "elasticsearch": "^14.2.2",
+    "express": "^4.16.3",
     "git-rev": "^0.2.1",
     "joi": "^13.1.2",
     "js-yaml": "^3.11.0",
     "lucene-parser": "^0.1.2",
     "mime-types": "^2.1.18",
-    "morgan": "~1.0.0",
+    "morgan": "^1.9.0",
     "nconf": "^0.10.0",
+    "semver": "^5.5.0",
     "uuid": "^3.2.1",
     "wait-port": "^0.2.2",
-    "winston": "^2.3.0",
-    "yargs": "^11.1.0"
+    "winston": "^2.4.1"
   },
   "devDependencies": {
     "chai": "^4.1.0",
-    "chai-http": "^3.0.0",
-    "eslint": "^4.18.2",
+    "eslint": "^4.19.1",
     "eslint-config-godaddy": "^2.0.0",
     "eslint-plugin-json": "^1.2.0",
     "eslint-plugin-mocha": "^4.12.1",
-    "mocha": "^5.0.4",
-    "semantic-release": "^15.0.2",
+    "mocha": "^5.0.5",
+    "semantic-release": "^15.1.5",
     "supertest": "^3.0.0",
-    "travis-deploy-once": "^4.4.0"
+    "travis-deploy-once": "^4.4.1"
   }
 }

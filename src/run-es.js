@@ -7,80 +7,116 @@ class Elastic {
   constructor() {
     this.env = nconf.get('env');
     this.es = new esUtils.ESClass();
-    this.currVer = 0;
-    this.newVer = this.env.APP_VERSION ? parseInt(this.env.APP_VERSION.replace(/\./g, ''), 10) : 0;
   }
 
   async setup() {
-    this.esHostPort = `${this.env.ES_HOST}:${this.env.ES_PORT}`;
     try {
-      this.es.logElastic('info', `[WAIT] waiting for Elasticsearch healthy state ...`);
-      await this.es.waitPort(60000);
+      // Wait for healthy status and get info
+      await this.es.waitPort(60000, this.env.ES_HOST, this.env.ES_PORT);
       await this.es.healthy(60000, 'yellow');
-      this.esInfo = await this.es.info();
-      this.es.logElastic('info', `[READY] - [Elasticsearch v.${this.esInfo.version.number}] is up!`);
-      nconf.set('env:ES_VERSION', this.esInfo.version.number);
-    } catch (err) {
-      if (err.hasOwnProperty('path') && err.path === '/_cluster/health' && err.body.status === 'red') {
-        this.es.logElastic('error', `[ERROR] unhealthy [status=RED]!! Check ES logs for issues!`);
+      await this.es.info(5000);
+      nconf.set('env:useES', true);
+      // Get versions of API and KIBANA + check if update is needed
+      if (await this.checkUpgrade() === true) {
+        this.templates = require('../.es_template.js');
+        await this.upgrade();
       } else {
-        this.es.logElastic('error', `[ERROR] message: ${err.message}`);
+        this.es.logElastic('info', `[UPDATE] API and KIBANA are up-to-date!`);
       }
-      return;
-    }
-    nconf.set('env:useES', true);
-    await this.checkVer();
-    return;
-  }
-
-  async checkVer() {
-    this.es.logElastic('info', `[UPGRADE] checking if upgrades are needed ...`);
-    const currTemplate = await this.es.getTemplate(this.env.INDEX_PERF);
-
-    if (
-      currTemplate &&
-      currTemplate.hasOwnProperty(this.env.INDEX_PERF) &&
-      currTemplate[this.env.INDEX_PERF].hasOwnProperty('version')
-    ) {
-      this.currVer = currTemplate[this.env.INDEX_PERF].version;
-    }
-    let importFile = fs.readFileSync('./.kibana_items.json', 'utf8');
-    this.newVer = parseInt(nconf.get('env:APP_VERSION').replace(/\./g, ''), 10) || this.currVer;
-
-    if (!this.currVer || this.newVer > this.currVer || nconf.get('es_upgrade') === true) {
-      const replText = nconf.get('env:KB_RENAME');
-      if (replText && typeof replText === 'string') {
-        importFile = importFile.replace(/TIMINGS/g, replText.toUpperCase());
+    } catch (err) {
+      if (err) {
+        this.es.logElastic('error', `[ERROR] message: ${err.message} in path [${err.path}]`);
+        return err;
       }
-      this.doUpgrade(JSON.parse(importFile));
-    } else {
-      this.es.logElastic('info', `[UPGRADE] Kibana items already up-to-date`);
     }
   }
 
-  async doUpgrade(importJson) {
-    // Import/update latest visualizations and dashboards
-    this.es.logElastic('info', `[UPGRADE] upgrading Kibana items ... [Force: ${(nconf.get('es_upgrade') || false)} ` +
-      `- New: ${!this.currVer} - Upgr: ${this.currVer < this.newVer}]`);
-
-    // First we have to put a .kibana template in place for ES v5.x
-    if (nconf.get('env:ES_VERSION').indexOf('5.') === 0) {
-      const templateKibana = require('../.kb_template.js');
-      await this.es.putTemplate('kibana', templateKibana);
-    }
-
-    // Now we can import all the Kibana items & set default index
-    const esResponse = await this.es.kbImport(importJson);
-    if (esResponse === true) {
+  async upgrade() {
+    try {
+      this.es.logElastic('info', `[UPDATE] checking for updates ...`);
+      Object.keys(this.templates).forEach(async templ => {
+        await this.es.putTemplate(templ, this.templates[templ]);
+      });
+      if (nconf.get('env:KB_MAJOR') + nconf.get('env:ES_MAJOR') > 10) {
+        // This is a 5.x -> 6.x upgrade! Run reindex jobs!
+        this.es.logElastic(
+          'info',
+          `[UPGRADE] upgrading indices from [${nconf.get('env:KB_MAJOR')}] to [${nconf.get('env:ES_MAJOR')}]!`
+        );
+        const indexDay = new Date().toISOString().slice(0, 10).replace(/-/g, '.');
+        await this.upgradeReindex(this.env.KB_INDEX);
+        await this.upgradeReindex(`${this.env.INDEX_PERF}-${indexDay}`);
+        await this.upgradeReindex(`${this.env.INDEX_RES}-${indexDay}`);
+        await this.upgradeReindex(`${this.env.INDEX_ERR}-${indexDay}`);
+      }
+      // Always run the regular checks
+      await this.es.kbImport(JSON.parse(this.importFile('./.kibana_items.json')));
       await this.es.defaultIndex(this.env.INDEX_PERF + '*', this.env.ES_VERSION);
+      this.es.logElastic('info', `[UPDATE] completed successfully!`);
+    } catch (err) {
+      if (err) {
+        throw err;
+      }
     }
+  }
 
-    // Lastly, make create/update cicd-perf template with current version
-    const templatePerf = require('../.es_template.js');
-    templatePerf.version = this.newVer;
-    await this.es.putTemplate('cicd-perf', templatePerf);
-    return;
+  async upgradeReindex(index) {
+    try {
+      const indexSettings = await this.es.getSettings(index);
+      if (!indexSettings.hasOwnProperty(index)) return;
+      const indexVer = indexSettings[index].settings.index.version.created_string || '0';
+      // Make sure we don't attempt reindex of v6.x indices!
+      if (parseInt(indexVer.substr(0, 1), 10) > 5) return;
+
+      const srcConvert = (index === this.env.KB_INDEX) ? 'ctx._source=[ctx._type:ctx._source];' : '';
+      await this.es.reindex(
+        index, '-v6',
+        {
+          source: srcConvert + 'ctx._source.type=ctx._type;ctx._id=ctx._type + ":" + ctx._id;ctx._type="doc";',
+          lang: 'painless'
+        }
+      );
+    } catch (err) {
+      if (err) {
+        this.es.logElastic('warn', `[REINDEX] skip reindex [${index}] - ${err.displayName || 'unknown'}!`);
+        return;
+      }
+    }
+  }
+
+  importFile(file) {
+    let importFile = fs.readFileSync(file, 'utf8');
+    const replText = this.env.KB_RENAME;
+    if (replText && typeof replText === 'string') {
+      importFile = importFile.replace(/TIMINGS/g, replText.toUpperCase());
+    }
+    if (nconf.get('env:ES_MAJOR') > 5) {
+      importFile = importFile.replace(/_type:navtiming/g, '(_type:navtiming OR type:navtiming)');
+    }
+    return importFile;
+  }
+
+  async checkUpgrade() {
+    nconf.set('env:CURR_VERSION', await this.es.getTmplVer());
+    nconf.set('env:NEW_VERSION', parseInt(this.env.APP_VERSION.replace(/\./g, ''), 10) || nconf.get('env:CURR_VERSION'));
+    nconf.set('env:KB_VERSION', await this.es.getKBVer());
+    nconf.set('env:KB_MAJOR', parseInt(nconf.get('env:KB_VERSION').substr(0, 1), 10));
+    this.env = nconf.get('env');
+    const upgrade = (
+      (this.env.CURR_VERSION < this.env.NEW_VERSION) ||
+      (this.env.KB_MAJOR < this.env.ES_MAJOR) ||
+      nconf.get('es_upgrade') === true
+    );
+    if (upgrade === true) {
+      this.es.logElastic('info', `[UPDATE] ` +
+      `Force: ${nconf.get('es_upgrade')} - ` +
+      `New: ${!this.env.KB_MAJOR} - ` +
+      `Update: ${this.env.CURR_VERSION < this.env.NEW_VERSION} - ` +
+      `Upgrade: ${this.env.KB_MAJOR < this.env.ES_MAJOR}`);
+    }
+    return upgrade;
   }
 }
+
 
 module.exports.Elastic = Elastic;

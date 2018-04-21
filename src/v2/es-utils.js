@@ -46,130 +46,179 @@ class ESClass {
   }
 
   async healthy(timeoutMs = 90000, status = 'green') {
-    try {
-      let health = await this.client.cluster.health({
-        level: 'cluster',
-        waitForStatus: status,
-        requestTimeout: timeoutMs
-      });
-      if (health.hasOwnProperty('body')) {health = health.body;}
-      this.logElastic('info', `[HEALTHCHECK] - status is [${health.status.toUpperCase()}] ...`);
-      return health;
-    } catch (err) {
-      this.logElastic('error', `[HEALTHCHECK] could not retrieve cluster status!! Check ES logs for issues!`);
-      throw err;
+    await this.client.cluster.health({ level: 'cluster', waitForStatus: status, requestTimeout: timeoutMs });
+    this.logElastic('info', `[HEALTHCHECK] status [${status}] is OK!`);
+  }
+
+  async waitPort(timeoutMs = 120000, host, port) {
+    this.logElastic('info', `[PORTCHECK] waiting for port [${this.env.ES_PORT}] ...`);
+    if (!await waitOn({ host: host, port: port, output: 'silent', timeout: timeoutMs })) {
+      throw new Error(`[PORTCHECK] - timeout on port [${this.env.ES_PORT}]`);
     }
   }
 
-  async waitPort(timeoutMs = 120000) {
-    const opts = {
-      host: this.env.ES_HOST,
-      port: this.env.ES_PORT,
-      output: 'silent',
-      timeout: timeoutMs
-    };
-    try {
-      if (!await waitOn(opts)) throw new Error(`timeout on port [${opts.port}]`);
-      this.logElastic('info', `[PORTCHECK] - port ${opts.port} is live ...`);
-    } catch (err) {throw err;}
-  }
-
   async info(timeoutMs = 60000) {
-    return await this.client.info({ requestTimeout: timeoutMs });
+    const response = await this.client
+      .info({ requestTimeout: timeoutMs });
+    // Update ES version in nconf
+    nconf.set('env:ES_VERSION', response.version.number);
+    nconf.set('env:ES_MAJOR', parseInt(response.version.number.substr(0, 1), 10));
+    this.env = nconf.get('env');
+    this.logElastic('info', `[INFO] found elastic v${this.env.ES_VERSION} ...`);
   }
 
-  async templExists(template) {
-    const response = await this.client
-      .indices
-      .existsTemplate({ name: template });
-    this.logElastic('info', `- Template [cicd-perf] exists: ${response === true}`);
-    return response;
-  }
-
-  async putTemplate(name, body) {
-    const response = await this.client
+  putTemplate(name, body) {
+    this.client
       .indices
       .putTemplate({ name: name, body: body });
-    this.logElastic('info', `- Template [${name}] exists/created: ${response.acknowledged === true}`);
-    return response;
+    this.logElastic('info', `[TEMPLATE] created/updated [${name}]`);
   }
 
   async getTemplate(name) {
-    const exists = await this.client
+    if (await this.client
       .indices
-      .existsTemplate({ name: name });
-    if (exists) {
-      const response = await this.client
+      .existsTemplate({ name: name })) {
+      return await this.client
         .indices
         .getTemplate({ name: name });
-      return response;
     }
     return;
   }
 
-  async defaultIndex(name, version) {
-    const response = await this.client
-      .index({ index: (this.env.KB_INDEX || '.kibana'), type: 'config', id: version, body: { defaultIndex: name }});
-    return response;
-  }
-
-  async delIndexPattern(pattern) {
-    const response = await this.client
-      .delete({ index: (this.env.KB_INDEX || '.kibana'), type: 'index-pattern', id: pattern });
-    return response.acknowledged;
+  async defaultIndex(name) {
+    let id = this.env.ES_VERSION;
+    let body = { defaultIndex: name };
+    let type = 'config';
+    if (parseInt(this.env.ES_MAJOR, 10) > 5) {
+      id = 'config:' + this.env.ES_VERSION;
+      type = 'doc';
+      body = {
+        type: 'config',
+        config: {
+          defaultIndex: name
+        }
+      };
+    }
+    await this.client
+      .index({ index: (this.env.KB_INDEX || '.kibana'), type: type, id: id, body: body });
+    this.logElastic('info', `[DEFAULT] Default Index set to [${name}]`);
   }
 
   async delIndex(index) {
-    const response = await this.client
+    await this.client
       .indices
       .delete({ index: index });
-    return response;
+    this.logElastic('info', `[DELETE] successfully deleted index [${index}]!`);
   }
 
   async delDocById(index, type, id) {
     let exists = false;
     if (id) {
-      // Check if it already exists
       exists = await this.client
         .exists({ index: index, type: type, id: id });
     }
     if (exists) {
-      const response = await this.client
+      return await this.client
         .delete({ index: index, type: type, id: id });
-      return response;
     }
     return { _id: id, result: 'not_exists', statusCode: 200, reason: 'Does not exist' };
   }
 
-  async reindex(src, dst) {
-    const response = await this.client
-      .reindex({ body: { source: { index: src }, dest: { index: dst }}});
-    return response;
+  async reindex(src, suffix, script) {
+    const dst = src + suffix;
+    const opts = { body: { source: { index: src }, dest: { index: dst }}};
+    if (script && typeof script === 'object') {
+      opts.body.script = script;
+    }
+    await this.client.reindex(opts);
+    await this.delIndex(src);
+    await this.putAlias(dst, src);
+    this.logElastic('info', `[REINDEX] successfully reindexed [${src}] to [${dst}]!`);
   }
 
   async exists(index, type, id) {
-    const response = await this.client
-      .exists({ index: index, type: type, id: id });
-    return response;
+    return await this.client
+      .exists({
+        index: index,
+        type: (this.env.ES_MAJOR > 5) ? 'doc' : type,
+        id: id
+      });
   }
 
   async search(index, type, body) {
+    return await this.client
+      .search({
+        index: index,
+        type: (this.env.ES_MAJOR > 5) ? 'doc' : type,
+        body: body
+      });
+  }
+
+  async getSettings(index) {
     const response = await this.client
-      .search({ index: index, type: type, body: body });
+      .indices
+      .getSettings({ index: index, includeDefaults: true, human: true });
     return response;
   }
 
+  async putAlias(index, alias) {
+    await this.client
+      .indices
+      .putAlias({ index: index, name: alias });
+    this.logElastic('info', `[ALIAS] successfully added alias [${alias}] to [${index}]!`);
+  }
+
+  async getAlias(alias) {
+    return await this.client
+      .indices
+      .getAlias({ name: alias });
+  }
+
+  async getKBVer() {
+    let index;
+    try {
+      index = await this.getAlias((this.env.KB_INDEX || '.kibana'));
+    } catch (err) {
+      if (err) index = '.kibana';
+    }
+    if (typeof index === 'object') index = Object.keys(index)[0];
+    const exists = await this.client
+      .indices
+      .exists({ index: index });
+    if (exists) {
+      const settings = await this.client
+        .indices
+        .getSettings({ index: index, includeDefaults: true, human: true });
+      return (settings[index].settings.index.version.created_string || '0');
+    }
+    return '0';
+  }
+
+  async getTmplVer() {
+    try {
+      const currTemplate = await this.getTemplate(this.env.INDEX_PERF);
+      return currTemplate[this.env.INDEX_PERF].version;
+    } catch (err) {
+      if (err) {
+        return 0;
+      }
+    }
+  }
+
   async index(index, type, id, body) {
+    if (parseInt(this.env.ES_MAJOR, 10) > 5) {
+      body.type = type;
+      type = 'doc';
+    }
     let exists = false;
     if (id) {
-      // Check if it already exists
       exists = await this.client
         .exists({ index: index, type: type, id: id });
     }
-    if (!exists) {
-      const response = await this.client
+    if (!exists || nconf.get('es_upgrade') === true) {
+      // item doesn not exists yet or we're doing a 'force' update
+      return await this.client
         .index({ index: index, type: type, id: id, body: body });
-      return response;
     }
     return { _id: id, result: 'exists', statusCode: 200, reason: 'Already exists' };
   }
@@ -181,44 +230,51 @@ class ESClass {
   }
 
   async kbImport(importJson) {
-    try {
-      for (const index of Object.keys(importJson)) {
-        const item = importJson[index];
-        const _source = item._source;
-        if (_source === 'delete_this') {
-          this.checkImportErrors(
-            await this.delDocById((this.env.KB_INDEX || '.kibana'), item._type, item._id),
-            'delete [' + item._type + ']',
-            item._id
-          );
-        } else {
-          if (item._type === 'index-pattern' && item._id === 'cicd-perf*') {
-            const apiHost = (this.env.HTTP_PORT !== 80) ? this.env.HOST + ':' + this.env.HTTP_PORT : this.env.HOST;
-            _source.fieldFormatMap = _source.fieldFormatMap.replace('__api__hostname', apiHost.toLowerCase());
-          }
-          this.checkImportErrors(
-            await this.index((this.env.KB_INDEX || '.kibana'), item._type, item._id, _source),
-            'import [' + item._type + ']',
-            item._source.title
-          );
+    for (const index of Object.keys(importJson)) {
+      let item = importJson[index];
+      const title = item._source.title;
+      if (item._source === 'delete_this') {
+        this.checkImportErrors(
+          await this.delDocById((this.env.KB_INDEX || '.kibana'), item._type, item._id),
+          'delete [' + item._type + ']',
+          item._id
+        );
+      } else {
+        if (item._type === 'index-pattern' && item._id === 'cicd-perf*') {
+          const apiHost = (this.env.HTTP_PORT !== 80) ? this.env.HOST + ':' + this.env.HTTP_PORT : this.env.HOST;
+          item._source.fieldFormatMap = item._source.fieldFormatMap.replace('__api__hostname', apiHost.toLowerCase());
         }
+        item = this.upgradeConvert(item);
+        this.checkImportErrors(
+          await this.index((this.env.KB_INDEX || '.kibana'), item._type, item._id, item._source),
+          'import [' + item._type + ']', title
+        );
       }
-      this.logElastic('info', `- Imported/updated ${Object.keys(importJson).length} Kibana item(s)!`);
-      return true;
-    } catch (err) {
-      this.logElastic('error', `Error in kbImport: ${err.message}`);
-      return false;
     }
+    this.logElastic('info', `[IMPORT] Created/updated ${Object.keys(importJson).length} Kibana item(s)!`);
+  }
+
+  upgradeConvert(item) {
+    if (parseInt(nconf.get('env:ES_MAJOR'), 10) > 5) {
+      item._id = item._type + ':' + item._id;
+      item._type + ':' + item._id;
+      const _sourceTmp = {};
+      _sourceTmp[item._type] = item._source;
+      item._source = _sourceTmp;
+    }
+    return item;
   }
 
   async checkImportErrors(response, job, item) {
     if (response.hasOwnProperty('error')) {
-      this.logElastic('error', `action: ${job} - item: ${item} - reason: ${response.error.reason}`);
+      this.logElastic('error', `[IMPORT] ${job} - item: ${item} - ERROR! - reason: ${response.error.reason}`);
+    } else {
+      this.logElastic('debug', `[IMPORT] ${job} - item: ${item} - ${response.result.toUpperCase() || 'SUCCESS'}!`);
     }
   }
 
   logElastic(level, msg) {
-    logger[level](`[Elasticsearch] - ${this.env.ES_HOST}:${this.env.ES_PORT} - ${msg}`);
+    logger[level](`[Elasticsearch] - ${msg}`);
   }
 }
 

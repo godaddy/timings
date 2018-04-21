@@ -1,7 +1,6 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const git = require('git-rev');
 const yaml = require('js-yaml');
 const nconf = require('nconf');
 const pkg = require('../package.json');
@@ -12,7 +11,7 @@ const logger = require('../log.js');
 nconf
   .argv({
     c: {
-      alias: 'config-file',
+      alias: 'configfile',
       describe: 'path to config file'
     }
   })
@@ -101,15 +100,6 @@ const cfgNconf = {
   }
 };
 
-// Add git release
-git.tag(tag => {
-  nconf.set('env:APP_VERSION', tag.replace('v', ''));
-  const env = nconf.get('env');
-  logger.debug(`[timings API] - [CONFIG] Following settings are in use: \n${JSON.stringify(nconf.get(), null, 2)}`);
-  logger.info(`[timings API] - [CONFIG] using config [${cfgFile}]`);
-  logger.info(`[timings API] - [READY] v${env.APP_VERSION} is running at http://${env.HOST}:${env.HTTP_PORT}`);
-});
-
 // Finally, load config object into nconf
 nconf
   .use('memory')
@@ -119,5 +109,3 @@ nconf
 if (nconf.get('env:DEBUG') !== true) {
   logger.transports.console.level = 'info';
 }
-
-module.exports.nconf = nconf;
