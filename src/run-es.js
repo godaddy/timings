@@ -97,10 +97,14 @@ class Elastic {
   }
 
   async checkUpgrade() {
+    const semver = require('semver');
+    nconf.set('env:CURR_VERSION', semver.valid(await this.es.getTmplVer(this.env.ES_MAJOR)) || '0.0.0');
+    nconf.set('env:NEW_VERSION', semver.valid(this.env.APP_VERSION) || nconf.get('env:CURR_VERSION'));
     nconf.set('env:KB_VERSION', await this.es.getKBVer());
     nconf.set('env:KB_MAJOR', parseInt(nconf.get('env:KB_VERSION').substr(0, 1), 10));
     this.env = nconf.get('env');
     const upgrade = (
+      semver.lt(this.env.CURR_VERSION, this.env.NEW_VERSION) ||
       (this.env.KB_MAJOR < this.env.ES_MAJOR) ||
       nconf.get('es_upgrade') === true
     );
@@ -108,6 +112,7 @@ class Elastic {
       this.es.logElastic('info', `[UPDATE] ` +
       `Force: ${nconf.get('es_upgrade')} - ` +
       `New: ${!this.env.KB_MAJOR} - ` +
+      `Update: ${semver.lt(this.env.CURR_VERSION, this.env.NEW_VERSION)} - ` +
       `Upgrade: ${this.env.KB_MAJOR < this.env.ES_MAJOR}`);
     }
     return upgrade;
