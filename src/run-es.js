@@ -97,13 +97,10 @@ class Elastic {
   }
 
   async checkUpgrade() {
-    nconf.set('env:CURR_VERSION', await this.es.getTmplVer());
-    nconf.set('env:NEW_VERSION', parseInt(this.env.APP_VERSION.replace(/\./g, ''), 10) || nconf.get('env:CURR_VERSION'));
     nconf.set('env:KB_VERSION', await this.es.getKBVer());
     nconf.set('env:KB_MAJOR', parseInt(nconf.get('env:KB_VERSION').substr(0, 1), 10));
     this.env = nconf.get('env');
     const upgrade = (
-      (this.env.CURR_VERSION < this.env.NEW_VERSION) ||
       (this.env.KB_MAJOR < this.env.ES_MAJOR) ||
       nconf.get('es_upgrade') === true
     );
@@ -111,7 +108,6 @@ class Elastic {
       this.es.logElastic('info', `[UPDATE] ` +
       `Force: ${nconf.get('es_upgrade')} - ` +
       `New: ${!this.env.KB_MAJOR} - ` +
-      `Update: ${this.env.CURR_VERSION < this.env.NEW_VERSION} - ` +
       `Upgrade: ${this.env.KB_MAJOR < this.env.ES_MAJOR}`);
     }
     return upgrade;

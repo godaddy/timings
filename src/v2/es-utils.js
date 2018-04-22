@@ -194,17 +194,6 @@ class ESClass {
     return '0';
   }
 
-  async getTmplVer() {
-    try {
-      const currTemplate = await this.getTemplate(this.env.INDEX_PERF);
-      return currTemplate[this.env.INDEX_PERF].version;
-    } catch (err) {
-      if (err) {
-        return 0;
-      }
-    }
-  }
-
   async index(index, type, id, body) {
     if (parseInt(this.env.ES_MAJOR, 10) > 5) {
       body.type = type;
