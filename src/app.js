@@ -1,8 +1,9 @@
 // const fs = require('fs');
 const path = require('path');
 const express = require('express');
-const logger = require('../log.js');
 const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
+const logger = require('../log.js');
 
 const app = express();
 
@@ -22,6 +23,7 @@ const allowCrossDomain = function (req, res, next) {
 app.use(require('morgan')({ stream: logger.stream }));
 app.use(allowCrossDomain);
 app.use(cookieParser());
+app.use(bodyParser.json({ limit: '5mb', type: 'application/json' }));
 
 // Create routes for static content
 app.use('/', express.static(path.join(__dirname, '..', 'public')));
