@@ -33,6 +33,9 @@ const template = {
                       }
                   }
               ],
+              "_meta": {
+                "api_version": nconf.get('env:APP_VERSION')
+              },
               "_all": {
                   "enabled": false
               }
@@ -104,7 +107,10 @@ const template = {
                 }
               }
             }
-          ]
+          ],
+          "_meta": {
+            "api_version": nconf.get('env:APP_VERSION')
+          }
         }
       },
       "aliases": {}

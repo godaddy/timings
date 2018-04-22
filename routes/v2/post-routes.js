@@ -92,6 +92,7 @@ function validateSchema(route, body) {
     }),
     flags: joi.object({
       assertBaseline: joi.boolean(),
+      assertRum: joi.boolean(),
       debug: joi.boolean(),
       esTrace: joi.boolean(),
       esCreate: joi.boolean(),

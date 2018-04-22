@@ -194,10 +194,11 @@ class ESClass {
     return '0';
   }
 
-  async getTmplVer() {
+  async getTmplVer(esVersion) {
     try {
       const currTemplate = await this.getTemplate(this.env.INDEX_PERF);
-      return currTemplate[this.env.INDEX_PERF].version;
+      const type = esVersion > 5 ? 'doc' : '_default_';
+      return currTemplate[this.env.INDEX_PERF].mappings[type]._meta.api_version;
     } catch (err) {
       if (err) {
         return 0;

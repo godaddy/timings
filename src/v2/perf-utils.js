@@ -25,6 +25,10 @@ class PUClass {
     this.errorMsg = [];
     this.dl = '';
     this.timing = {};
+    if (this.body.hasOwnProperty('flags') && this.body.flags.hasOwnProperty('assertRum')) {
+      this.body.flags.assertBaseline = this.body.flags.assertRum;
+      delete this.body.flags.assertRum;
+    }
     this.objParams = this.mergeDeep({}, this.defaults, body);
     if (body.hasOwnProperty('sla')) {
       this.assertMetric = Object.keys(body.sla)[0] || '';
