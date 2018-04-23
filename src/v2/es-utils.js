@@ -216,8 +216,8 @@ class ESClass {
       exists = await this.client
         .exists({ index: index, type: type, id: id });
     }
-    if (!exists || nconf.get('es_upgrade') === true) {
-      // item doesn not exists yet or we're doing a 'force' update
+    if (!exists) {
+      // Only create item if it does not exist
       return await this.client
         .index({ index: index, type: type, id: id, body: body });
     }
