@@ -12,8 +12,8 @@ const nconf = require('nconf');
 var jsonParser = bodyParser.json();
 
 router.post('/navtiming', jsonParser, (req, res, next) => {
-  validateSchema('navtiming', req.body);
   const pu = new puUtils.PUClass(req.body, req.route.path);
+  validateSchema('navtiming', req, pu);
   pu.handler((err, returnJSON) => {
     if (err) {
       pu.saveError(err, req);
@@ -24,8 +24,8 @@ router.post('/navtiming', jsonParser, (req, res, next) => {
 });
 
 router.post('/usertiming', jsonParser, (req, res, next) => {
-  validateSchema('usertiming', req.body);
   const pu = new puUtils.PUClass(req.body, req.route.path);
+  validateSchema('usertiming', req, pu);
   pu.handler((err, returnJSON) => {
     if (err) {
       pu.saveError(err, req);
@@ -36,8 +36,8 @@ router.post('/usertiming', jsonParser, (req, res, next) => {
 });
 
 router.post('/apitiming', jsonParser, (req, res, next) => {
-  validateSchema('apitiming', req.body);
   const pu = new puUtils.PUClass(req.body, req.route.path);
+  validateSchema('apitiming', req, pu);
   pu.handler((err, returnJSON) => {
     if (err) {
       pu.saveError(err, req);
@@ -48,8 +48,8 @@ router.post('/apitiming', jsonParser, (req, res, next) => {
 });
 
 router.post('/resources', jsonParser, (req, res, next) => {
-  validateSchema('resources', req.body);
   const pu = new puUtils.PUClass(req.body, req.route.path);
+  validateSchema('resources', req, pu);
   pu.getResources(req, (err, returnJSON) => {
     if (err) {
       err.status = 500;
@@ -60,8 +60,8 @@ router.post('/resources', jsonParser, (req, res, next) => {
 });
 
 router.post('/injectjs', jsonParser, (req, res, next) => {
-  validateSchema('injectjs', req.body);
   const pu = new puUtils.PUClass(req.body, req.route.path);
+  validateSchema('injectjs', req, pu);
   pu.getInjectJS(req, (err, returnJSON) => {
     if (err) {
       pu.saveError(err, req);
@@ -71,7 +71,7 @@ router.post('/injectjs', jsonParser, (req, res, next) => {
   });
 });
 
-function validateSchema(route, body) {
+function validateSchema(route, req, pu) {
   // Schema for request validation (extended in individual routes)
 
   // Add base schema
@@ -115,7 +115,7 @@ function validateSchema(route, body) {
     for (const index of Object.keys(reqLogs)) {
       const requiredLog = reqLogs[index];
       if (requiredLog.indexOf('log.') === 0) {
-        logObj[requiredLog.substring(4)] = joi.string();
+        logObj[requiredLog.substring(4)] = joi.string().required();
       }
     }
   }
@@ -168,9 +168,10 @@ function validateSchema(route, body) {
   };
 
   // Validate!!
-  const validate = joi.validate(body, extendedSchema[route]);
+  const validate = joi.validate(req.body, extendedSchema[route]);
   if (validate.error) {
     validate.error.status = 422;
+    pu.saveError(validate.error, req);
     throw validate.error;
   }
 }
