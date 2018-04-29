@@ -20,7 +20,7 @@ const allowCrossDomain = function (req, res, next) {
 };
 
 // Overriding "Express" logger
-app.use(require('morgan')({ stream: logger.stream }));
+app.use(require('morgan')('combined', { stream: logger.stream }));
 app.use(allowCrossDomain);
 app.use(cookieParser());
 app.use(bodyParser.json({ limit: '5mb', type: 'application/json' }));

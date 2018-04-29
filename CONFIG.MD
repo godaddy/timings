@@ -67,23 +67,44 @@ NOTE: For non-docker installs, you may need elevated permissions to run the API 
 }
 ```
 
+## Additional Environment variables
+
+In addition to the `env` parameters in the config file, the following environment variables can be used to control certain settings:
+
+Variable|Description|Examples|Default value
+---|---|---|---
+**CONFIGFILE**|Path to custom config file|`"/etc/timings/perfconfig.js"`|if omitted, API will use `<installation path>/.config.js`
+**NODE_ENV**|The node environment|`"production"`, `"test"`, `"development"`|`"development"`
+**LOG_LEVEL**|The desired level of logging - used for console output and app log|`"info"`, `"debug"`, `"error"`|`"info"`
+**LOG_PATH**|Custom logging path|`"/var/logs/"`, `"/home/user/logs"`|`"<installation path>/logs/timings"`
+**ES_UPGRADE**|Boolean to force installation of Kibana items|`"true"` or `"false"`|`"false"`
+
 ## The "required" array
 
-Using the `params.required` array, you can enforce certain LOG keys. In the above example, the API will expect that the POST body includes a `log` object like this:
+In your server config file, you can use the `params.required` array to enforce certain LOG keys. Example:
+
+```json
+params: {
+  required: [log.test_info,log.env_tester,log.team,log.browser,log.env_target],
+  ...
+}
+```
+
+In the above example, the API will expect that the client's POST body includes a `log` object that looks like this:
 
 ```javascript
 {
   log: {
-    test_info: "Login to home page",
-    env_tester: process.env.TEST_ENV,
-    team: "TEAM_ABC",
-    browser: browserPerf,
-    env_target: process.env.TARGET_ENV
+    test_info: "...",
+    env_tester: "...",
+    team: "...",
+    browser: "...",
+    env_target: "...",
   }
 }
 ```
 
-**TIP:** use dynamic values to populate fields like `browser` and `env_target` from sources like `process.env` (node/javascript) or `os.environ` (python).
+**TIP:** use clients can use dynamic values to populate fields like `browser` and `env_target` from sources like `process.env` (node/javascript) or `os.environ` (python).
 
 If any of the required keys are not provided, the API will return an error. Example:
 

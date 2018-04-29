@@ -275,7 +275,7 @@ class ESClass {
   }
 
   logElastic(level, msg) {
-    logger[level](`[Elasticsearch] - ${msg}`);
+    logger[level](`Elasticsearch - UTILS - ${msg}`);
   }
 }
 
