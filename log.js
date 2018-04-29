@@ -1,47 +1,75 @@
 const fs = require('fs');
-var winston = require('winston');
-winston.emitErrs = true;
+const path = require('path');
+const winston = require('winston');
+const nconf = require('nconf');
 
 /* eslint no-sync: 0 */
-if (!fs.existsSync('./logs/')) {
-  fs.mkdirSync('logs');
+let logPath = path.resolve((nconf.get('log_path') || './logs/'));
+let logPathErr = false;
+if (!fs.existsSync(logPath)) {
+  // Path does not exist - create it!
+  try {
+    fs.mkdirSync(logPath);
+  } catch (err) {
+    // Could not create path - set path to working dir!
+    logPathErr = true;
+    logPath = path.resolve('.');
+  }
 }
 
-var logger = new winston.Logger({
+const mainFormat = winston.format.combine(
+  winston.format.simple(),
+  winston.format.timestamp(),
+  winston.format.printf(info => `[${info.timestamp}][${info.level}] - ${info.message}`)
+);
+
+/* eslint id-length: 0 */
+const logger = winston.createLogger({
   transports: [
     new winston.transports.File({
+      format: mainFormat,
       level: 'info',
-      filename: './logs/app.log',
+      filename: path.resolve(logPath, 'app.log'),
       handleExceptions: true,
-      json: false,
+      humanReadableUnhandledException: true,
       maxsize: 5242880, // 5MB
       maxFiles: 5,
       colorize: false
     }),
     new winston.transports.Console({
-      level: 'debug',
-      handleExceptions: true,
-      json: false,
-      colorize: true
+      format: winston.format.combine(winston.format.colorize(), mainFormat),
+      level: 'info',
+      handleExceptions: true
     })
   ],
   exitOnError: false
 });
 
-var accessLog = new winston.Logger({
+const accessLog = winston.createLogger({
   transports: [
     new winston.transports.File({
+      format: mainFormat,
       level: 'info',
-      filename: './logs/access.log',
+      filename: path.resolve(logPath, 'access.log'),
       handleExceptions: false,
-      json: false,
       maxsize: 5242880, // 5MB
-      maxFiles: 5,
-      colorize: false
+      maxFiles: 5
     })
   ],
   exitOnError: false
 });
+
+// Set logging level based on LOG_LEVEL env variable
+logger.transports.find(transport => {
+  transport.level = (nconf.get('log_level') || 'info');
+});
+
+if (logPathErr === true) {
+  logger.log('error', `timings API - LOGGING - unable to create logging in path ` +
+    `["${path.resolve((nconf.get('log_path') || './logs/'))}"]!`);
+}
+logger.log('info', `timings API - LOGGING - log level: ${(nconf.get('log_level') || 'info').toUpperCase()}`);
+logger.log('info', `timings API - LOGGING - logs files stored in: ["${logPath}"]`);
 
 module.exports = logger;
 module.exports.stream = {
