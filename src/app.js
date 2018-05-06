@@ -3,6 +3,7 @@ const path = require('path');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
+const nconf = require('nconf');
 const logger = require('../log.js');
 
 const app = express();
@@ -20,7 +21,9 @@ const allowCrossDomain = function (req, res, next) {
 };
 
 // Overriding "Express" logger
-app.use(require('morgan')('combined', { stream: logger.stream }));
+if (nconf.get('env:LOG_PATH')) {
+  app.use(require('morgan')('combined', { stream: logger.stream }));
+}
 app.use(allowCrossDomain);
 app.use(cookieParser());
 app.use(bodyParser.json({ limit: '5mb', type: 'application/json' }));
