@@ -37,7 +37,7 @@ class Elastic {
       Object.keys(this.templates).forEach(async templ => {
         await this.es.putTemplate(templ, this.templates[templ]);
       });
-      if (nconf.get('env:KB_MAJOR') + nconf.get('env:ES_MAJOR') > 10) {
+      if (nconf.get('env:KB_MAJOR') < 6 && nconf.get('env:ES_MAJOR') > 5) {
         // This is a 5.x -> 6.x upgrade! Run reindex jobs!
         this.es.logElastic(
           'info',
@@ -98,8 +98,8 @@ class Elastic {
 
   async checkUpgrade() {
     const semver = require('semver');
-    nconf.set('env:CURR_VERSION', semver.valid(await this.es.getTmplVer(this.env.ES_MAJOR)) || '0.0.0');
-    nconf.set('env:NEW_VERSION', semver.valid(this.env.APP_VERSION) || nconf.get('env:CURR_VERSION'));
+    nconf.set('env:CURR_VERSION', semver.valid(await this.es.getTmplVer(nconf.get('env:ES_MAJOR'))) || '0.0.0');
+    nconf.set('env:NEW_VERSION', semver.valid(nconf.get('env:APP_VERSION')) || nconf.get('env:CURR_VERSION'));
     nconf.set('env:KB_VERSION', await this.es.getKBVer());
     nconf.set('env:KB_MAJOR', parseInt(nconf.get('env:KB_VERSION').substr(0, 1), 10));
     this.env = nconf.get('env');
@@ -113,7 +113,8 @@ class Elastic {
       `Force: ${nconf.get('es_upgrade')} - ` +
       `New: ${!this.env.KB_MAJOR} - ` +
       `Update: ${semver.lt(this.env.CURR_VERSION, this.env.NEW_VERSION)} - ` +
-      `Upgrade: ${this.env.KB_MAJOR < this.env.ES_MAJOR}`);
+        `(CURR:${this.env.CURR_VERSION} > NEW:${this.env.NEW_VERSION}) - ` +
+      `Upgrade: ${this.env.KB_MAJOR < this.env.ES_MAJOR} - (KB:${this.env.KB_MAJOR} > ES:${this.env.ES_MAJOR})`);
     }
     return upgrade;
   }

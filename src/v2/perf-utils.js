@@ -595,6 +595,11 @@ class PUClass {
         if (reqBody.hasOwnProperty('timing')) {
           body.dl = reqBody.url;
         }
+
+        // Get the LOG info from payload
+        if (reqBody.hasOwnProperty('log')) {
+          body.log = reqBody.log;
+        }
       }
 
       // Add ERROR message and status

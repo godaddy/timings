@@ -23,7 +23,7 @@ nconf
   });
 
 // Load defaults first - use './.config.js for docker-compose
-let cfgFile = path.resolve('./.config.js');
+let cfgFile = path.resolve(__dirname, '../.config.js');
 let cfgConfig = require(cfgFile);
 
 if (nconf.get('configfile') && fs.existsSync(path.resolve(nconf.get('configfile')))) {

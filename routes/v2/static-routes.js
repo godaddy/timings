@@ -19,12 +19,15 @@ router.get(['/health*', '/v2/api/cicd/health*'], function (req, res) {
   res.send(health());
 });
 
+/* eslint complexity: 0 */
 function health() {
   const ret = {
     server: {
       APP_HOST: nconf.get('env:HOST') + ':' + nconf.get('env:HTTP_PORT'),
       APP_VERSION: nconf.get('env:APP_VERSION'),
       APP_CONFIG: nconf.get('env:APP_CONFIG'),
+      LOG_PATH: nconf.get('env:LOG_PATH'),
+      LOG_LEVEL: (nconf.get('log_level') || 'info').toUpperCase(),
       NODE_ENV: nconf.get('env:NODE_ENV'),
       useES: nconf.get('env:useES')
     },
