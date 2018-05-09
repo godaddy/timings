@@ -99,8 +99,8 @@ function validateSchema(route, req, pu) {
       passOnFailedAssert: joi.boolean()
     }),
     multirun: joi.object({
-      totalRuns: joi.number().integer().min(2),
-      currentRun: joi.number().integer(),
+      totalRuns: joi.number().integer().min(5).max(1000).required(),
+      currentRun: joi.number().integer().min(1).max(joi.ref('totalRuns')).required(),
       id: joi.string().alphanum().min(6).required()
     }),
     log: joi.object({
