@@ -87,11 +87,61 @@ describe('POST endpoint ', function () {
       });
   });
 
+  // POST - navtiming multi-run First Run [FAIL]
+  it('[/navtiming multi-run First Run FAIL] should get the correct error', (done) => {
+    const objParams = params.v2.cicd.navtiming;
+    // Following line causes the failure [missing First Run]
+    objParams.multirun = {
+      totalRuns: 5,
+      currentRun: 2,
+      id: 'abcdef'
+    };
+    request.post('/v2/api/cicd/navtiming')
+      .send(objParams)
+      .expect('Content-Type', /json/)
+      .expect(400)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('message');
+        expect(res.body.message).to.be.a('string');
+        expect(res.body.message).to.contain('currentRun has to be 1 for the first run');
+        done();
+      });
+  });
+
+  // POST - navtiming multi-run ID [FAIL]
+  it('[/navtiming multi-run ID FAIL] should get the correct error', (done) => {
+    const objParams = params.v2.cicd.navtiming;
+    // Following line causes the failure [missing ID]
+    objParams.multirun = {
+      totalRuns: 5,
+      currentRun: 1
+    };
+    request.post('/v2/api/cicd/navtiming')
+      .send(objParams)
+      .expect('Content-Type', /json/)
+      .expect(422)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('message');
+        expect(res.body.message).to.be.a('string');
+        expect(res.body.message).to.contain(`ValidationError: child 'multirun' fails`);
+        done();
+      });
+  });
+
   // POST - navtiming [FAIL]
   it('[/navtiming FAIL] should get the correct error', (done) => {
     const objParams = params.v2.cicd.navtiming;
     // Following line causes the failure [wrong url format]
     objParams.injectJS.url = objParams.injectJS.url.replace('http://', '').replace('https://', '');
+    delete objParams.multirun;
     request.post('/v2/api/cicd/navtiming')
       .send(objParams)
       .expect('Content-Type', /json/)

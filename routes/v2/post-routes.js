@@ -98,6 +98,11 @@ function validateSchema(route, req, pu) {
       esCreate: joi.boolean(),
       passOnFailedAssert: joi.boolean()
     }),
+    multirun: joi.object({
+      totalRuns: joi.number().integer().min(2),
+      currentRun: joi.number().integer(),
+      id: joi.string().alphanum().min(6).required()
+    }),
     log: joi.object({
       team: joi.string(),
       browser: joi.string()

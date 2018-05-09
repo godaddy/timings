@@ -1,11 +1,13 @@
 /**
  * Created by mverkerk on 9/26/2016.
  */
+const fs = require('fs-extra');
+const path = require('path');
 const url = require('url'); // Used in usertimings method only
-// const logger = require('../../log.js');
 const nconf = require('nconf');
 const luceneParse = require('lucene-parser');
 const uuidv4 = require('uuid/v4');
+const percentile = require('percentile');
 const esUtils = require('./es-utils.js');
 const mime = require('mime-types');
 
@@ -18,7 +20,6 @@ class PUClass {
       this.es = new esUtils.ESClass();
     }
     this.defaults = nconf.get('params:defaults');
-    // this.logger = logger;
     this.debugMsg = [];
     this.esTrace = [];
     this.infoMsg = [];
@@ -47,6 +48,15 @@ class PUClass {
     try {
       this.measuredPerf = 0;
       // Call the correct timing function based on the route
+      if (this.objParams.hasOwnProperty('multirun')) {
+        const multiRunDone = await this.multirun();
+        if (!multiRunDone === true) return cb(null, {
+          acknowledge: true,
+          totalRuns: this.objParams.multirun.totalRuns,
+          currentRun: this.objParams.multirun.currentRun,
+          id: this.objParams.multirun.id
+        });
+      }
       this.measuredPerf = this[this.route]();
       // Run baseline
       if (this.env.useES === true) {
@@ -83,6 +93,58 @@ class PUClass {
     } catch (err) {
       return cb(err);
     }
+  }
+
+  /* eslint complexity: 0 */
+  async multirun() {
+    // Temp file is the multirun's ID (to be provided by client)
+    const multiFile = path.resolve(`./multi_tmp/${this.route}_${this.objParams.multirun.id}.json`);
+    if (this.objParams.multirun.currentRun > 1 && !await fs.exists(multiFile)) {
+      const err = new Error();
+      err.status = 400;
+      err.message = 'Missing first run - currentRun has to be 1 for the first run!';
+      throw err;
+    }
+    const appendObject = this.objParams.multirun.currentRun < 2 ? {} : await fs.readJson(multiFile);
+    appendObject[this.objParams.multirun.currentRun] = this.objParams;
+    appendObject[this.objParams.multirun.currentRun].route = this.route;
+    // Write to the file
+    try {
+      await fs.outputJson(multiFile, appendObject, { flag: 'w+' });
+    } catch (err) {
+      throw err;
+    }
+    // Check if this is the last run
+    if (this.objParams.multirun.currentRun >= this.objParams.multirun.totalRuns) {
+      // Last run! Determine the chosen run (percentile?)
+      const objResults = {};
+      /* eslint guard-for-in: 0 */
+      for (const run in appendObject) {
+        switch (appendObject[run].route) {
+          case 'navtiming':
+            objResults[run] =
+              (this.assertMetric === 'visualCompleteTime') ? appendObject[run].injectJS.visualCompleteTime :
+                appendObject[run].injectJS.timing.loadEventStart - appendObject[run].injectJS.timing.navigationStart;
+            break;
+          case 'usertiming':
+            objResults[run] = appendObject[run].injectJS.measureArray[0].duration;
+            break;
+          case 'apitiming':
+            objResults[run] = appendObject[run].timing.endTime - appendObject[run].timing.startTime;
+            break;
+          default:
+        }
+      }
+      // Submit chosen result to route
+      const perc75 = percentile(75, Object.values(objResults)) || 0;
+      const index75 = (Object.values(objResults).indexOf(perc75) + 1).toString();
+      // const pickRun = Object.keys(objResults)[index75];
+      this.objParams = appendObject[index75];
+      // Delete the tmp file
+      await fs.remove(multiFile);
+      return true;
+    }
+    return;
   }
 
   /* eslint max-statements: ["error", 150, { "ignoreTopLevelFunctions": true }] */
@@ -351,6 +413,7 @@ class PUClass {
     // Add params to the export object
     exportData.log = this.objParams.log;
     exportData.flags = Object.assign({}, this.defaults.flags, this.objParams.flags);
+    exportData.multirun = this.objParams.multirun || false;
     exportData.baseline = Object.assign({}, this.defaults.baseline, this.objParams.baseline);
 
     // Add the 'nav' section (if 'navtiming')
