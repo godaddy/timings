@@ -4,7 +4,6 @@ const path = require('path');
 const yaml = require('js-yaml');
 const nconf = require('nconf');
 const pkg = require('../package.json');
-const logger = require('../log.js');
 
 /* eslint no-sync: 0 */
 // Add arguments and environment variables to nconf
@@ -17,14 +16,14 @@ nconf
   })
   .env({
     lowerCase: true,
-    whitelist: ['configfile', 'node_env', 'api_host', 'host', 'http_port', 'debug', 'kb_index', 'kb_rename', 'es_upgrade',
-      'es_host', 'es_port', 'es_protocol', 'es_user', 'es_passwd', 'es_ssl_cert', 'es_ssl_key', 'kb_host', 'kb_port'
+    whitelist: ['configfile', 'node_env', 'api_host', 'host', 'http_port', 'log_level', 'log_path', 'kb_index', 'kb_rename',
+      'es_upgrade', 'es_host', 'es_port', 'es_protocol', 'es_user', 'es_passwd', 'es_ssl_cert', 'es_ssl_key', 'kb_host', 'kb_port'
     ],
     parseValues: true
   });
 
 // Load defaults first - use './.config.js for docker-compose
-let cfgFile = path.resolve('./.config.js');
+let cfgFile = path.resolve(__dirname, '../.config.js');
 let cfgConfig = require(cfgFile);
 
 if (nconf.get('configfile') && fs.existsSync(path.resolve(nconf.get('configfile')))) {
@@ -70,7 +69,6 @@ const cfgNconf = {
     KB_INDEX: nconf.get('kb_index') || cfgConfig.env.KB_INDEX || '.kibana',
     KB_RENAME: nconf.get('kb_rename') || cfgConfig.env.KB_RENAME || '',
     HTTP_PORT: nconf.get('http_port') || cfgConfig.env.HTTP_PORT || 80,
-    DEBUG: nconf.get('debug') || cfgConfig.env.DEBUG || false,
     APP_NAME: pkg.name,
     // APP_VERSION: pkg['timings-api'].api_version || '0.0.0',
     APP_CONFIG: cfgFile,
@@ -104,8 +102,3 @@ const cfgNconf = {
 nconf
   .use('memory')
   .defaults(cfgNconf);
-
-// Set logging level based on DEBUG variable
-if (nconf.get('env:DEBUG') !== true) {
-  logger.transports.console.level = 'info';
-}
