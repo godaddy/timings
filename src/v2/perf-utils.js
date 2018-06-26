@@ -483,7 +483,7 @@ class PUClass {
       // err.status = 400;
       return cb(null, {
         status: 200,
-        kibana_host: this.env.KB_HOST,
+        kibana_host: (this.env.ES_PROTOCOL || 'http') + '://' + this.env.KB_HOST,
         kibana_port: this.env.KB_PORT,
         kibana_rename: this.env.KB_RENAME,
         resources: []
@@ -516,7 +516,7 @@ class PUClass {
       });
 
       returnJSON.status = 200;
-      returnJSON.kibana_host = this.env.KB_HOST;
+      returnJSON.kibana_host = (this.env.ES_PROTOCOL || 'http') + '://' + this.env.KB_HOST;
       returnJSON.kibana_port = this.env.KB_PORT;
       returnJSON.kibana_rename = this.env.KB_RENAME;
       returnJSON.resources = resources;
