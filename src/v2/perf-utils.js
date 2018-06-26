@@ -485,6 +485,7 @@ class PUClass {
         status: 200,
         kibana_host: this.env.KB_HOST,
         kibana_port: this.env.KB_PORT,
+        kibana_rename: this.env.KB_RENAME,
         resources: []
       });
     }

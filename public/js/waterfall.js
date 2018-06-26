@@ -308,7 +308,7 @@ function waterfall(div, resources, fltr) {
             } else {
                 uri = 'uri:"' + encodeURIComponent(uri) + '"';
             }
-            kibana = "http://"+window.kibana_host+"/app/kibana#/dashboard/TIMINGS-Resources?_g=(time:" +
+            kibana = "http://"+window.kibana_host+"/app/kibana#/dashboard/"+window.kibana_rename+"-Resources?_g=(time:" +
                     "(from:now-7d,mode:quick,to:now))&_a=(query:(query_string:(analyze_wildcard:!t,qu" +
                     "ery:'" + uri + "')))"
 

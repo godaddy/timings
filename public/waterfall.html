@@ -143,6 +143,7 @@
                         if ("resources" in res && res.resources.length > 0) {
                             window.resources = res.resources
                             window.kibana_host = (res.kibana_port && res.kibana_port !== 80) ? res.kibana_host + ":" + res.kibana_port : res.kibana_host;
+                            window.kibana_rename = res.kibana_rename || 'TIMINGS';
                             waterfall('#svg_canvas', res.resources);
                             this.fillTable('#tbl_resources', res.resources);
                         } else {
@@ -262,7 +263,7 @@
                     // Below is for GoDaddy compatibility
                     var tester = '-field not used-';
                     var target = '-field not used-';
-                    if ( (entry.log.hasOwnProperty('env_tester') || entry.log.hasOwnProperty('platform')) && (entry.log.hasOwnProperty('env_target') || entry.log.hasOwnProperty('environment')) ) {
+                    if ((entry.log.hasOwnProperty('env_tester') || entry.log.hasOwnProperty('platform')) && (entry.log.hasOwnProperty('env_target') || entry.log.hasOwnProperty('environment'))) {
                         var tester = ('env_tester' in entry.log) ? entry.log.env_tester.toUpperCase() : entry.log.platform.toUpperCase();
                         var target = ('env_target' in entry.log) ? entry.log.env_target.toUpperCase() : entry.log.environment.toUpperCase();
                     }
