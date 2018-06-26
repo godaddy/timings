@@ -518,6 +518,7 @@ class PUClass {
       returnJSON.status = 200;
       returnJSON.kibana_host = this.env.KB_HOST;
       returnJSON.kibana_port = this.env.KB_PORT;
+      returnJSON.kibana_rename = this.env.KB_RENAME;
       returnJSON.resources = resources;
       return cb(null, returnJSON);
     } catch (err) {
