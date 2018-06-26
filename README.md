@@ -853,6 +853,10 @@ The "common parameters" are used by for following endpoints:
 |`flags.esTrace`|no|boolean|Return ElasticSearch trace output
 |`flags.esCreate`|no|boolean|Write results to ElasticSearch
 |`flags.passOnFailedAssert`|no|boolean|Will determine whether a **failed** assertion will still return `true` in the assert field
+|`multirun`|no|object|Object to be used for **multi-run** tests. Sub-parameters:
+|`multirun.totalRuns`|yes|integer|Total number of tests runs
+|`multirun.currentRun`|yes|boolean|Current test run
+|`multirun.id`|yes|boolean|Unique string of **at least 6** alphanumeric characters
 |`log`|*|object|Set of key/value pairs that will be saved to ElasticSearch. You can add any key-value pair here but the following are mandatory / recommended:
 |`log.test_info`|*|boolean|String describing the page/transaction being tested. Example: "Login to home page"
 |`log.env_tester`|*|boolean|The platform of the test **source**. Examples: "local", "saucelabs-windows-firefox47"
