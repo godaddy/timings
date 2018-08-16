@@ -767,12 +767,14 @@ class PUClass {
       visualCompleteTime = parseInt(performance.getEntriesByName('${mark}')[0].startTime);
       window.performance.clearMarks();
   };
+  var pageResources = window.performance.getEntriesByType('resource');
+  window.performance.clearResourceTimings();
   return {
       time:new Date().getTime(),
       timing:window.performance.timing,
       visualCompleteTime: visualCompleteTime,
       url: ${docHref},
-      resources: window.performance.getEntriesByType('resource')
+      resources: pageResources
   };`;
 
     } else if (type === 'usertiming') {
