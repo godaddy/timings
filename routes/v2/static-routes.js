@@ -47,6 +47,7 @@ function health() {
       ES_PROTOCOL: nconf.get('env:ES_PROTOCOL') || 'Not set!',
       ES_HOST: nconf.get('env:ES_HOST') || 'Not set!',
       ES_PORT: nconf.get('env:ES_PORT') || 'Not set!',
+      ES_TIMEOUT: nconf.get('env:ES_TIMEOUT') || 'Not set!',
       ES_VERSION: nconf.get('env:ES_VERSION') || 'Not set!',
       INDEX_PERF: nconf.get('env:INDEX_PERF') || 'Not set!',
       INDEX_RES: nconf.get('env:INDEX_RES') || 'Not set!',
