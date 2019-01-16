@@ -3,6 +3,7 @@ env:
   ES_PROTOCOL: http
   ES_HOST: ~
   ES_PORT: 9200
+  ES_TIMEOUT: 5000
   ES_USER: ~
   ES_PASS: ~
   ES_SSL_CERT: ~

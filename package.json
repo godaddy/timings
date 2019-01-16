@@ -32,7 +32,7 @@
     "dependencies": {
         "body-parser": "^1.18.2",
         "cookie-parser": "^1.4.3",
-        "elasticsearch": "^14.2.2",
+        "elasticsearch": "^15.3.0",
         "express": "^4.16.3",
         "fs-extra": "^5.0.0",
         "git-rev": "^0.2.1",
@@ -40,7 +40,7 @@
         "js-yaml": "^3.11.0",
         "lucene-parser": "^0.1.2",
         "mime-types": "^2.1.18",
-        "morgan": "^1.9.0",
+        "morgan": "^1.9.1",
         "nconf": "^0.10.0",
         "percentile": "^1.2.0",
         "semver": "^5.5.0",

@@ -3,6 +3,7 @@ const config = {
     "ES_PROTOCOL": "http",            // Scheme used by the ElasticSearch server/cluster (default: "http")
     "ES_HOST": "",                    // Hostname of the ElasticSearch server/cluster (default: "")
     "ES_PORT": 9200,                  // Scheme used by the ElasticSearch server/cluster (default: 9200)
+    "ES_TIMEOUT": 5000,               // Max timeout for requests (default: 5000)
     "ES_USER": "",                    // Username for Basic auth to ElasticSearch server/cluster (default: "")
     "ES_PASS": "",                    // Password for Basic auth to ElasticSearch server/cluster (default: "")
     "ES_SSL_CERT": "",                // Path to cert file for SSL auth to ElasticSearch server/cluster (default: "")

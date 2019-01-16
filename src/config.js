@@ -17,7 +17,7 @@ nconf
   .env({
     lowerCase: true,
     whitelist: ['configfile', 'node_env', 'api_host', 'host', 'http_port', 'log_level', 'log_path', 'kb_index', 'kb_rename',
-      'es_upgrade', 'es_host', 'es_port', 'es_protocol', 'es_user', 'es_passwd', 'es_ssl_cert', 'es_ssl_key', 'kb_host', 'kb_port'
+      'es_upgrade', 'es_host', 'es_port', 'es_protocol', 'es_timeout', 'es_user', 'es_passwd', 'es_ssl_cert', 'es_ssl_key', 'kb_host', 'kb_port'
     ],
     parseValues: true
   });
@@ -60,6 +60,7 @@ const cfgNconf = {
     ES_PROTOCOL: nconf.get('es_protocol') || cfgConfig.env.ES_PROTOCOL || 'http',
     ES_HOST: nconf.get('es_host') || cfgConfig.env.ES_HOST || nconf.get('kb_host') ||  cfgConfig.env.KB_HOST || '',
     ES_PORT: nconf.get('es_port') || cfgConfig.env.ES_PORT || 9200,
+    ES_TIMEOUT: nconf.get('es_timeout') || cfgConfig.env.ES_TIMEOUT || 5000,
     ES_USER: nconf.get('es_user') || cfgConfig.env.ES_USER || '',
     ES_PASS: nconf.get('es_pass') || cfgConfig.env.ES_PASS || '',
     ES_SSL_CERT: nconf.get('es_ssl_cert') || cfgConfig.env.ES_SSL_CERT || '',

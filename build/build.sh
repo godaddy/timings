@@ -4,6 +4,7 @@ echo "Running Docker build script ..."
 # check if there is a new release
 # assume env variables were set by travis-ci script
 echo "- previous NPM release: ${NPM_OLD} ..."
+NPM_NEW=$(npm view timings version)
 echo "- current NPM release: ${NPM_NEW} ..."
 
 if [ ! -z "$NPM_NEW" -a "$NPM_NEW" != " " ]; then
