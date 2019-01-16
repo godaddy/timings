@@ -16,7 +16,7 @@ class ESClass {
     // Basic ES config - no auth
     const esConfig = {
       host: this.env.ES_PROTOCOL + '://' + this.env.ES_HOST + ':' + this.env.ES_PORT,
-      requestTimeout: this.env.ES_PROTOCOL || 5000,
+      requestTimeout: this.env.ES_TIMEOUT || 5000,
       log: 'error'
     };
 

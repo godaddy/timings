@@ -14,7 +14,7 @@ class Elastic {
       // Wait for healthy status and get info
       await this.es.waitPort(60000, this.env.ES_HOST, this.env.ES_PORT);
       await this.es.healthy(60000, 'yellow');
-      await this.es.info(5000);
+      await this.es.info(this.env.ES_TIMEOUT || 5000);
       nconf.set('env:useES', true);
       // Get versions of API and KIBANA + check if update is needed
       if (await this.checkUpgrade() === true) {
