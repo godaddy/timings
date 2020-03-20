@@ -43,7 +43,7 @@
         "morgan": "^1.9.1",
         "nconf": "^0.10.0",
         "percentile": "^1.2.2",
-        "semver": "^5.7.0",
+        "semver": "^5.7.1",
         "uuid": "^3.3.2",
         "wait-port": "^0.2.2",
         "winston": "^3.2.1"
