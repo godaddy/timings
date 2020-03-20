@@ -45,7 +45,7 @@
         "percentile": "^1.2.2",
         "semver": "^5.7.0",
         "uuid": "^3.3.2",
-        "wait-port": "^0.2.2",
+        "wait-port": "^0.2.7",
         "winston": "^3.2.1"
     },
     "devDependencies": {
