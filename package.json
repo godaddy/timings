@@ -41,7 +41,7 @@
         "lucene-parser": "^0.1.2",
         "mime-types": "^2.1.24",
         "morgan": "^1.9.1",
-        "nconf": "^0.10.0",
+        "nconf": "^0.11.0",
         "percentile": "^1.2.2",
         "semver": "^5.7.0",
         "uuid": "^3.3.2",
