@@ -30,18 +30,21 @@ jobs:
         npm run build --if-present
         npm test
         npm run eslint
+        echo "Current app version $(npm view timings version)"
+      env:
+        NPM_OLD: $(npm view timings version)
     - name: Run semantic-release
       run: |
-        export NPM_OLD=$(npm view timings version)
         npm run semantic-release
-        export NPM_NEW=$(npm view timings version)
-        echo "Release info - old [$NPM_OLD] -> new [$NPM_NEW]"
+        echo "New app version $(npm view timings version)"
+      env:
+        NPM_NEW: $(npm view timings version)
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       with:
         file: coverage/cobertura-coverage.xml
   build:
-    if: ${{ env.NPM_NEW }} != ${{ env.NPM_OLD }}
+    if: env.NPM_NEW != env.NPM_OLD
     runs-on: ubuntu-latest
     steps:
     - name: Set up Docker Buildx
