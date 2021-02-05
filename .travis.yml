@@ -6,8 +6,9 @@ cache:
 notifications:
   email: false
 node_js:
-  - '9'
-  - '8'
+  - '14'
+  - '12'
+  - '10'
 services:
   - docker # required, but travis uses older version of docker :(
 script:
