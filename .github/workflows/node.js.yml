@@ -44,7 +44,7 @@ jobs:
       with:
         file: coverage/cobertura-coverage.xml
   build:
-    if: ${{ jobs.test.steps.npm_test.outputs.NPM_OLD }} != ${{ jobs.test.steps.npm_semantic.outputs.NPM_NEW }}
+    if: jobs.test.steps.npm_test.outputs.NPM_OLD != jobs.test.steps.npm_semantic.outputs.NPM_NEW
     runs-on: ubuntu-latest
     steps:
     - name: Set up Docker Buildx
