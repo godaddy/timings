@@ -1,0 +1,27 @@
+# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: Node.js CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run semantic-release and docker build
+      run: |
+        export NPM_OLD=$(npm view timings version)
+        npm run semantic-release
+        export NPM_NEW=$(npm view timings version)
+        echo "Release info - old [$NPM_OLD] -> new [$NPM_NEW]"
+        export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+        export DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}
+        "${GITHUB_WORKSPACE}/build/build.sh"
