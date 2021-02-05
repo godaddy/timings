@@ -4,15 +4,13 @@
     "description": "RESTful API for performance engineering",
     "scripts": {
         "start": "node ./server",
-        "test": "mocha test/**/*.js",
+        "test:mocha": "mocha test/**/*.js",
         "eslint": "eslint -c .eslintrc src routes public/js",
-        "publish": "npm run eslint && npm run test",
-        "semantic-release": "semantic-release",
-        "travis-deploy-once": "travis-deploy-once"
+        "test": "npm run eslint && npm run test:mocha"
     },
     "engines": {
-        "node": ">=8.0.0",
-        "npm": ">=5.0.0"
+        "node": ">=10.0.0",
+        "npm": ">=6.0.0"
     },
     "main": "server.js",
     "bin": {

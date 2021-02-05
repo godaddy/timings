@@ -35,10 +35,13 @@ jobs:
         npm test
         npm run eslint
         echo '::set-output name=npm_old::$(npm view timings version)'
-    - name: Run semantic-release
+    - name: Release
       id: npm_semantic
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       run: |
-        npm run semantic-release
+        npx semantic-release
         echo '::set-output name=npm_new::$(npm view timings version)'
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
