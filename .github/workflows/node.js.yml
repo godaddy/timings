@@ -41,7 +41,7 @@ jobs:
       with:
         file: coverage/cobertura-coverage.xml
   build:
-    if: env.NPM_NEW != env.NPM_OLD
+    if: ${{ env.NPM_NEW }} != ${{ env.NPM_OLD }}
     runs-on: ubuntu-latest
     steps:
     - name: Set up Docker Buildx
