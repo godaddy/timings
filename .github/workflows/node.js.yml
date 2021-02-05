@@ -30,6 +30,12 @@ jobs:
         npm run build --if-present
         npm test
         npm run eslint
+    - name: Run semantic-release
+      run: |
+        export NPM_OLD=$(npm view timings version)
+        npm run semantic-release
+        export NPM_NEW=$(npm view timings version)
+        echo "Release info - old [$NPM_OLD] -> new [$NPM_NEW]"
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       with:
