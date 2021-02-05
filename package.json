@@ -38,7 +38,6 @@
         "git-rev": "^0.2.1",
         "joi": "^13.7.0",
         "js-yaml": "^3.14.1",
-        "lucene-parser": "^0.1.2",
         "mime-types": "^2.1.28",
         "morgan": "^1.10.0",
         "nconf": "^0.10.0",

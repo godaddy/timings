@@ -5,7 +5,6 @@ const fs = require('fs-extra');
 const path = require('path');
 const url = require('url'); // Used in usertimings method only
 const nconf = require('nconf');
-const luceneParse = require('lucene-parser');
 const { v4: uuidv4 } = require('uuid');
 const percentile = require('percentile');
 const esUtils = require('./es-utils.js');
@@ -247,14 +246,11 @@ class PUClass {
       this.queryUrl = this.dl;
       this.queryUrl = this.queryUrl.replace('https://', '').replace('http://', '').trim();
 
-      // Sanitize it for Lucene query
-      luceneParse.setSearchTerm(this.queryUrl);
-
-      // Add the URL and the time range to the query object
-      mustUrl = { query_string: { default_field: 'dl', query: luceneParse.getFormattedSearchTerm() }};
+      // Add the URL to the query object
+      mustUrl = { query_string: { default_field: 'dl', query: `"${this.queryUrl}"` }};
     }
 
-    // Now, remove the trailing '*' -> the Lucene parser will automatically add it!
+    // Add the time range to the query object
     const mustRange = { range: { et: { from: 'now-' + baselineParams.days + 'd', to: 'now' }}};
     query.bool.must.push(mustUrl, mustRange);
     if (parseInt(this.env.ES_MAJOR, 10) > 5) {
@@ -324,18 +320,15 @@ class PUClass {
         if (incl[field] === '_log_') {
           // Copy field value from log parameter!
           if (this.objParams.log.hasOwnProperty(field)) {
-            luceneParse.setSearchTerm(this.objParams.log[field]);
-            mustIncl.query_string.query = luceneParse.getFormattedSearchTerm();
+            mustIncl.query_string.query = this.objParams.log[field];
             query.bool.must.push(mustIncl);
           }
         } else if (incl[field] === '_agg_') {
           // Do filter and aggregate
-          luceneParse.setSearchTerm(incl[field]);
           aggs[field] = { terms: { field: field }};
         } else {
           // Do filter and aggregate
-          luceneParse.setSearchTerm(incl[field]);
-          mustIncl.query_string.query = luceneParse.getFormattedSearchTerm();
+          mustIncl.query_string.query = incl[field];
           query.bool.must.push(mustIncl);
           aggs[field] = { terms: { field: 'log.' + field }};
         }
@@ -349,8 +342,7 @@ class PUClass {
       if (excl[field] !== '*' && excl[field] !== '') {
         const mustExcl = { query_string: {}};
         mustExcl.query_string.default_field = 'log.' + field;
-        luceneParse.setSearchTerm(excl[field]);
-        mustExcl.query_string.query = luceneParse.getFormattedSearchTerm();
+        mustExcl.query_string.query = excl[field];
         query.bool.must_not.push(mustExcl);
       }
     }
