@@ -12,7 +12,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    outputs:
     strategy:
       matrix:
         node-version: [10.x, 12.x, 14.x]
