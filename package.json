@@ -4,9 +4,10 @@
     "description": "RESTful API for performance engineering",
     "scripts": {
         "start": "node ./server",
+        "lint": "eslint .",
         "test:mocha": "mocha test/**/*.js",
-        "eslint": "eslint -c .eslintrc src routes public/js",
-        "test": "npm run eslint && npm run test:mocha"
+        "test": "nyc npm run test:mocha",
+        "posttest": "npm run lint"
     },
     "engines": {
         "node": ">=10.0.0",
@@ -28,6 +29,7 @@
     ],
     "license": "MIT",
     "dependencies": {
+        "@elastic/elasticsearch": "^7.10.0",
         "body-parser": "^1.19.0",
         "cookie-parser": "^1.4.4",
         "elasticsearch": "^15.5.0",
@@ -47,14 +49,13 @@
         "winston": "^3.2.1"
     },
     "devDependencies": {
-        "chai": "^4.2.0",
-        "eslint": "^4.19.1",
-        "eslint-config-godaddy": "^2.1.1",
-        "eslint-plugin-json": "^1.4.0",
-        "eslint-plugin-mocha": "^4.12.1",
-        "mocha": "^5.2.0",
-        "semantic-release": "^15.13.18",
-        "supertest": "^3.4.2",
-        "travis-deploy-once": "^4.4.1"
+        "chai": "^4.3.0",
+        "eslint": "^7.19.0",
+        "eslint-config-godaddy": "^4.0.1",
+        "eslint-plugin-json": "^2.1.2",
+        "eslint-plugin-mocha": "^8.0.0",
+        "mocha": "^8.2.1",
+        "nyc": "^15.1.0",
+        "supertest": "^6.1.3"
     }
 }
