@@ -26,7 +26,8 @@ git.tag(apiVer => {
     const checkES = new runES.Elastic();
     checkES.setup();
   } else {
-    logger.warn(`timings API - CONFIG - No Elasticsearch HOST in config [${nconf.get('env:APP_CONFIG')}] - data will NOT be saved!`);
+    logger.warn(`timings API - CONFIG - No Elasticsearch HOST in config ` +
+      `[${nconf.get('env:APP_CONFIG')}] - data will NOT be saved!`);
   }
   startListen();
 });

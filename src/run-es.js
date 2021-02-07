@@ -1,6 +1,7 @@
 const fs = require('fs');
 const nconf = require('nconf');
 const esUtils = require('./v2/es-utils');
+const semver = require('semver');
 
 /* eslint no-sync: 0 */
 class Elastic {
@@ -13,19 +14,27 @@ class Elastic {
     try {
       // Wait for healthy status and get info
       await this.es.waitPort(60000, this.env.ES_HOST, this.env.ES_PORT);
-      await this.es.healthy(60000, 'yellow');
-      await this.es.info(this.env.ES_TIMEOUT || 5000);
+      await this.es.healthy('60s', 'yellow');
+      await this.es.info();
       nconf.set('env:useES', true);
       // Get versions of API and KIBANA + check if update is needed
-      if (await this.checkUpgrade() === true) {
-        this.templates = require('../.es_template.js');
-        await this.upgrade();
+      this.templates = require('../.es_template.js');
+      nconf.set('env:CURR_VERSION', semver.valid(await this.es.getTmplVer(nconf.get('env:ES_MAJOR'))) || null);
+      if (nconf.get('env:CURR_VERSION')) {
+        if (await this.checkUpgrade() === true) {
+          await this.upgrade();
+        } else {
+          this.es.logElastic('info', `[UPDATE] API and KIBANA are up-to-date!`);
+        }
       } else {
-        this.es.logElastic('info', `[UPDATE] API and KIBANA are up-to-date!`);
+        // New installation - put 'cicd-perf' template
+        Object.keys(this.templates).forEach(async templ => {
+          await this.es.putTemplate(templ, this.templates[templ]);
+        });
       }
     } catch (err) {
       if (err) {
-        this.es.logElastic('error', `[ERROR] message: ${err.message} in path [${err.path}]`);
+        this.es.logElastic('error', `[ERROR] message: ${err}`);
         return err;
       }
     }
@@ -63,7 +72,7 @@ class Elastic {
   async upgradeReindex(index) {
     try {
       const indexSettings = await this.es.getSettings(index);
-      if (!indexSettings.hasOwnProperty(index)) return;
+      if (!Object.prototype.hasOwnProperty.call(indexSettings, index)) return;
       const indexVer = indexSettings[index].settings.index.version.created_string || '0';
       // Make sure we don't attempt reindex of v6.x indices!
       if (parseInt(indexVer.substr(0, 1), 10) > 5) return;
@@ -97,8 +106,6 @@ class Elastic {
   }
 
   async checkUpgrade() {
-    const semver = require('semver');
-    nconf.set('env:CURR_VERSION', semver.valid(await this.es.getTmplVer(nconf.get('env:ES_MAJOR'))) || '0.0.0');
     nconf.set('env:NEW_VERSION', semver.valid(nconf.get('env:APP_VERSION')) || nconf.get('env:CURR_VERSION'));
     nconf.set('env:KB_VERSION', await this.es.getKBVer());
     nconf.set('env:KB_MAJOR', parseInt(nconf.get('env:KB_VERSION').substr(0, 1), 10));

@@ -26,12 +26,15 @@ class PUClass {
     this.errorMsg = [];
     this.dl = '';
     this.timing = {};
-    if (this.body.hasOwnProperty('flags') && this.body.flags.hasOwnProperty('assertRum')) {
+    if (
+      Object.prototype.hasOwnProperty.call(this.body, 'flags') &&
+      Object.prototype.hasOwnProperty.call(this.body.flags, 'assertRum')
+    ) {
       this.body.flags.assertBaseline = this.body.flags.assertRum;
       delete this.body.flags.assertRum;
     }
     this.objParams = this.mergeDeep({}, this.defaults, body);
-    if (body.hasOwnProperty('sla')) {
+    if (Object.prototype.hasOwnProperty.call(body, 'sla')) {
       this.assertMetric = Object.keys(body.sla)[0] || '';
       this.assertSLA = body.sla[this.assertMetric] || '';
     }
@@ -48,7 +51,7 @@ class PUClass {
     try {
       this.measuredPerf = 0;
       // Call the correct timing function based on the route
-      if (this.objParams.hasOwnProperty('multirun')) {
+      if (Object.prototype.hasOwnProperty.call(this.objParams, 'multirun')) {
         const multiRunDone = await this.multirun();
         if (!multiRunDone === true) return cb(null, {
           acknowledge: true,
@@ -67,7 +70,7 @@ class PUClass {
         const response = await this.es.search(`${this.env.INDEX_PERF}-*`, this.route, blQuery);
         this.esTrace.push({ type: 'ES_RESPONSE', response: response });
         this.es_took = response.took;
-        if (response.hasOwnProperty('aggregations')) {
+        if (Object.prototype.hasOwnProperty.call(response, 'aggregations')) {
           this.baseline = this.checkBaseline(response);
         } else {
           this.baseline = 0;
@@ -82,7 +85,9 @@ class PUClass {
       if (this.env.useES === true && this.objParams.flags.esCreate === true) {
         this.esTrace.push({ type: 'ES_CREATE', exportData });
         const response = await this.es.index(`${this.env.INDEX_PERF}-${indexDay}`, this.route, '', exportData);
-        this.esSaved = (response.result === 'created');
+        this.esSaved = (parseInt(this.env.ES_MAJOR, 10) > 6)
+          ? response.body.result === 'created'
+          : response.result === 'created';
         if (this.esSaved && this.route === 'navtiming') {
           const resBody = this.getResourcesBody(exportData['@_uuid']);
           this.resourcesSaved = await this.es.bulk(resBody);
@@ -109,11 +114,7 @@ class PUClass {
     appendObject[this.objParams.multirun.currentRun] = this.objParams;
     appendObject[this.objParams.multirun.currentRun].route = this.route;
     // Write to the file
-    try {
-      await fs.outputJson(multiFile, appendObject, { flag: 'w+' });
-    } catch (err) {
-      throw err;
-    }
+    await fs.outputJson(multiFile, appendObject, { flag: 'w+' });
     // Check if this is the last run
     if (this.objParams.multirun.currentRun >= this.objParams.multirun.totalRuns) {
       // Last run! Determine the chosen run (percentile?)
@@ -151,7 +152,7 @@ class PUClass {
   navtiming() {
     // Check for mandatory & default parameters in objParams
     let injectJSdata = this.objParams.injectJS;
-    if (injectJSdata.hasOwnProperty('value')) {
+    if (Object.prototype.hasOwnProperty.call(injectJSdata, 'value')) {
       injectJSdata = injectJSdata.value;
     }
     if (injectJSdata.timing.navigationStart <= 0 || isNaN(new Date(injectJSdata.timing.navigationStart).getTime())) {
@@ -200,7 +201,7 @@ class PUClass {
 
   usertiming() {
     let injectJSdata = this.objParams.injectJS;
-    if (injectJSdata.hasOwnProperty('value')) {
+    if (Object.prototype.hasOwnProperty.call(injectJSdata, 'value')) {
       injectJSdata = injectJSdata.value;
     }
     const measure = injectJSdata.measureArray;
@@ -237,11 +238,11 @@ class PUClass {
     const baselineAgg = this.assertMetric === 'pageLoadTime' ? 'perf.measured' : 'perf.visualComplete';
 
     // Build the ES base query
-    const query = { bool: { must: [], must_not: [] }};
-    const aggs = { baseline: { percentiles: { field: baselineAgg, percents: [baselineParams.perc] }}};
+    const query = { bool: { must: [], must_not: [] } };
+    const aggs = { baseline: { percentiles: { field: baselineAgg, percents: [baselineParams.perc] } } };
 
     // Decide what URL to filter on
-    let mustUrl = { wildcard: { dl: { value: baselineParams.searchUrl }}};
+    let mustUrl = { wildcard: { dl: { value: baselineParams.searchUrl } } };
     if (!baselineParams.searchUrl || baselineParams.searchUrl.indexOf('*') < 0) {
       // Not a wildcard search - sanitize the 'dl' field!
       this.queryUrl = this.dl;
@@ -251,23 +252,29 @@ class PUClass {
       luceneParse.setSearchTerm(this.queryUrl);
 
       // Add the URL and the time range to the query object
-      mustUrl = { query_string: { default_field: 'dl', query: luceneParse.getFormattedSearchTerm() }};
+      mustUrl = { query_string: { default_field: 'dl', query: luceneParse.getFormattedSearchTerm() } };
     }
 
     // Now, remove the trailing '*' -> the Lucene parser will automatically add it!
-    const mustRange = { range: { et: { from: 'now-' + baselineParams.days + 'd', to: 'now' }}};
+    const mustRange = { range: { et: { from: 'now-' + baselineParams.days + 'd', to: 'now' } } };
     query.bool.must.push(mustUrl, mustRange);
     if (parseInt(this.env.ES_MAJOR, 10) > 5) {
-      query.bool.must.push({ term: { type: { value: this.route }}});
+      query.bool.must.push({ term: { type: { value: this.route } } });
     }
 
     // Add baseline includes
-    if (baselineParams.hasOwnProperty('incl') && Object.keys(baselineParams.incl).length > 0) {
+    if (
+      Object.prototype.hasOwnProperty.call(baselineParams, 'incl')
+      && Object.keys(baselineParams.incl).length > 0
+    ) {
       this.addBaselineIncl(baselineParams.incl, query, aggs);
     }
 
     // Add baseline excludes
-    if (baselineParams.hasOwnProperty('excl') && Object.keys(baselineParams.excl).length > 0) {
+    if (
+      Object.prototype.hasOwnProperty.call(baselineParams, 'excl')
+      && Object.keys(baselineParams.excl).length > 0
+    ) {
       this.addBaselineExcl(baselineParams.excl, query);
     }
 
@@ -318,12 +325,12 @@ class PUClass {
     // Add user-specified includes
     for (const field in incl) {
       if (incl[field] !== '*') {
-        const mustIncl = { query_string: {}};
+        const mustIncl = { query_string: {} };
         mustIncl.query_string.default_field = 'log.' + field;
         // Special field functions (_log_ and _agg_)
         if (incl[field] === '_log_') {
           // Copy field value from log parameter!
-          if (this.objParams.log.hasOwnProperty(field)) {
+          if (Object.prototype.hasOwnProperty.call(this.objParams.log, field)) {
             luceneParse.setSearchTerm(this.objParams.log[field]);
             mustIncl.query_string.query = luceneParse.getFormattedSearchTerm();
             query.bool.must.push(mustIncl);
@@ -331,13 +338,13 @@ class PUClass {
         } else if (incl[field] === '_agg_') {
           // Do filter and aggregate
           luceneParse.setSearchTerm(incl[field]);
-          aggs[field] = { terms: { field: field }};
+          aggs[field] = { terms: { field: field } };
         } else {
           // Do filter and aggregate
           luceneParse.setSearchTerm(incl[field]);
           mustIncl.query_string.query = luceneParse.getFormattedSearchTerm();
           query.bool.must.push(mustIncl);
-          aggs[field] = { terms: { field: 'log.' + field }};
+          aggs[field] = { terms: { field: 'log.' + field } };
         }
       }
     }
@@ -347,7 +354,7 @@ class PUClass {
     // Add user-specified excludes
     for (const field in excl) {
       if (excl[field] !== '*' && excl[field] !== '') {
-        const mustExcl = { query_string: {}};
+        const mustExcl = { query_string: {} };
         mustExcl.query_string.default_field = 'log.' + field;
         luceneParse.setSearchTerm(excl[field]);
         mustExcl.query_string.query = luceneParse.getFormattedSearchTerm();
@@ -379,7 +386,7 @@ class PUClass {
       et = new Date(this.objParams.timing.startTime).toISOString();
     } else {
       // get timestamp from injectJS.time parameter
-      et = this.objParams.injectJS.hasOwnProperty('time')
+      et = (Object.prototype.hasOwnProperty.call(this.objParams.injectJS, 'time'))
         ? new Date(this.objParams.injectJS.time).toISOString()
         : new Date().toISOString();
     }
@@ -407,7 +414,10 @@ class PUClass {
       api_took: (new Date().getTime() - this.apiStartTime),
       es_took: this.es_took,
       api_version: this.env.APP_VERSION,
-      hasResources: (this.route === 'navtiming' && this.objParams.injectJS.hasOwnProperty('resources'))
+      hasResources: (
+        this.route === 'navtiming'
+        && Object.prototype.hasOwnProperty.call(this.objParams.injectJS, 'resources')
+      )
     };
 
     // Add params to the export object
@@ -493,9 +503,9 @@ class PUClass {
     const returnJSON = { status: 400 };
 
     // Build the ES base query
-    const query = { bool: { must: [] }};
+    const query = { bool: { must: [] } };
     // Add the ID
-    const mustID = { multi_match: { fields: ['uuid', '@_uuid'], query: req.body.id }};
+    const mustID = { multi_match: { fields: ['uuid', '@_uuid'], query: req.body.id } };
     // Add the URL and the time range
 
     query.bool.must.push(mustID);
@@ -542,7 +552,7 @@ class PUClass {
       ? new Date(this.objParams.injectJS.time).toISOString()
       : new Date().toISOString();
     const indexDay = new Date(et).toISOString().slice(0, 10).replace(/-/g, '.');
-    let body = this.resNav(uuid, et);
+    const body = [this.resNav(uuid, et)];
 
     // Create entries for resources
     rt.forEach((resource) => {
@@ -582,9 +592,14 @@ class PUClass {
         'responseStart': resource.responseStart,
         'responseDuration': resource.responseStart > 0 ? resource.responseEnd - resource.responseStart : 0
       };
-      const type = (parseInt(this.env.ES_MAJOR, 10) > 5) ? 'doc' : 'resource';
-      body += `{ "index" : { "_index" : "${this.env.INDEX_RES}-${indexDay}", "_type" : "${type}" } }\n`;
-      body += JSON.stringify(res) + '\n';
+      const resEntry = {
+        _index: `${this.env.INDEX_RES}-${indexDay}`,
+        ...res
+      };
+      if (parseInt(this.env.ES_MAJOR, 10) < 7) {
+        resEntry._type = (parseInt(this.env.ES_MAJOR, 10) > 5) ? 'doc' : 'resource';
+      }
+      body.push(resEntry);
     });
     return body;
   }
@@ -627,9 +642,13 @@ class PUClass {
       'loadEventStart': timing.loadEventStart - timing.navigationStart,
       'loadEventDuration': timing.loadEventEnd - timing.loadEventStart
     };
-    const type = (parseInt(this.env.ES_MAJOR, 10) > 5) ? 'doc' : 'resource';
-    let navEntry = `{ "index" : { "_index" : "${this.env.INDEX_RES}-${indexDay}", "_type" : "${type}" } }\n`;
-    navEntry += JSON.stringify(nt) + '\n';
+    const navEntry = {
+      _index: `${this.env.INDEX_RES}-${indexDay}`,
+      ...nt
+    };
+    if (parseInt(this.env.ES_MAJOR, 10) < 7) {
+      navEntry._type = (parseInt(this.env.ES_MAJOR, 10) > 5) ? 'doc' : 'resource';
+    }
     return navEntry;
   }
 
@@ -652,17 +671,17 @@ class PUClass {
       if (typeof (reqBody) === 'object') {
 
         // Get the URL from injectJS (nav/usertiming)
-        if (reqBody.hasOwnProperty('injectJS')) {
+        if (Object.prototype.hasOwnProperty.call(reqBody, 'injectJS')) {
           body.dl = reqBody.injectJS.url;
         }
 
         // Get the URL from the params (apitiming)
-        if (reqBody.hasOwnProperty('timing')) {
+        if (Object.prototype.hasOwnProperty.call(reqBody, 'timing')) {
           body.dl = reqBody.url;
         }
 
         // Get the LOG info from payload
-        if (reqBody.hasOwnProperty('log')) {
+        if (Object.prototype.hasOwnProperty.call(reqBody, 'log')) {
           body.log = reqBody.log;
         }
       }
@@ -683,11 +702,15 @@ class PUClass {
 
   customParam(object, needle, result) {
     const ndlKey = Object.keys(needle)[0];
-    if (object.hasOwnProperty(ndlKey)) {
+    if (Object.prototype.hasOwnProperty.call(object, ndlKey)) {
       // Key exists! Check for value(s) - multiple values may be separated by '|' ...
       const ndlVal = needle[Object.keys(needle)[0]].split('|');
       for (const ndl of ndlVal) {
-        if (typeof object[ndlKey] === 'object' && object[ndlKey].hasOwnProperty(ndl) && object[ndlKey][ndl]) {
+        if (
+          typeof object[ndlKey] === 'object'
+          && Object.prototype.hasOwnProperty.call(object[ndlKey], ndl)
+          && object[ndlKey][ndl]
+        ) {
           // Key-value pair exists at this level! Get out!
           return result;
         } else if (ndlVal.indexOf(ndl) === (ndlVal.length - 1)) {
@@ -715,7 +738,10 @@ class PUClass {
     const stripQueryString = req.body.stripQueryString || false;
     let injectJS = this.getInjectCode(injectType, visualCompleteMark, stripQueryString);
     // Send decoded string if requested!
-    if (req.body.hasOwnProperty('decoded') && req.body.decoded === true) {
+    if (
+      Object.prototype.hasOwnProperty.call(req.body, 'decoded')
+      && req.body.decoded === true
+    ) {
       injectJS = decodeURIComponent(injectJS);
     }
     cb(null, { status: 200, inject_code: injectJS });
@@ -744,7 +770,7 @@ class PUClass {
     if (this.isObject(target) && this.isObject(source)) {
       for (const key in source) {
         if (this.isObject(source[key])) {
-          if (!target[key]) Object.assign(target, { [key]: {}});
+          if (!target[key]) Object.assign(target, { [key]: {} });
           this.mergeDeep(target[key], source[key]);
         } else {
           Object.assign(target, { [key]: source[key] });

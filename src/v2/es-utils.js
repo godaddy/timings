@@ -2,7 +2,7 @@
 * Created by mverkerk on 10/20/2016.
 */
 const fs = require('fs');
-const elasticsearch = require('elasticsearch');
+const elasticsearch = require('@elastic/elasticsearch');
 const nconf = require('nconf');
 const waitOn = require('wait-port');
 const logger = require('../../log.js');
@@ -15,16 +15,17 @@ class ESClass {
 
     // Basic ES config - no auth
     const esConfig = {
-      host: this.env.ES_PROTOCOL + '://' + this.env.ES_HOST + ':' + this.env.ES_PORT,
+      node: this.env.ES_PROTOCOL + '://' + this.env.ES_HOST + ':' + this.env.ES_PORT,
       requestTimeout: this.env.ES_TIMEOUT || 5000,
       log: 'error'
     };
 
     // Check if user/passwd are provided - configure basic auth
     if (this.env.ES_USER && this.env.ES_PASS) {
-      // esConfig.host[0].auth = (this.env.ES_USER || '') + ':' + (this.env.ES_PASS || '');
-      esConfig.host = this.env.ES_PROTOCOL + '://' + this.env.ES_USER + ':' + this.env.ES_PASS + '@' +
-        this.env.ES_HOST + ':' + this.env.ES_PORT;
+      esConfig.auth = {
+        username: this.env.ES_USER,
+        password: this.env.ES_PASS
+      };
     }
 
     // Check if SSL cert/key are provided - configure SSL
@@ -45,42 +46,55 @@ class ESClass {
     this.client = new elasticsearch.Client(esConfig);
   }
 
-  async healthy(timeoutMs = 90000, status = 'green') {
-    await this.client.cluster.health({ level: 'cluster', waitForStatus: status, requestTimeout: timeoutMs });
-    this.logElastic('info', `[HEALTHCHECK] status [${status}] is OK!`);
+  async healthy(timeout = '90s', status = 'green') {
+    try {
+      await this.client.cluster.health({ level: 'cluster', wait_for_status: status, timeout: timeout });
+      this.logElastic('info', `[HEALTHCHECK] status [${status}] of host [${this.env.ES_HOST}] is OK!`);
+    } catch (err) {
+      this.logElastic('error', `Could not check cluster health for host [${this.env.ES_HOST}]! Error: ${err}`);
+    }
   }
 
   async waitPort(timeoutMs = 120000, host, port) {
-    this.logElastic('info', `[PORTCHECK] waiting for port [${this.env.ES_PORT}] ...`);
+    this.logElastic('info', `[PORTCHECK] waiting for host [${this.env.ES_HOST}] at port [${this.env.ES_PORT}] ...`);
     if (!await waitOn({ host: host, port: port, output: 'silent', timeout: timeoutMs })) {
       throw new Error(`[PORTCHECK] - timeout on port [${this.env.ES_PORT}]`);
     }
   }
 
-  async info(timeoutMs = 60000) {
-    const response = await this.client
-      .info({ requestTimeout: timeoutMs });
+  async info() {
+    const response = await this.client.info();
     // Update ES version in nconf
-    nconf.set('env:ES_VERSION', response.version.number);
-    nconf.set('env:ES_MAJOR', parseInt(response.version.number.substr(0, 1), 10));
+    const version = ('version' in response)
+      ? response.version.number
+      : response.body.version.number;
+    nconf.set('env:ES_VERSION', version);
+    nconf.set('env:ES_MAJOR', parseInt(version.substr(0, 1), 10));
     this.env = nconf.get('env');
     this.logElastic('info', `[INFO] found elastic v${this.env.ES_VERSION} ...`);
   }
 
-  putTemplate(name, body) {
-    this.client
-      .indices
-      .putTemplate({ name: name, body: body });
-    this.logElastic('info', `[TEMPLATE] created/updated [${name}]`);
+  async putTemplate(name, body) {
+    try {
+      if (parseInt(this.env.ES_MAJOR, 10) > 6) {
+        await this.client.indices.putIndexTemplate({ name: name, body: body });
+      } else {
+        await this.client.indices.putTemplate({ name: name, body: body });
+      }
+      this.logElastic('info', `[TEMPLATE] created/updated [${name}]`);
+    } catch (e) {
+      this.logElastic('error', `[TEMPLATE] create failure! Error: ${e}`);
+    }
   }
 
   async getTemplate(name) {
-    if (await this.client
-      .indices
-      .existsTemplate({ name: name })) {
-      return await this.client
-        .indices
-        .getTemplate({ name: name });
+    if (parseInt(this.env.ES_MAJOR, 10) > 6) {
+      if (await this.client.indices.existsIndexTemplate({ name: name })) {
+        return await this.client.indices.getIndexTemplate({ name: name });
+      }
+    }
+    if (await this.client.indices.existsTemplate({ name: name })) {
+      return await this.client.indices.getTemplate({ name: name });
     }
     return;
   }
@@ -91,7 +105,7 @@ class ESClass {
     let type = 'config';
     if (parseInt(this.env.ES_MAJOR, 10) > 5) {
       id = 'config:' + this.env.ES_VERSION;
-      type = 'doc';
+      type = (parseInt(this.env.ES_MAJOR, 10) > 6) ? '_doc' : 'doc';
       body = {
         type: 'config',
         config: {
@@ -99,8 +113,7 @@ class ESClass {
         }
       };
     }
-    await this.client
-      .index({ index: (this.env.KB_INDEX || '.kibana'), type: type, id: id, body: body });
+    await this.client.index({ index: (this.env.KB_INDEX || '.kibana'), type: type, id: id, body: body });
     this.logElastic('info', `[DEFAULT] Default Index set to [${name}]`);
   }
 
@@ -126,7 +139,7 @@ class ESClass {
 
   async reindex(src, suffix, script) {
     const dst = src + suffix;
-    const opts = { body: { source: { index: src }, dest: { index: dst }}};
+    const opts = { body: { source: { index: src }, dest: { index: dst } } };
     if (script && typeof script === 'object') {
       opts.body.script = script;
     }
@@ -181,15 +194,20 @@ class ESClass {
     } catch (err) {
       if (err) index = '.kibana';
     }
-    if (typeof index === 'object') index = Object.keys(index)[0];
+    if (typeof index === 'object') index = (parseInt(this.env.ES_MAJOR, 10) > 6)
+      ? Object.keys(index.body)[0]
+      : Object.keys(index)[0];
+
     const exists = await this.client
       .indices
       .exists({ index: index });
-    if (exists) {
+    if (exists || exists.body) {
       const settings = await this.client
         .indices
         .getSettings({ index: index, includeDefaults: true, human: true });
-      return (settings[index].settings.index.version.created_string || '0');
+      return (parseInt(this.env.ES_MAJOR, 10) > 6)
+        ? settings.body[index].settings.index.version.created_string || '0'
+        : settings[index].settings.index.version.created_string || '0';
     }
     return '0';
   }
@@ -197,8 +215,16 @@ class ESClass {
   async getTmplVer(esVersion) {
     try {
       const currTemplate = await this.getTemplate(this.env.INDEX_PERF);
-      const type = esVersion > 5 ? 'doc' : '_default_';
-      return currTemplate[this.env.INDEX_PERF].mappings[type]._meta.api_version;
+      if (currTemplate) {
+        if (esVersion > 5 && esVersion < 6) {
+          return currTemplate[this.env.INDEX_PERF].mappings._default._meta.api_version;
+        } else if (esVersion > 6 && esVersion < 7) {
+          return currTemplate[this.env.INDEX_PERF].mappings.doc._meta.api_version;
+        }
+        return currTemplate.body.index_templates[0].index_template.template.mappings._meta.api_version;
+      }
+      // New install? no template found
+      return 0;
     } catch (err) {
       if (err) {
         return 0;
@@ -208,8 +234,8 @@ class ESClass {
 
   async index(index, type, id, body) {
     if (parseInt(this.env.ES_MAJOR, 10) > 5) {
+      type = (parseInt(this.env.ES_MAJOR, 10) > 6) ? '_doc' : 'doc';
       body.type = type;
-      type = 'doc';
     }
     let exists = false;
     if (id) {
@@ -218,17 +244,49 @@ class ESClass {
     }
     if (!exists) {
       // Only create item if it does not exist
-      return await this.client
-        .index({ index: index, type: type, id: id, body: body });
+      const sendBody = {
+        index: index,
+        body: body,
+        ...parseInt(this.env.ES_MAJOR, 10) < 7 && { type: type },
+        ...id && { id: id }
+      };
+      try {
+        return await this.client.index(sendBody);
+      } catch (err) {
+        this.logElastic('error', `Unable to index record! Error: ${err}`);
+      }
     }
     return { _id: id, result: 'exists', statusCode: 200, reason: 'Already exists' };
   }
 
-  async bulk(body) {
-    const response = await this.client
-      .bulk({ body: body });
-    return (response.items.length > 0);
+  async bulk(docs) {
+    const response = await this.client.helpers.bulk({
+      datasource: docs,
+      onDocument(document) {
+        const rec = {
+          index: {
+            _index: document._index
+          }
+        };
+        if (document._type) {
+          rec.index._type = document._type;
+        }
+        delete document._index;
+        delete document._type;
+        return rec;
+      },
+      onDrop(doc) {
+        console.error(`ERROR: elastic dropped document: ${JSON.stringify(doc, null, 2)}`);
+      },
+      retries: 3,
+      refreshOnCompletion: true
+    }, {
+      ignore: [404],
+      maxRetries: 3
+    });
+    return response.successful > 0;
   }
+
 
   async kbImport(importJson) {
     for (const index of Object.keys(importJson)) {
@@ -267,7 +325,7 @@ class ESClass {
   }
 
   async checkImportErrors(response, job, item) {
-    if (response.hasOwnProperty('error')) {
+    if (Object.prototype.hasOwnProperty.call(response, 'error')) {
       this.logElastic('error', `[IMPORT] ${job} - item: ${item} - ERROR! - reason: ${response.error.reason}`);
     } else {
       this.logElastic('debug', `[IMPORT] ${job} - item: ${item} - ${response.result.toUpperCase() || 'SUCCESS'}!`);
