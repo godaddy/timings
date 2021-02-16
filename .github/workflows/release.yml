@@ -4,15 +4,18 @@
 name: Timings CI - release
 
 on:
-  push:
-    branches: [ main ]
+  workflow_run:
+    workflows: ["Timings CI - test"]
+    branches: [main]
+    types: 
+      - completed
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Release
+    - name: Semantic Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

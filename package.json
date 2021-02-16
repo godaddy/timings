@@ -24,7 +24,7 @@
         "perfeng",
         "performance"
     ],
-    "repository": "godaddy/timings",
+    "repository": "https://github.com/godaddy/timings.git",
     "author": "GoDaddy Operating Company, LLC",
     "contributors": [
         "Marcel Verkerk <mverkerk@godaddy.com>"
