@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-prototype-builtins
 /**
  * Created by mverkerk on 9/26/2016.
  */
@@ -8,6 +9,7 @@ const nconf = require('nconf');
 const luceneParse = require('lucene-parser');
 const uuidv4 = require('uuid/v4');
 const percentile = require('percentile');
+const crypto = require('crypto');
 const esUtils = require('./es-utils.js');
 const mime = require('mime-types');
 
@@ -27,14 +29,14 @@ class PUClass {
     this.dl = '';
     this.timing = {};
     if (
-      Object.prototype.hasOwnProperty.call(this.body, 'flags') &&
-      Object.prototype.hasOwnProperty.call(this.body.flags, 'assertRum')
+      this.body.hasOwnProperty('flags') &&
+      this.body.flags.hasOwnProperty('assertRum')
     ) {
       this.body.flags.assertBaseline = this.body.flags.assertRum;
       delete this.body.flags.assertRum;
     }
     this.objParams = this.mergeDeep({}, this.defaults, body);
-    if (Object.prototype.hasOwnProperty.call(body, 'sla')) {
+    if (body.hasOwnProperty('sla')) {
       this.assertMetric = Object.keys(body.sla)[0] || '';
       this.assertSLA = body.sla[this.assertMetric] || '';
     }
@@ -51,7 +53,7 @@ class PUClass {
     try {
       this.measuredPerf = 0;
       // Call the correct timing function based on the route
-      if (Object.prototype.hasOwnProperty.call(this.objParams, 'multirun')) {
+      if (this.objParams.hasOwnProperty('multirun')) {
         const multiRunDone = await this.multirun();
         if (!multiRunDone === true) return cb(null, {
           acknowledge: true,
@@ -70,7 +72,7 @@ class PUClass {
         const response = await this.es.search(`${this.env.INDEX_PERF}-*`, this.route, blQuery);
         this.esTrace.push({ type: 'ES_RESPONSE', response: response });
         this.es_took = response.took;
-        if (Object.prototype.hasOwnProperty.call(response, 'aggregations')) {
+        if (response.hasOwnProperty('aggregations')) {
           this.baseline = this.checkBaseline(response);
         } else {
           this.baseline = 0;
@@ -84,7 +86,8 @@ class PUClass {
       // Store results in ES
       if (this.env.useES === true && this.objParams.flags.esCreate === true) {
         this.esTrace.push({ type: 'ES_CREATE', exportData });
-        const response = await this.es.index(`${this.env.INDEX_PERF}-${indexDay}`, this.route, '', exportData);
+        const docId = this.getDocId(exportData);
+        const response = await this.es.index(`${this.env.INDEX_PERF}-${indexDay}`, this.route, (docId || ''), exportData);
         this.esSaved = (parseInt(this.env.ES_MAJOR, 10) > 6)
           ? response.body.result === 'created'
           : response.result === 'created';
@@ -152,7 +155,7 @@ class PUClass {
   navtiming() {
     // Check for mandatory & default parameters in objParams
     let injectJSdata = this.objParams.injectJS;
-    if (Object.prototype.hasOwnProperty.call(injectJSdata, 'value')) {
+    if (injectJSdata.hasOwnProperty('value')) {
       injectJSdata = injectJSdata.value;
     }
     if (injectJSdata.timing.navigationStart <= 0 || isNaN(new Date(injectJSdata.timing.navigationStart).getTime())) {
@@ -201,7 +204,7 @@ class PUClass {
 
   usertiming() {
     let injectJSdata = this.objParams.injectJS;
-    if (Object.prototype.hasOwnProperty.call(injectJSdata, 'value')) {
+    if (injectJSdata.hasOwnProperty('value')) {
       injectJSdata = injectJSdata.value;
     }
     const measure = injectJSdata.measureArray;
@@ -264,7 +267,7 @@ class PUClass {
 
     // Add baseline includes
     if (
-      Object.prototype.hasOwnProperty.call(baselineParams, 'incl')
+      baselineParams.hasOwnProperty('incl')
       && Object.keys(baselineParams.incl).length > 0
     ) {
       this.addBaselineIncl(baselineParams.incl, query, aggs);
@@ -272,7 +275,7 @@ class PUClass {
 
     // Add baseline excludes
     if (
-      Object.prototype.hasOwnProperty.call(baselineParams, 'excl')
+      baselineParams.hasOwnProperty('excl')
       && Object.keys(baselineParams.excl).length > 0
     ) {
       this.addBaselineExcl(baselineParams.excl, query);
@@ -330,7 +333,7 @@ class PUClass {
         // Special field functions (_log_ and _agg_)
         if (incl[field] === '_log_') {
           // Copy field value from log parameter!
-          if (Object.prototype.hasOwnProperty.call(this.objParams.log, field)) {
+          if (this.objParams.log.hasOwnProperty(field)) {
             luceneParse.setSearchTerm(this.objParams.log[field]);
             mustIncl.query_string.query = luceneParse.getFormattedSearchTerm();
             query.bool.must.push(mustIncl);
@@ -386,7 +389,7 @@ class PUClass {
       et = new Date(this.objParams.timing.startTime).toISOString();
     } else {
       // get timestamp from injectJS.time parameter
-      et = (Object.prototype.hasOwnProperty.call(this.objParams.injectJS, 'time'))
+      et = (this.objParams.injectJS.hasOwnProperty('time'))
         ? new Date(this.objParams.injectJS.time).toISOString()
         : new Date().toISOString();
     }
@@ -416,7 +419,7 @@ class PUClass {
       api_version: this.env.APP_VERSION,
       hasResources: (
         this.route === 'navtiming'
-        && Object.prototype.hasOwnProperty.call(this.objParams.injectJS, 'resources')
+        && this.objParams.injectJS.hasOwnProperty('resources')
       )
     };
 
@@ -441,6 +444,12 @@ class PUClass {
     }
 
     return exportData;
+  }
+
+  getDocId(data) {
+    // Create unique document ID so data can be backfilled/copied/exported if that's ever needed
+    const docIdRaw = [data.et, (data.log.team || 'unknown'), data.dl].join('_');
+    return crypto.createHash('md5').update(docIdRaw).digest('hex');
   }
 
   buildResponse(exportData) {
@@ -671,17 +680,17 @@ class PUClass {
       if (typeof (reqBody) === 'object') {
 
         // Get the URL from injectJS (nav/usertiming)
-        if (Object.prototype.hasOwnProperty.call(reqBody, 'injectJS')) {
+        if (reqBody.hasOwnProperty('injectJS')) {
           body.dl = reqBody.injectJS.url;
         }
 
         // Get the URL from the params (apitiming)
-        if (Object.prototype.hasOwnProperty.call(reqBody, 'timing')) {
+        if (reqBody.hasOwnProperty('timing')) {
           body.dl = reqBody.url;
         }
 
         // Get the LOG info from payload
-        if (Object.prototype.hasOwnProperty.call(reqBody, 'log')) {
+        if (reqBody.hasOwnProperty('log')) {
           body.log = reqBody.log;
         }
       }
@@ -702,13 +711,13 @@ class PUClass {
 
   customParam(object, needle, result) {
     const ndlKey = Object.keys(needle)[0];
-    if (Object.prototype.hasOwnProperty.call(object, ndlKey)) {
+    if (object.hasOwnProperty(ndlKey)) {
       // Key exists! Check for value(s) - multiple values may be separated by '|' ...
       const ndlVal = needle[Object.keys(needle)[0]].split('|');
       for (const ndl of ndlVal) {
         if (
           typeof object[ndlKey] === 'object'
-          && Object.prototype.hasOwnProperty.call(object[ndlKey], ndl)
+          && object[ndlKey].hasOwnProperty(ndl)
           && object[ndlKey][ndl]
         ) {
           // Key-value pair exists at this level! Get out!
@@ -739,7 +748,7 @@ class PUClass {
     let injectJS = this.getInjectCode(injectType, visualCompleteMark, stripQueryString);
     // Send decoded string if requested!
     if (
-      Object.prototype.hasOwnProperty.call(req.body, 'decoded')
+      req.body.hasOwnProperty('decoded')
       && req.body.decoded === true
     ) {
       injectJS = decodeURIComponent(injectJS);

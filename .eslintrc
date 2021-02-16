@@ -10,8 +10,8 @@
         "sourceType": "module"
     },
     "rules": {
+        "no-prototype-builtins": "off",
         "no-process-env": "off",
-        "no-console": "off",
-        "guard-for-in": "off"
+        "no-console": "off"
     }
 }

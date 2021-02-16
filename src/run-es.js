@@ -2,12 +2,14 @@ const fs = require('fs');
 const nconf = require('nconf');
 const esUtils = require('./v2/es-utils');
 const semver = require('semver');
+const templates = require('../.es_template.js');
 
 /* eslint no-sync: 0 */
 class Elastic {
   constructor() {
     this.env = nconf.get('env');
     this.es = new esUtils.ESClass();
+    this.templates = templates;
   }
 
   async setup() {
@@ -16,9 +18,7 @@ class Elastic {
       await this.es.waitPort(60000, this.env.ES_HOST, this.env.ES_PORT);
       await this.es.healthy('60s', 'yellow');
       await this.es.info();
-      nconf.set('env:useES', true);
       // Get versions of API and KIBANA + check if update is needed
-      this.templates = require('../.es_template.js');
       nconf.set('env:CURR_VERSION', semver.valid(await this.es.getTmplVer(nconf.get('env:ES_MAJOR'))) || null);
       if (nconf.get('env:CURR_VERSION')) {
         if (await this.checkUpgrade() === true) {
@@ -27,14 +27,17 @@ class Elastic {
           this.es.logElastic('info', `[UPDATE] API and KIBANA are up-to-date!`);
         }
       } else {
-        // New installation - put 'cicd-perf' template
-        Object.keys(this.templates).forEach(async templ => {
-          await this.es.putTemplate(templ, this.templates[templ]);
+        // New installation - put templates in place before anything else!
+        Object.keys(this.templates[`elk${nconf.get('env:ES_MAJOR')}`]).forEach(async templ => {
+          await this.es.putTemplate(templ, this.templates[`elk${nconf.get('env:ES_MAJOR')}`][templ]);
         });
       }
+      // Everything looks good - we can save data to ES!
+      nconf.set('env:useES', true);
     } catch (err) {
       if (err) {
-        this.es.logElastic('error', `[ERROR] message: ${err}`);
+        nconf.set('env:useES', false);
+        this.es.logElastic('error', `Error setting up Elastic! Data will NOT be saved to ES! Error: ${err}`);
         return err;
       }
     }
@@ -43,24 +46,24 @@ class Elastic {
   async upgrade() {
     try {
       this.es.logElastic('info', `[UPDATE] checking for updates ...`);
-      Object.keys(this.templates).forEach(async templ => {
-        await this.es.putTemplate(templ, this.templates[templ]);
+      Object.keys(this.templates[`elk${nconf.get('env:ES_MAJOR')}`]).forEach(async templ => {
+        await this.es.putTemplate(templ, this.templates[`elk${nconf.get('env:ES_MAJOR')}`][templ]);
       });
-      if (nconf.get('env:KB_MAJOR') < 6 && nconf.get('env:ES_MAJOR') > 5) {
-        // This is a 5.x -> 6.x upgrade! Run reindex jobs!
-        this.es.logElastic(
-          'info',
-          `[UPGRADE] upgrading indices from [${nconf.get('env:KB_MAJOR')}] to [${nconf.get('env:ES_MAJOR')}]!`
-        );
-        const indexDay = new Date().toISOString().slice(0, 10).replace(/-/g, '.');
-        await this.upgradeReindex(this.env.KB_INDEX);
-        await this.upgradeReindex(`${this.env.INDEX_PERF}-${indexDay}`);
-        await this.upgradeReindex(`${this.env.INDEX_RES}-${indexDay}`);
-        await this.upgradeReindex(`${this.env.INDEX_ERR}-${indexDay}`);
-      }
-      // Always run the regular checks
-      await this.es.kbImport(JSON.parse(this.importFile('./.kibana_items.json')));
-      await this.es.defaultIndex(this.env.INDEX_PERF + '*', this.env.ES_VERSION);
+      // if (nconf.get('env:KB_MAJOR') < 6 && nconf.get('env:ES_MAJOR') > 5) {
+      //   // This is a 5.x -> 6.x upgrade! Run reindex jobs!
+      //   this.es.logElastic(
+      //     'info',
+      //     `[UPGRADE] upgrading indices from [${nconf.get('env:KB_MAJOR')}] to [${nconf.get('env:ES_MAJOR')}]!`
+      //   );
+      //   const indexDay = new Date().toISOString().slice(0, 10).replace(/-/g, '.');
+      //   await this.upgradeReindex(this.env.KB_INDEX);
+      //   await this.upgradeReindex(`${this.env.INDEX_PERF}-${indexDay}`);
+      //   await this.upgradeReindex(`${this.env.INDEX_RES}-${indexDay}`);
+      //   await this.upgradeReindex(`${this.env.INDEX_ERR}-${indexDay}`);
+      // }
+      // // Always run the regular checks
+      // await this.es.kbImport(JSON.parse(this.importFile('./.kibana_items.json')));
+      // await this.es.defaultIndex(this.env.INDEX_PERF + '*', this.env.ES_VERSION);
       this.es.logElastic('info', `[UPDATE] completed successfully!`);
     } catch (err) {
       if (err) {
@@ -72,7 +75,7 @@ class Elastic {
   async upgradeReindex(index) {
     try {
       const indexSettings = await this.es.getSettings(index);
-      if (!Object.prototype.hasOwnProperty.call(indexSettings, index)) return;
+      if (!indexSettings.hasOwnProperty(index)) return;
       const indexVer = indexSettings[index].settings.index.version.created_string || '0';
       // Make sure we don't attempt reindex of v6.x indices!
       if (parseInt(indexVer.substr(0, 1), 10) > 5) return;
@@ -117,11 +120,11 @@ class Elastic {
     );
     if (upgrade === true) {
       this.es.logElastic('info', `[UPDATE] ` +
-      `Force: ${nconf.get('es_upgrade')} - ` +
+      `Force: ${nconf.get('es_upgrade') || false} - ` +
       `New: ${!this.env.KB_MAJOR} - ` +
-      `Update: ${semver.lt(this.env.CURR_VERSION, this.env.NEW_VERSION)} - ` +
+      `App Update: ${semver.lt(this.env.CURR_VERSION, this.env.NEW_VERSION)} - ` +
         `(CURR:${this.env.CURR_VERSION} > NEW:${this.env.NEW_VERSION}) - ` +
-      `Upgrade: ${this.env.KB_MAJOR < this.env.ES_MAJOR} - (KB:${this.env.KB_MAJOR} > ES:${this.env.ES_MAJOR})`);
+      `ES Upgrade: ${this.env.KB_MAJOR < this.env.ES_MAJOR} - (KB:${this.env.KB_MAJOR} > ES:${this.env.ES_MAJOR})`);
     }
     return upgrade;
   }

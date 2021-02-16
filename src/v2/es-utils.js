@@ -125,12 +125,9 @@ class ESClass {
   }
 
   async delDocById(index, type, id) {
-    let exists = false;
-    if (id) {
-      exists = await this.client
-        .exists({ index: index, type: type, id: id });
-    }
-    if (exists) {
+    if (await this.client
+      .exists({ index: index, type: type, id: id })
+    ) {
       return await this.client
         .delete({ index: index, type: type, id: id });
     }
@@ -198,16 +195,14 @@ class ESClass {
       ? Object.keys(index.body)[0]
       : Object.keys(index)[0];
 
-    const exists = await this.client
+    if (await this.client
       .indices
-      .exists({ index: index });
-    if (exists || exists.body) {
+      .exists({ index: index })
+    ) {
       const settings = await this.client
         .indices
         .getSettings({ index: index, includeDefaults: true, human: true });
-      return (parseInt(this.env.ES_MAJOR, 10) > 6)
-        ? settings.body[index].settings.index.version.created_string || '0'
-        : settings[index].settings.index.version.created_string || '0';
+      return (settings.body[index].settings.index.version.created_string || '0');
     }
     return '0';
   }
@@ -215,19 +210,21 @@ class ESClass {
   async getTmplVer(esVersion) {
     try {
       const currTemplate = await this.getTemplate(this.env.INDEX_PERF);
-      if (currTemplate) {
-        if (esVersion > 5 && esVersion < 6) {
-          return currTemplate[this.env.INDEX_PERF].mappings._default._meta.api_version;
-        } else if (esVersion > 6 && esVersion < 7) {
-          return currTemplate[this.env.INDEX_PERF].mappings.doc._meta.api_version;
+      if (currTemplate.body) {
+        switch (esVersion) {
+          case 5:
+            return currTemplate.body[this.env.INDEX_PERF].mappings._default._meta.api_version;
+          case 6:
+            return currTemplate.body[this.env.INDEX_PERF].mappings.doc._meta.api_version;
+          case 7:
+            return currTemplate.body.index_templates[0].index_template.template.mappings._meta.api_version;
+          default:
+            return false;
         }
-        return currTemplate.body.index_templates[0].index_template.template.mappings._meta.api_version;
       }
-      // New install? no template found
-      return 0;
     } catch (err) {
       if (err) {
-        return 0;
+        throw new Error(`Unable to get Template ${this.env.INDEX_PERF}! Error: ${err}`);
       }
     }
   }
@@ -237,26 +234,17 @@ class ESClass {
       type = (parseInt(this.env.ES_MAJOR, 10) > 6) ? '_doc' : 'doc';
       body.type = type;
     }
-    let exists = false;
-    if (id) {
-      exists = await this.client
-        .exists({ index: index, type: type, id: id });
+    const sendBody = {
+      index: index,
+      body: body,
+      ...parseInt(this.env.ES_MAJOR, 10) < 7 && { type: type },
+      ...id && { id: id }
+    };
+    try {
+      return await this.client.index(sendBody);
+    } catch (err) {
+      this.logElastic('error', `Unable to index record! Error: ${err}`);
     }
-    if (!exists) {
-      // Only create item if it does not exist
-      const sendBody = {
-        index: index,
-        body: body,
-        ...parseInt(this.env.ES_MAJOR, 10) < 7 && { type: type },
-        ...id && { id: id }
-      };
-      try {
-        return await this.client.index(sendBody);
-      } catch (err) {
-        this.logElastic('error', `Unable to index record! Error: ${err}`);
-      }
-    }
-    return { _id: id, result: 'exists', statusCode: 200, reason: 'Already exists' };
   }
 
   async bulk(docs) {
@@ -325,7 +313,7 @@ class ESClass {
   }
 
   async checkImportErrors(response, job, item) {
-    if (Object.prototype.hasOwnProperty.call(response, 'error')) {
+    if (response.hasOwnProperty('error')) {
       this.logElastic('error', `[IMPORT] ${job} - item: ${item} - ERROR! - reason: ${response.error.reason}`);
     } else {
       this.logElastic('debug', `[IMPORT] ${job} - item: ${item} - ${response.result.toUpperCase() || 'SUCCESS'}!`);
