@@ -325,7 +325,7 @@ describe('GET endpoint ', function () {
         expect(res).to.have.property('ok');
         expect(res.ok).to.be.false;
         expect(res).to.have.property('text');
-        expect(res.text).to.contain('You found the 404 page');
+        expect(res.text).to.contain('Found. Redirecting to /404.html');
         done();
       });
   });
