@@ -16,8 +16,9 @@ nconf
   })
   .env({
     lowerCase: true,
-    whitelist: ['configfile', 'node_env', 'api_host', 'host', 'http_port', 'log_level', 'log_path', 'kb_index', 'kb_rename',
-      'es_upgrade', 'es_host', 'es_port', 'es_protocol', 'es_timeout', 'es_user', 'es_passwd', 'es_ssl_cert', 'es_ssl_key', 'kb_host', 'kb_port'
+    whitelist: ['configfile', 'node_env', 'api_host', 'host', 'http_port', 'log_level', 'log_path',
+      'kb_index', 'kb_rename', 'es_upgrade', 'es_host', 'es_port', 'es_protocol', 'es_timeout',
+      'es_user', 'es_passwd', 'es_ssl_cert', 'es_ssl_key', 'kb_host', 'kb_port'
     ],
     parseValues: true
   });

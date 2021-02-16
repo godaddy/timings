@@ -20,6 +20,7 @@ lib-cov
 coverage
 .grunt
 test_results
+.nyc*
 
 # Build artifacts
 .npmrc

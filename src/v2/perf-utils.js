@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-prototype-builtins
 /**
  * Created by mverkerk on 9/26/2016.
  */
@@ -8,6 +9,7 @@ const nconf = require('nconf');
 const luceneParse = require('lucene-parser');
 const uuidv4 = require('uuid/v4');
 const percentile = require('percentile');
+const crypto = require('crypto');
 const esUtils = require('./es-utils.js');
 const mime = require('mime-types');
 
@@ -26,7 +28,10 @@ class PUClass {
     this.errorMsg = [];
     this.dl = '';
     this.timing = {};
-    if (this.body.hasOwnProperty('flags') && this.body.flags.hasOwnProperty('assertRum')) {
+    if (
+      this.body.hasOwnProperty('flags') &&
+      this.body.flags.hasOwnProperty('assertRum')
+    ) {
       this.body.flags.assertBaseline = this.body.flags.assertRum;
       delete this.body.flags.assertRum;
     }
@@ -81,8 +86,11 @@ class PUClass {
       // Store results in ES
       if (this.env.useES === true && this.objParams.flags.esCreate === true) {
         this.esTrace.push({ type: 'ES_CREATE', exportData });
-        const response = await this.es.index(`${this.env.INDEX_PERF}-${indexDay}`, this.route, '', exportData);
-        this.esSaved = (response.result === 'created');
+        const docId = this.getDocId(exportData);
+        const response = await this.es.index(`${this.env.INDEX_PERF}-${indexDay}`, this.route, (docId || ''), exportData);
+        this.esSaved = (parseInt(this.env.ES_MAJOR, 10) > 6)
+          ? response.body.result === 'created'
+          : response.result === 'created';
         if (this.esSaved && this.route === 'navtiming') {
           const resBody = this.getResourcesBody(exportData['@_uuid']);
           this.resourcesSaved = await this.es.bulk(resBody);
@@ -109,11 +117,7 @@ class PUClass {
     appendObject[this.objParams.multirun.currentRun] = this.objParams;
     appendObject[this.objParams.multirun.currentRun].route = this.route;
     // Write to the file
-    try {
-      await fs.outputJson(multiFile, appendObject, { flag: 'w+' });
-    } catch (err) {
-      throw err;
-    }
+    await fs.outputJson(multiFile, appendObject, { flag: 'w+' });
     // Check if this is the last run
     if (this.objParams.multirun.currentRun >= this.objParams.multirun.totalRuns) {
       // Last run! Determine the chosen run (percentile?)
@@ -237,11 +241,11 @@ class PUClass {
     const baselineAgg = this.assertMetric === 'pageLoadTime' ? 'perf.measured' : 'perf.visualComplete';
 
     // Build the ES base query
-    const query = { bool: { must: [], must_not: [] }};
-    const aggs = { baseline: { percentiles: { field: baselineAgg, percents: [baselineParams.perc] }}};
+    const query = { bool: { must: [], must_not: [] } };
+    const aggs = { baseline: { percentiles: { field: baselineAgg, percents: [baselineParams.perc] } } };
 
     // Decide what URL to filter on
-    let mustUrl = { wildcard: { dl: { value: baselineParams.searchUrl }}};
+    let mustUrl = { wildcard: { dl: { value: baselineParams.searchUrl } } };
     if (!baselineParams.searchUrl || baselineParams.searchUrl.indexOf('*') < 0) {
       // Not a wildcard search - sanitize the 'dl' field!
       this.queryUrl = this.dl;
@@ -251,23 +255,29 @@ class PUClass {
       luceneParse.setSearchTerm(this.queryUrl);
 
       // Add the URL and the time range to the query object
-      mustUrl = { query_string: { default_field: 'dl', query: luceneParse.getFormattedSearchTerm() }};
+      mustUrl = { query_string: { default_field: 'dl', query: luceneParse.getFormattedSearchTerm() } };
     }
 
     // Now, remove the trailing '*' -> the Lucene parser will automatically add it!
-    const mustRange = { range: { et: { from: 'now-' + baselineParams.days + 'd', to: 'now' }}};
+    const mustRange = { range: { et: { from: 'now-' + baselineParams.days + 'd', to: 'now' } } };
     query.bool.must.push(mustUrl, mustRange);
     if (parseInt(this.env.ES_MAJOR, 10) > 5) {
-      query.bool.must.push({ term: { type: { value: this.route }}});
+      query.bool.must.push({ term: { type: { value: this.route } } });
     }
 
     // Add baseline includes
-    if (baselineParams.hasOwnProperty('incl') && Object.keys(baselineParams.incl).length > 0) {
+    if (
+      baselineParams.hasOwnProperty('incl')
+      && Object.keys(baselineParams.incl).length > 0
+    ) {
       this.addBaselineIncl(baselineParams.incl, query, aggs);
     }
 
     // Add baseline excludes
-    if (baselineParams.hasOwnProperty('excl') && Object.keys(baselineParams.excl).length > 0) {
+    if (
+      baselineParams.hasOwnProperty('excl')
+      && Object.keys(baselineParams.excl).length > 0
+    ) {
       this.addBaselineExcl(baselineParams.excl, query);
     }
 
@@ -318,7 +328,7 @@ class PUClass {
     // Add user-specified includes
     for (const field in incl) {
       if (incl[field] !== '*') {
-        const mustIncl = { query_string: {}};
+        const mustIncl = { query_string: {} };
         mustIncl.query_string.default_field = 'log.' + field;
         // Special field functions (_log_ and _agg_)
         if (incl[field] === '_log_') {
@@ -331,13 +341,13 @@ class PUClass {
         } else if (incl[field] === '_agg_') {
           // Do filter and aggregate
           luceneParse.setSearchTerm(incl[field]);
-          aggs[field] = { terms: { field: field }};
+          aggs[field] = { terms: { field: field } };
         } else {
           // Do filter and aggregate
           luceneParse.setSearchTerm(incl[field]);
           mustIncl.query_string.query = luceneParse.getFormattedSearchTerm();
           query.bool.must.push(mustIncl);
-          aggs[field] = { terms: { field: 'log.' + field }};
+          aggs[field] = { terms: { field: 'log.' + field } };
         }
       }
     }
@@ -347,7 +357,7 @@ class PUClass {
     // Add user-specified excludes
     for (const field in excl) {
       if (excl[field] !== '*' && excl[field] !== '') {
-        const mustExcl = { query_string: {}};
+        const mustExcl = { query_string: {} };
         mustExcl.query_string.default_field = 'log.' + field;
         luceneParse.setSearchTerm(excl[field]);
         mustExcl.query_string.query = luceneParse.getFormattedSearchTerm();
@@ -379,7 +389,7 @@ class PUClass {
       et = new Date(this.objParams.timing.startTime).toISOString();
     } else {
       // get timestamp from injectJS.time parameter
-      et = this.objParams.injectJS.hasOwnProperty('time')
+      et = (this.objParams.injectJS.hasOwnProperty('time'))
         ? new Date(this.objParams.injectJS.time).toISOString()
         : new Date().toISOString();
     }
@@ -407,7 +417,10 @@ class PUClass {
       api_took: (new Date().getTime() - this.apiStartTime),
       es_took: this.es_took,
       api_version: this.env.APP_VERSION,
-      hasResources: (this.route === 'navtiming' && this.objParams.injectJS.hasOwnProperty('resources'))
+      hasResources: (
+        this.route === 'navtiming'
+        && this.objParams.injectJS.hasOwnProperty('resources')
+      )
     };
 
     // Add params to the export object
@@ -431,6 +444,12 @@ class PUClass {
     }
 
     return exportData;
+  }
+
+  getDocId(data) {
+    // Create unique document ID so data can be backfilled/copied/exported if that's ever needed
+    const docIdRaw = [data.et, (data.log.team || 'unknown'), data.dl].join('_');
+    return crypto.createHash('md5').update(docIdRaw).digest('hex');
   }
 
   buildResponse(exportData) {
@@ -493,9 +512,9 @@ class PUClass {
     const returnJSON = { status: 400 };
 
     // Build the ES base query
-    const query = { bool: { must: [] }};
+    const query = { bool: { must: [] } };
     // Add the ID
-    const mustID = { multi_match: { fields: ['uuid', '@_uuid'], query: req.body.id }};
+    const mustID = { multi_match: { fields: ['uuid', '@_uuid'], query: req.body.id } };
     // Add the URL and the time range
 
     query.bool.must.push(mustID);
@@ -542,7 +561,7 @@ class PUClass {
       ? new Date(this.objParams.injectJS.time).toISOString()
       : new Date().toISOString();
     const indexDay = new Date(et).toISOString().slice(0, 10).replace(/-/g, '.');
-    let body = this.resNav(uuid, et);
+    const body = [this.resNav(uuid, et)];
 
     // Create entries for resources
     rt.forEach((resource) => {
@@ -582,9 +601,14 @@ class PUClass {
         'responseStart': resource.responseStart,
         'responseDuration': resource.responseStart > 0 ? resource.responseEnd - resource.responseStart : 0
       };
-      const type = (parseInt(this.env.ES_MAJOR, 10) > 5) ? 'doc' : 'resource';
-      body += `{ "index" : { "_index" : "${this.env.INDEX_RES}-${indexDay}", "_type" : "${type}" } }\n`;
-      body += JSON.stringify(res) + '\n';
+      const resEntry = {
+        _index: `${this.env.INDEX_RES}-${indexDay}`,
+        ...res
+      };
+      if (parseInt(this.env.ES_MAJOR, 10) < 7) {
+        resEntry._type = (parseInt(this.env.ES_MAJOR, 10) > 5) ? 'doc' : 'resource';
+      }
+      body.push(resEntry);
     });
     return body;
   }
@@ -627,9 +651,13 @@ class PUClass {
       'loadEventStart': timing.loadEventStart - timing.navigationStart,
       'loadEventDuration': timing.loadEventEnd - timing.loadEventStart
     };
-    const type = (parseInt(this.env.ES_MAJOR, 10) > 5) ? 'doc' : 'resource';
-    let navEntry = `{ "index" : { "_index" : "${this.env.INDEX_RES}-${indexDay}", "_type" : "${type}" } }\n`;
-    navEntry += JSON.stringify(nt) + '\n';
+    const navEntry = {
+      _index: `${this.env.INDEX_RES}-${indexDay}`,
+      ...nt
+    };
+    if (parseInt(this.env.ES_MAJOR, 10) < 7) {
+      navEntry._type = (parseInt(this.env.ES_MAJOR, 10) > 5) ? 'doc' : 'resource';
+    }
     return navEntry;
   }
 
@@ -687,7 +715,11 @@ class PUClass {
       // Key exists! Check for value(s) - multiple values may be separated by '|' ...
       const ndlVal = needle[Object.keys(needle)[0]].split('|');
       for (const ndl of ndlVal) {
-        if (typeof object[ndlKey] === 'object' && object[ndlKey].hasOwnProperty(ndl) && object[ndlKey][ndl]) {
+        if (
+          typeof object[ndlKey] === 'object'
+          && object[ndlKey].hasOwnProperty(ndl)
+          && object[ndlKey][ndl]
+        ) {
           // Key-value pair exists at this level! Get out!
           return result;
         } else if (ndlVal.indexOf(ndl) === (ndlVal.length - 1)) {
@@ -715,7 +747,10 @@ class PUClass {
     const stripQueryString = req.body.stripQueryString || false;
     let injectJS = this.getInjectCode(injectType, visualCompleteMark, stripQueryString);
     // Send decoded string if requested!
-    if (req.body.hasOwnProperty('decoded') && req.body.decoded === true) {
+    if (
+      req.body.hasOwnProperty('decoded')
+      && req.body.decoded === true
+    ) {
       injectJS = decodeURIComponent(injectJS);
     }
     cb(null, { status: 200, inject_code: injectJS });
@@ -744,7 +779,7 @@ class PUClass {
     if (this.isObject(target) && this.isObject(source)) {
       for (const key in source) {
         if (this.isObject(source[key])) {
-          if (!target[key]) Object.assign(target, { [key]: {}});
+          if (!target[key]) Object.assign(target, { [key]: {} });
           this.mergeDeep(target[key], source[key]);
         } else {
           Object.assign(target, { [key]: source[key] });

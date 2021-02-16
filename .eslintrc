@@ -1,10 +1,17 @@
 {
-  "extends": "godaddy",
-  "rules": {
-    "strict": 0,
-    "no-shadow": 0
-  },
-  "parserOptions": {
-    "ecmaVersion": 2017
-  }
+    "env": {
+        "es2020": true,
+        "node": true,
+        "mocha": true
+    },
+    "extends": "godaddy",
+    "parserOptions": {
+        "ecmaVersion": 11,
+        "sourceType": "module"
+    },
+    "rules": {
+        "no-prototype-builtins": "off",
+        "no-process-env": "off",
+        "no-console": "off"
+    }
 }

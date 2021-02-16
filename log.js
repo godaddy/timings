@@ -72,20 +72,20 @@ logger.log('info', `timings API - LOGGING - logs files stored in: ["${logPath ? 
 logger.log('info', `timings API - LOGGING - log level: ${(nconf.get('log_level') || 'info').toUpperCase()}`);
 
 function createPath(paths) {
-  let logPath = false;
+  let res = false;
   paths.forEach(trypath => {
     trypath = path.resolve(trypath);
-    if (!logPath && fs.pathExistsSync(path.resolve(trypath, 'app.log'))) { logPath = trypath; }
-    if (logPath) { return; }
+    if (!res && fs.pathExistsSync(path.resolve(trypath, 'app.log'))) { res = trypath; }
+    if (res) { return; }
     try {
       fs.ensureDirSync(trypath);
       fs.accessSync(trypath, fs.W_OK);
-      logPath = trypath;
+      res = trypath;
       return;
     } catch (err) {
       logger.log('warn', `timings API - LOGGING - unable to create logging path ["${trypath}"] - Error: ${err.message}`);
       return;
     }
   });
-  return logPath;
+  return res;
 }
