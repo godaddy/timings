@@ -8,6 +8,13 @@ const logger = require('../log.js');
 
 const app = express();
 
+// set up rate limiter: maximum of five requests per minute
+const RateLimit = require('express-rate-limit');
+const limiter = new RateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 5
+});
+
 const API_VERSIONS = { version2: '/v2' };
 app.set('API_VERSIONS', API_VERSIONS);
 
@@ -24,6 +31,7 @@ const allowCrossDomain = function (req, res, next) {
 if (nconf.get('env:LOG_PATH')) {
   app.use(require('morgan')('combined', { stream: logger.stream }));
 }
+app.use(limiter);
 app.use(allowCrossDomain);
 app.use(cookieParser());
 app.use(bodyParser.json({ limit: '5mb', type: 'application/json' }));
@@ -43,7 +51,7 @@ app.use(function (req, res, next) {
     res.status(500).json({ message: 'Server error!' });
   } else if (req.method === 'GET') {
     // Catch-all for 'GET' requests -> Not Found page
-    res.status(404).sendFile(path.join(__dirname, '..', 'public') + '/404.html');
+    res.status(404).redirect('/404.html');
   } else {
     const err = new Error('Not Found');
     err.status = 404;
