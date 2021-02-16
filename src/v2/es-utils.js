@@ -65,9 +65,7 @@ class ESClass {
   async info() {
     const response = await this.client.info();
     // Update ES version in nconf
-    const version = ('version' in response)
-      ? response.version.number
-      : response.body.version.number;
+    const version = response.body.version.number;
     nconf.set('env:ES_VERSION', version);
     nconf.set('env:ES_MAJOR', parseInt(version.substr(0, 1), 10));
     this.env = nconf.get('env');

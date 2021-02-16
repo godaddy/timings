@@ -69,10 +69,10 @@ class PUClass {
           index: `${this.env.INDEX_PERF}-*`, search_query: blQuery
         });
         const response = await this.es.search(`${this.env.INDEX_PERF}-*`, this.route, blQuery);
-        this.esTrace.push({ type: 'ES_RESPONSE', response: response });
-        this.es_took = response.took;
-        if (response.hasOwnProperty('aggregations')) {
-          this.baseline = this.checkBaseline(response);
+        this.esTrace.push({ type: 'ES_RESPONSE', response: response.body });
+        this.es_took = response.body.took;
+        if (response.body.hasOwnProperty('aggregations')) {
+          this.baseline = this.checkBaseline(response.body);
         } else {
           this.baseline = 0;
         }
@@ -87,9 +87,7 @@ class PUClass {
         this.esTrace.push({ type: 'ES_CREATE', exportData });
         const docId = this.getDocId(exportData);
         const response = await this.es.index(`${this.env.INDEX_PERF}-${indexDay}`, this.route, (docId || ''), exportData);
-        this.esSaved = (parseInt(this.env.ES_MAJOR, 10) > 6)
-          ? response.body.result === 'created'
-          : response.result === 'created';
+        this.esSaved = ['created', 'updated'].includes(response.body.result);
         if (this.esSaved && this.route === 'navtiming') {
           const resBody = this.getResourcesBody(exportData['@_uuid']);
           this.resourcesSaved = await this.es.bulk(resBody);
@@ -515,7 +513,7 @@ class PUClass {
     try {
       const response = await this.es.search([this.env.INDEX_PERF + '*', this.env.INDEX_RES + '*'], '', body);
       // Strip the meta-data from the hits
-      const hits = response.hits.hits;
+      const hits = response.body.hits.hits;
       const resources = [];
       hits.forEach((hit) => {
         const resource = hit._source;
