@@ -407,6 +407,7 @@ class PUClass {
       api_took: (new Date().getTime() - this.apiStartTime),
       es_took: this.es_took,
       api_version: this.env.APP_VERSION,
+      api_host: `${this.env.HOST}:${this.env.HTTP_PORT}`,
       hasResources: (
         this.route === 'navtiming'
         && this.objParams.injectJS.hasOwnProperty('resources')
@@ -452,6 +453,7 @@ class PUClass {
       // - Build response object
       status: 200,
       api_version: this.env.APP_VERSION,
+      api_host: `${this.env.HOST}:${this.env.HTTP_PORT}`,
       assert: this.objParams.flags.passOnFailedAssert ? true : (this.status !== 'fail'),
       route: this.route
     };
@@ -659,6 +661,7 @@ class PUClass {
 
       // Add timestamp to body object
       body.api_version = this.env.APP_VERSION;
+      body.api_host = `${this.env.HOST}:${this.env.HTTP_PORT}`;
       body.et = new Date().toISOString();
       body.route = req.route.path.replace('/', '');
       body.client_ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;

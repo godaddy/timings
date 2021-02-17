@@ -87,10 +87,12 @@ class ESClass {
 
   async getTemplate(name) {
     if (parseInt(this.env.ES_MAJOR, 10) > 6) {
+      // For ES 7.x - use the newer '_index_template'
       if (await this.client.indices.existsIndexTemplate({ name: name })) {
         return await this.client.indices.getIndexTemplate({ name: name });
       }
     }
+    // For ES 5/6 - use legacy '_template'
     if (await this.client.indices.existsTemplate({ name: name })) {
       return await this.client.indices.getTemplate({ name: name });
     }
@@ -219,6 +221,10 @@ class ESClass {
         }
       }
     } catch (err) {
+      if (err.statusCode === 404) {
+        // cicd-perf template doesn't exist - new installation?
+        return null;
+      }
       if (err) {
         throw new Error(`Unable to get Template ${this.env.INDEX_PERF}! Error: ${err}`);
       }
