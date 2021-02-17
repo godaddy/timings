@@ -189,9 +189,7 @@ class ESClass {
     } catch (err) {
       if (err) index = '.kibana';
     }
-    if (typeof index === 'object') index = (parseInt(this.env.ES_MAJOR, 10) > 6)
-      ? Object.keys(index.body)[0]
-      : Object.keys(index)[0];
+    index = Object.keys(index.body)[0];
 
     if (await this.client
       .indices
