@@ -234,7 +234,6 @@ class ESClass {
   async index(index, type, id, body) {
     if (parseInt(this.env.ES_MAJOR, 10) > 5) {
       type = (parseInt(this.env.ES_MAJOR, 10) > 6) ? '_doc' : 'doc';
-      body.type = type;
     }
     const sendBody = {
       index: index,

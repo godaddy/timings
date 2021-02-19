@@ -388,6 +388,7 @@ class PUClass {
     exportData.status = this.status;
     exportData['@_uuid'] = uuidv4();
     exportData.dl = this.dl;
+    exportData.type = this.route;
 
     // Add the 'perf' section
     exportData.perf = {
