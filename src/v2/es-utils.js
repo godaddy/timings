@@ -99,113 +99,46 @@ class ESClass {
     return;
   }
 
-  async defaultIndex(name) {
-    let id = this.env.ES_VERSION;
-    let body = { defaultIndex: name };
-    let type = 'config';
-    if (parseInt(this.env.ES_MAJOR, 10) > 5) {
-      id = 'config:' + this.env.ES_VERSION;
-      type = (parseInt(this.env.ES_MAJOR, 10) > 6) ? '_doc' : 'doc';
-      body = {
-        type: 'config',
-        config: {
-          defaultIndex: name
-        }
-      };
-    }
-    await this.client.index({ index: (this.env.KB_INDEX || '.kibana'), type: type, id: id, body: body });
-    this.logElastic('info', `[DEFAULT] Default Index set to [${name}]`);
-  }
-
-  async delIndex(index) {
-    await this.client
-      .indices
-      .delete({ index: index });
-    this.logElastic('info', `[DELETE] successfully deleted index [${index}]!`);
-  }
-
-  async delDocById(index, type, id) {
-    if (await this.client
-      .exists({ index: index, type: type, id: id })
-    ) {
-      return await this.client
-        .delete({ index: index, type: type, id: id });
-    }
-    return { _id: id, result: 'not_exists', statusCode: 200, reason: 'Does not exist' };
-  }
-
-  async reindex(src, suffix, script) {
-    const dst = src + suffix;
-    const opts = { body: { source: { index: src }, dest: { index: dst } } };
-    if (script && typeof script === 'object') {
-      opts.body.script = script;
-    }
-    await this.client.reindex(opts);
-    await this.delIndex(src);
-    await this.putAlias(dst, src);
-    this.logElastic('info', `[REINDEX] successfully reindexed [${src}] to [${dst}]!`);
-  }
-
   async exists(index, type, id) {
-    return await this.client
-      .exists({
-        index: index,
-        type: (this.env.ES_MAJOR > 5) ? 'doc' : type,
-        id: id
-      });
+    const existsBody = {
+      index: index,
+      id: id
+    };
+    if (this.env.ES_MAJOR < 7) {
+      existsBody.type = (this.env.ES_MAJOR < 6) ? type : 'doc';
+    }
+    return await this.client.exists(existsBody);
   }
 
   async search(index, type, body) {
-    return await this.client
-      .search({
-        index: index,
-        type: (this.env.ES_MAJOR > 5) ? 'doc' : type,
-        body: body
-      });
-  }
-
-  async getSettings(index) {
-    const response = await this.client
-      .indices
-      .getSettings({ index: index, includeDefaults: true, human: true });
-    return response;
-  }
-
-  async putAlias(index, alias) {
-    await this.client
-      .indices
-      .putAlias({ index: index, name: alias });
-    this.logElastic('info', `[ALIAS] successfully added alias [${alias}] to [${index}]!`);
-  }
-
-  async getAlias(alias) {
-    return await this.client
-      .indices
-      .getAlias({ name: alias });
+    const searchBody = {
+      index: index,
+      body: body
+    };
+    if (this.env.ES_MAJOR < 7) {
+      searchBody.type = (this.env.ES_MAJOR < 6) ? type : 'doc';
+    }
+    return await this.client.search(searchBody);
   }
 
   async getKBVer() {
     let index;
     try {
-      index = await this.getAlias((this.env.KB_INDEX || '.kibana'));
+      index = await this.client.indices.getAlias({ name: (this.env.KB_INDEX || '.kibana') });
     } catch (err) {
       if (err) index = '.kibana';
     }
     index = Object.keys(index.body)[0];
 
-    if (await this.client
-      .indices
-      .exists({ index: index })
+    if (await this.client.indices.exists({ index: index })
     ) {
-      const settings = await this.client
-        .indices
-        .getSettings({ index: index, includeDefaults: true, human: true });
+      const settings = await this.client.indices.getSettings({ index: index, includeDefaults: true, human: true });
       return (settings.body[index].settings.index.version.created_string || '0');
     }
     return '0';
   }
 
-  async getTmplVer(esVersion) {
+  async getTemplateVersion(esVersion) {
     try {
       const currTemplate = await this.getTemplate(this.env.INDEX_PERF);
       if (currTemplate.body) {
@@ -232,15 +165,14 @@ class ESClass {
   }
 
   async index(index, type, id, body) {
-    if (parseInt(this.env.ES_MAJOR, 10) > 5) {
-      type = (parseInt(this.env.ES_MAJOR, 10) > 6) ? '_doc' : 'doc';
-    }
     const sendBody = {
       index: index,
       body: body,
-      ...parseInt(this.env.ES_MAJOR, 10) < 7 && { type: type },
       ...id && { id: id }
     };
+    if (this.env.ES_MAJOR < 7) {
+      sendBody.type = (this.env.ES_MAJOR < 6) ? type : 'doc';
+    }
     try {
       return await this.client.index(sendBody);
     } catch (err) {
@@ -274,51 +206,6 @@ class ESClass {
       maxRetries: 3
     });
     return response.successful > 0;
-  }
-
-
-  async kbImport(importJson) {
-    for (const index of Object.keys(importJson)) {
-      let item = importJson[index];
-      const title = item._source.title;
-      if (item._source === 'delete_this') {
-        this.checkImportErrors(
-          await this.delDocById((this.env.KB_INDEX || '.kibana'), item._type, item._id),
-          'delete [' + item._type + ']',
-          item._id
-        );
-      } else {
-        if (item._type === 'index-pattern' && item._id === 'cicd-perf*') {
-          const apiHost = (this.env.HTTP_PORT !== 80) ? this.env.HOST + ':' + this.env.HTTP_PORT : this.env.HOST;
-          item._source.fieldFormatMap = item._source.fieldFormatMap.replace('__api__hostname', apiHost.toLowerCase());
-        }
-        item = this.upgradeConvert(item);
-        this.checkImportErrors(
-          await this.index((this.env.KB_INDEX || '.kibana'), item._type, item._id, item._source),
-          'import [' + item._type + ']', title
-        );
-      }
-    }
-    this.logElastic('info', `[IMPORT] Created/updated ${Object.keys(importJson).length} Kibana item(s)!`);
-  }
-
-  upgradeConvert(item) {
-    if (parseInt(nconf.get('env:ES_MAJOR'), 10) > 5) {
-      item._id = item._type + ':' + item._id;
-      item._type + ':' + item._id;
-      const _sourceTmp = {};
-      _sourceTmp[item._type] = item._source;
-      item._source = _sourceTmp;
-    }
-    return item;
-  }
-
-  async checkImportErrors(response, job, item) {
-    if (response.hasOwnProperty('error')) {
-      this.logElastic('error', `[IMPORT] ${job} - item: ${item} - ERROR! - reason: ${response.error.reason}`);
-    } else {
-      this.logElastic('debug', `[IMPORT] ${job} - item: ${item} - ${response.result.toUpperCase() || 'SUCCESS'}!`);
-    }
   }
 
   logElastic(level, msg) {

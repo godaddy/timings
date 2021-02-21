@@ -490,9 +490,6 @@ class PUClass {
   async getResources(req, cb) {
     // Collect POST data
     if (this.env.useES === false) {
-      // Send something back to the user
-      // const err = new Error('Resources not available - ELK could not be reached or is not configured');
-      // err.status = 400;
       return cb(null, {
         status: 200,
         kibana_host: (this.env.ES_PROTOCOL || 'http') + '://' + this.env.KB_HOST,
