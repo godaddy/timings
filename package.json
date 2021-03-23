@@ -47,7 +47,7 @@
         "uuid": "^3.4.0",
         "wait-port": "^0.2.9",
         "winston": "^3.3.3",
-        "snyk": "^1.455.0"
+        "snyk": "^1.465.0"
     },
     "devDependencies": {
         "chai": "^4.3.0",
