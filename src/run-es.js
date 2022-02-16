@@ -27,9 +27,7 @@ class Elastic {
         }
       } else {
         // New installation - put templates in place before anything else!
-        Object.keys(this.templates[`elk${nconf.get('env:ES_MAJOR')}`]).forEach(async templ => {
-          await this.es.putTemplate(templ, this.templates[`elk${nconf.get('env:ES_MAJOR')}`][templ]);
-        });
+        await this.newInstall();
       }
       // Everything looks good - we can save data to ES!
       nconf.set('env:useES', true);
@@ -39,6 +37,19 @@ class Elastic {
         this.es.logElastic('error', `Error setting up Elastic! Data will NOT be saved to ES! Error: ${err}`);
         return err;
       }
+    }
+  }
+
+  async newInstall() {
+    Object.keys(this.templates[`elk${nconf.get('env:ES_MAJOR')}`]).forEach(async templ => {
+      await this.es.putTemplate(templ, this.templates[`elk${nconf.get('env:ES_MAJOR')}`][templ]);
+    });
+    // Import Kibana saved objects
+    try {
+      await this.es.esImport();
+      await this.es.kbImport();
+    } catch (err) {
+      this.es.logElastic('error', `Error importing first time setup data! Error: ${err}`);
     }
   }
 

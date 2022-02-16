@@ -1,0 +1,331 @@
+[
+  {
+    "_index": "cicd-errorlog-2015.03.04",
+    "_type": "_doc",
+    "_id": "7ya__HcBzIHS4QuSzpEO",
+    "_score": 1.0,
+    "_source": {
+      "api_version": "1.4.5",
+      "api_host": "ed2f2846a8fa:80",
+      "et": "2015-03-04T10:19:24.279Z",
+      "route": "navtiming",
+      "client_ip": "::ffff:172.19.0.1",
+      "client_ua": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36",
+      "@timestamp": "2015-03-04T10:19:24.279Z",
+      "dl": "https://www.example.com/",
+      "log": {
+        "team": "perfeng",
+        "app_info": "V2 - Test App (navtiming)",
+        "env_tester": "test",
+        "browser": "Chrome",
+        "env_target": "prod"
+      },
+      "err_message": "child \"log\" fails because [child \"test_info\" fails because [\"test_info\" is required]]",
+      "err_status": 422,
+      "type": "error_navtiming"
+    }
+  },
+  {
+    "_index": "cicd-perf-2016.09.27",
+    "_type": "_doc",
+    "_id": "d7645f3d3a6cdd42feef7e7296ba07f3",
+    "_score": 1.0,
+    "_source": {
+      "et": "2016-09-27T17:34:31.801Z",
+      "@timestamp": "2016-09-27T17:34:31.801Z",
+      "status": "fail",
+      "@_uuid": "fe05c81e-d782-48d8-9f73-689eee0d04ea",
+      "dl": "www.example.com/",
+      "type": "usertiming",
+      "perf": {
+        "flatSLA": 4000,
+        "measured": 5345,
+        "baseline": 0,
+        "threshold": 4000,
+        "visualComplete": 5345
+      },
+      "info": {
+        "ranBaseline": true,
+        "usedBaseline": false,
+        "assertType": "flat_sla",
+        "assertMetric": "pageLoadTime",
+        "api_took": 36,
+        "es_took": 25,
+        "api_version": "1.4.5",
+        "api_host": "ed2f2846a8fa:80",
+        "hasResources": false
+      },
+      "log": {
+        "team": "perfeng",
+        "test_info": "V2 - Test App (usertiming)",
+        "env_tester": "chromeEmulator",
+        "browser": "Chrome",
+        "env_target": "prod"
+      },
+      "flags": {
+        "assertBaseline": true,
+        "debug": false,
+        "esTrace": false,
+        "esCreate": true,
+        "passOnFailedAssert": false
+      },
+      "multirun": false,
+      "baseline": {
+        "days": 7,
+        "perc": 75,
+        "padding": 1.2,
+        "searchUrl": "",
+        "incl": {
+          "browser": "_log_"
+        }
+      }
+    }
+  },
+  {
+    "_index": "cicd-perf-2016.09.27",
+    "_type": "_doc",
+    "_id": "85fc890a5c0b5a0114c4b3b6b4568a50",
+    "_score": 1.0,
+    "_source": {
+      "et": "2016-09-27T17:34:36.867Z",
+      "@timestamp": "2016-09-27T17:34:36.867Z",
+      "status": "pass",
+      "@_uuid": "e1c2c52a-be86-42ec-a558-bda9078c52bf",
+      "dl": "api.example.com",
+      "type": "apitiming",
+      "perf": {
+        "flatSLA": 4000,
+        "measured": 38,
+        "baseline": 0,
+        "threshold": 4000,
+        "visualComplete": 38
+      },
+      "info": {
+        "ranBaseline": true,
+        "usedBaseline": false,
+        "assertType": "flat_sla",
+        "assertMetric": "pageLoadTime",
+        "api_took": 29,
+        "es_took": 22,
+        "api_version": "1.4.5",
+        "api_host": "ed2f2846a8fa:80",
+        "hasResources": false
+      },
+      "log": {
+        "team": "perfeng",
+        "test_info": "V2 - Test App (apitiming)",
+        "env_tester": "linux",
+        "browser": "api_call",
+        "env_target": "prod"
+      },
+      "flags": {
+        "assertBaseline": true,
+        "debug": false,
+        "esTrace": false,
+        "esCreate": true,
+        "passOnFailedAssert": false
+      },
+      "multirun": false,
+      "baseline": {
+        "days": 7,
+        "perc": 75,
+        "padding": 1.2,
+        "searchUrl": "",
+        "incl": {
+          "browser": "_log_"
+        }
+      }
+    }
+  },
+  {
+    "_index": "cicd-perf-2017.06.01",
+    "_type": "_doc",
+    "_id": "af6167b1d9e43f66b509d7ee6ec5d8c6",
+    "_score": 1.0,
+    "_source": {
+      "et": "2017-06-01T17:45:32.056Z",
+      "@timestamp": "2017-06-01T17:45:32.056Z",
+      "status": "pass",
+      "@_uuid": "b6823cf8-c7be-4f41-8554-93acd4a089d9",
+      "dl": "www.example.com/",
+      "type": "navtiming",
+      "perf": {
+        "flatSLA": 4000,
+        "measured": 830,
+        "baseline": 0,
+        "threshold": 4000,
+        "visualComplete": 1734
+      },
+      "info": {
+        "ranBaseline": true,
+        "usedBaseline": false,
+        "assertMetric": "pageLoadTime",
+        "api_took": 306,
+        "es_took": 0,
+        "api_version": "1.4.5",
+        "api_host": "ed2f2846a8fa:80",
+        "hasResources": true
+      },
+      "log": {
+        "team": "perfeng",
+        "test_info": "V2 - Test App (navtiming)",
+        "env_tester": "test",
+        "browser": "Chrome",
+        "env_target": "prod"
+      },
+      "flags": {
+        "assertBaseline": true,
+        "debug": false,
+        "esTrace": false,
+        "esCreate": true,
+        "passOnFailedAssert": false
+      },
+      "multirun": false,
+      "baseline": {
+        "days": 7,
+        "perc": 75,
+        "padding": 1.2,
+        "searchUrl": "",
+        "incl": {
+          "browser": "_log_"
+        }
+      },
+      "nav": {
+        "loadEventStart": 830,
+        "domComplete": 829,
+        "domInteractive": 777,
+        "firstByteTime": 130,
+        "dnsTime": 0,
+        "redirectTime": 0,
+        "connectTime": 14,
+        "processingTime": 57
+      }
+    }
+  },
+  {
+    "_index": "cicd-resource-2017.06.01",
+    "_type": "_doc",
+    "_id": "7Ca__HcBzIHS4QuSHpGS",
+    "_score": 1.0,
+    "_source": {
+      "et": "2017-06-01T17:45:32.056Z",
+      "@timestamp": "2017-06-01T17:45:32.056Z",
+      "type": "navtiming",
+      "@_uuid": "b6823cf8-c7be-4f41-8554-93acd4a089d9",
+      "dl": "www.example.com/",
+      "uri": "https://www.example.com/",
+      "uri_protocol": "https",
+      "uri_host": "www.example.com",
+      "uri_path": "/",
+      "uri_query": null,
+      "team": "perfeng",
+      "log": {
+        "team": "perfeng"
+      },
+      "start": 0,
+      "duration": 773,
+      "redirectStart": 0,
+      "redirectDuration": 0,
+      "appCacheStart": 0,
+      "appCacheDuration": 0,
+      "dnsStart": 67,
+      "dnsDuration": 0,
+      "tcpStart": 67,
+      "tcpDuration": 47,
+      "sslStart": 81,
+      "sslDuration": 33,
+      "requestStart": 114,
+      "requestDuration": 130,
+      "responseStart": 244,
+      "responseDuration": 529,
+      "loadEventStart": 830,
+      "loadEventDuration": 3
+    }
+  },
+  {
+    "_index": "cicd-resource-2017.06.01",
+    "_type": "_doc",
+    "_id": "7Sa__HcBzIHS4QuSHpGT",
+    "_score": 1.0,
+    "_source": {
+      "et": "2017-06-01T17:45:32.056Z",
+      "@timestamp": "2017-06-01T17:45:32.056Z",
+      "type": "resource",
+      "@_uuid": "b6823cf8-c7be-4f41-8554-93acd4a089d9",
+      "dl": "www.example.com/",
+      "uri": "https://images.example.com/ux/1.3.46-brand/css/uxcore-sales.min.css",
+      "uri_protocol": "https",
+      "uri_host": "img1.wsimg.com",
+      "uri_path": "/ux/1.3.46-brand/css/uxcore-sales.min.css",
+      "uri_query": null,
+      "team": "perfeng",
+      "log": {
+        "team": "perfeng"
+      },
+      "start": 254.55,
+      "fetchStart": 254.55,
+      "duration": 28.064999999999998,
+      "decodedBodySize": 93840,
+      "encodedBodySize": 16731,
+      "transferSize": 17008,
+      "initiatorType": "link",
+      "redirectStart": 0,
+      "redirectDuration": 0,
+      "appCacheStart": 0,
+      "appCacheDuration": 0,
+      "dnsStart": 254.55,
+      "dnsDuration": 0,
+      "tcpStart": 254.55,
+      "tcpDuration": 0,
+      "sslStart": 0,
+      "sslDuration": 0,
+      "requestStart": 256.665,
+      "requestDuration": 22.704999999999984,
+      "responseStart": 279.37,
+      "responseDuration": 3.2450000000000045
+    }
+  },
+  {
+    "_index": "cicd-resource-2017.06.01",
+    "_type": "_doc",
+    "_id": "7ia__HcBzIHS4QuSHpGU",
+    "_score": 1.0,
+    "_source": {
+      "et": "2017-06-01T17:45:32.056Z",
+      "@timestamp": "2017-06-01T17:45:32.056Z",
+      "type": "resource",
+      "@_uuid": "b6823cf8-c7be-4f41-8554-93acd4a089d9",
+      "dl": "www.example.com/",
+      "uri": "https://static.example.com/wrhs/725d0b82d00774200f2cc0f7283a5b3d/salesheader.min.css",
+      "uri_protocol": "https",
+      "uri_host": "img1.wsimg.com",
+      "uri_path": "/wrhs/725d0b82d00774200f2cc0f7283a5b3d/salesheader.min.css",
+      "uri_query": null,
+      "team": "perfeng",
+      "log": {
+        "team": "perfeng"
+      },
+      "start": 254.59000000000003,
+      "fetchStart": 254.59000000000003,
+      "duration": 32.974999999999966,
+      "decodedBodySize": 151067,
+      "encodedBodySize": 36620,
+      "transferSize": 36980,
+      "initiatorType": "link",
+      "redirectStart": 0,
+      "redirectDuration": 0,
+      "appCacheStart": 0,
+      "appCacheDuration": 0,
+      "dnsStart": 254.59000000000003,
+      "dnsDuration": 0,
+      "tcpStart": 254.59000000000003,
+      "tcpDuration": 0,
+      "sslStart": 0,
+      "sslDuration": 0,
+      "requestStart": 257.49,
+      "requestDuration": 27.610000000000014,
+      "responseStart": 285.1,
+      "responseDuration": 2.464999999999975
+    }
+  }
+]

@@ -6,6 +6,8 @@ const elasticsearch = require('@elastic/elasticsearch');
 const nconf = require('nconf');
 const waitOn = require('wait-port');
 const logger = require('../../log.js');
+const kbImportJson = require('../../.kibana_items.json');
+const sampleData = require('../../.sample_data.json');
 
 /* eslint no-sync: 0 */
 class ESClass {
@@ -165,15 +167,15 @@ class ESClass {
   }
 
   async index(index, type, id, body) {
-    const sendBody = {
-      index: index,
-      body: body,
-      ...id && { id: id }
-    };
-    if (this.env.ES_MAJOR < 7) {
-      sendBody.type = (this.env.ES_MAJOR < 6) ? type : 'doc';
-    }
     try {
+      const sendBody = {
+        index: index,
+        body: body,
+        ...id && { id: id }
+      };
+      if (this.env.ES_MAJOR < 7) {
+        sendBody.type = (this.env.ES_MAJOR < 6) ? type : 'doc';
+      }
       return await this.client.index(sendBody);
     } catch (err) {
       this.logElastic('error', `Unable to index record! Error: ${err}`);
@@ -206,6 +208,58 @@ class ESClass {
       maxRetries: 3
     });
     return response.successful > 0;
+  }
+
+  async esImport() {
+    for (const index of Object.keys(sampleData)) {
+      const item = sampleData[index];
+      const type = (parseInt(nconf.get('env:ES_MAJOR'), 10) < 6) ? item.route : '_doc';
+      await this.index(item._index, type, item._id, item._source);
+    }
+    this.logElastic('info', `[IMPORT] Imported sample data into elasticsearch!`);
+  }
+
+  async kbImport() {
+    for (const index of Object.keys(kbImportJson)) {
+      let item = kbImportJson[index];
+      const title = item._source.title;
+      if (item._type === 'index-pattern' && item._id === 'cicd-perf*') {
+        const apiHost = (this.env.HTTP_PORT !== 80) ? this.env.HOST + ':' + this.env.HTTP_PORT : this.env.HOST;
+        item._source.fieldFormatMap = item._source.fieldFormatMap.replace('__api__hostname', apiHost.toLowerCase());
+      }
+      item = this.upgradeConvert(item);
+      this.checkImportErrors(
+        await this.index((this.env.KB_INDEX || '.kibana'), item._type, item._id, item._source),
+        'import [' + item._type + ']', title
+      );
+    }
+    this.logElastic('info', `[IMPORT] Created/updated ${Object.keys(kbImportJson).length} Kibana item(s)!`);
+  }
+
+  async checkImportErrors(response, job, item) {
+    if (response.body.hasOwnProperty('error')) {
+      this.logElastic('error', `[IMPORT] ${job} - item: ${item} - ERROR! - reason: ${response.body.error.reason}`);
+    } else {
+      this.logElastic('debug', `[IMPORT] ${job} - item: ${item} - ${response.body.result.toUpperCase() || 'SUCCESS'}!`);
+    }
+  }
+
+  upgradeConvert(item) {
+    if (parseInt(nconf.get('env:ES_MAJOR'), 10) > 5 && parseInt(nconf.get('env:ES_MAJOR'), 10) < 7) {
+      item._id = item._type + ':' + item._id;
+      item._type + ':' + item._id;
+      const _sourceTmp = {};
+      _sourceTmp[item._type] = item._source;
+      item._source = _sourceTmp;
+    } else {
+      item.type = item._type;
+      item._id = item._type + ':' + item._id;
+      item._source = {
+        [item._type]: item._source
+      };
+      item._type = '_doc';
+    }
+    return item;
   }
 
   logElastic(level, msg) {
