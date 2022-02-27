@@ -1,64 +1,164 @@
 const os = require('os');
+const fs = require('fs');
 const express = require('express');
 // eslint-disable-next-line new-cap
 const router = express.Router();
 const path = require('path');
 const nconf = require('nconf');
+const isDocker = require('is-docker');
 
 const htmlDir = path.join(__dirname, '../../public/');
 
-router.get('/', function (req, res) {
-  res.sendFile(htmlDir + 'index.html');
+router.get('/*', function (req, res, next) {
+  res.setHeader('Last-Modified', (new Date()).toUTCString());
+  next();
+});
+
+router.get('/', async function (req, res) {
+  res.render('pages/index', {
+    svrHealth: JSON.stringify(await health())
+  });
+});
+
+router.get('/swagger', function (req, res) {
+  res.render('pages/swagger');
+});
+
+router.get('/config', function (req, res) {
+  const cfgFile = nconf.get('env:APP_CONFIG');
+  let config = {};
+  try {
+    if (cfgFile && fs.existsSync(cfgFile)) {
+      if (cfgFile.endsWith('.json')) {
+        config = JSON.parse(fs.readFileSync(cfgFile));
+      } else {
+        config.error = `Sorry - your config file [${cfgFile}] is not JSON - we hope to add more options soon!`;
+      }
+    } else {
+      config.error = `Sorry - could not open config file [${cfgFile}]!`;
+    }
+  } catch (e) {
+    config.error = `Error fetching config file [${cfgFile}] - ${e}`;
+  }
+  res.render('pages/config', { config: JSON.stringify(config) });
 });
 
 router.get('/waterfall', function (req, res) {
-  res.sendFile(htmlDir + 'waterfall.html');
+  res.render('pages/waterfall');
 });
 
-router.get(['/health*', '/v2/api/cicd/health*'], function (req, res) {
-  res.send(health());
+router.get('/es_admin', async function (req, res) {
+  const runEs = require('../../src/run-es');
+  const es = new runEs.Elastic();
+  const esInfo = await es.checkES();
+  res.render('pages/es_admin', {
+    esInfo: JSON.stringify(esInfo)
+  });
 });
 
-/* eslint complexity: 0 */
-function health() {
+router.get('/template_check', async function (req, res) {
+  const runEs = require('../../src/run-es');
+  const es = new runEs.Elastic();
+  const checkTemplate = await es.checkUpgrade();
+  res.json(checkTemplate);
+});
+
+router.get('/es_check', async function (req, res) {
+  const runEs = require('../../src/run-es');
+  const es = new runEs.Elastic();
+  const esInfo = await es.checkES();
+  res.json(esInfo);
+});
+
+router.get('/es_upgrade', async function (req, res) {
+  const runEs = require('../../src/run-es');
+  const es = new runEs.Elastic();
+  const upgrade = await es.upgrade();
+  res.json(upgrade);
+});
+
+router.get('/es_import', async function (req, res) {
+  const esUtils = require('../../src/v2/es-utils');
+  const es = new esUtils.ESClass();
+  const esImport = await es.esImport();
+  res.json(esImport);
+});
+
+router.get('/kb_import', async function (req, res) {
+  const esUtils = require('../../src/v2/es-utils');
+  const es = new esUtils.ESClass();
+  const kbImport = await es.kbImport();
+  res.json(kbImport);
+});
+
+router.get('/api-spec', function (req, res) {
+  res.sendFile(htmlDir + 'api-docs/v2/index.yaml');
+});
+
+router.get(['/health*', '/v2/api/cicd/health*'], async function (req, res) {
+  res.send(await health());
+});
+
+async function health() {
+  const runES = require('../../src/run-es');
+  const es = new runES.Elastic();
+  await es.checkES();
+
   const ret = {
-    server: {
-      APP_HOST: nconf.get('env:HOST') + ':' + nconf.get('env:HTTP_PORT'),
-      APP_VERSION: nconf.get('env:APP_VERSION'),
-      APP_CONFIG: nconf.get('env:APP_CONFIG'),
-      LOG_PATH: nconf.get('env:LOG_PATH'),
-      LOG_LEVEL: (nconf.get('log_level') || 'info').toUpperCase(),
-      NODE_ENV: nconf.get('env:NODE_ENV'),
-      useES: nconf.get('env:useES')
+    api: {
+      'api_version': nconf.get('env:APP_VERSION'),
+      'API host': nconf.get('env:HOST') + ':' + nconf.get('env:HTTP_PORT'),
+      'API config': nconf.get('env:APP_CONFIG'),
+      'Elasticsearch active': nconf.get('env:useES'),
+      'Logging path': nconf.get('env:LOG_PATH'),
+      'Logging level': (nconf.get('log_level') || 'info').toUpperCase(),
+      'NODE Env': nconf.get('env:NODE_ENV'),
+      'Running in Docker': isDocker()
     },
     system: {
-      OS: os.platform(),
-      RELEASE: os.release(),
-      OS_TYPE: os.type(),
-      ARCH: os.arch(),
-      MEM: 'free: ' + formatBytes(os.freemem()) + ' / total: ' + formatBytes(os.totalmem()),
-      HOSTNAME: os.hostname(),
-      UPTIME: secToTimeString(os.uptime())
+      'OS platform': os.platform(),
+      'OS release': os.release(),
+      'OS type': os.type(),
+      'OS hostname': os.hostname(),
+      'OS uptime': secToTimeString(os.uptime()),
+      'Architecture': os.arch(),
+      'Memory info': 'free: ' + formatBytes(os.freemem()) + ' / total: ' + formatBytes(os.totalmem())
     }
   };
 
-  if (nconf.get('env:useES') === true) {
+  // Add ELK info - if it's active
+  if (nconf.get('env:useES')) {
     ret.es = {
-      ES_PROTOCOL: nconf.get('env:ES_PROTOCOL') || 'Not set!',
-      ES_HOST: nconf.get('env:ES_HOST') || 'Not set!',
-      ES_PORT: nconf.get('env:ES_PORT') || 'Not set!',
-      ES_TIMEOUT: nconf.get('env:ES_TIMEOUT') || 'Not set!',
-      ES_VERSION: nconf.get('env:ES_VERSION') || 'Not set!',
-      INDEX_PERF: nconf.get('env:INDEX_PERF') || 'Not set!',
-      INDEX_RES: nconf.get('env:INDEX_RES') || 'Not set!',
-      INDEX_ERR: nconf.get('env:INDEX_ERR') || 'Not set!'
+      'es_version': nconf.get('env:ES_VERSION') || 'Unknown',
+      'Elasticsearch active': nconf.get('env:useES'),
+      'Elasticsearch host': nconf.get('env:ES_HOST') || 'Not set!',
+      'Elasticsearch port': nconf.get('env:ES_PORT') || 'Not set!',
+      'Elasticsearch build hash': nconf.get('env:ES_VERSION_INFO').build_hash || 'Unknown',
+      'Elasticsearch build date': nconf.get('env:ES_VERSION_INFO').build_date || 'Unknown',
+      'Elasticsearch lucene version': nconf.get('env:ES_VERSION_INFO').lucene_version || 'Unknown',
+      'Has Timings API data': nconf.get('env:HAS_TIMINGS_DATA'),
+      'Elasticsearch timeout': nconf.get('env:ES_TIMEOUT') || 'Not set!',
+      'Performance index': nconf.get('env:INDEX_PERF') || 'Not set!',
+      'Resource index': nconf.get('env:INDEX_RES') || 'Not set!',
+      'Error index': nconf.get('env:INDEX_ERR') || 'Not set!'
     };
+    let kbLink = 'n/a';
+    if (nconf.get('env:useES') === true) {
+      kbLink = `<a href="${nconf.get('env:ES_PROTOCOL')}://${nconf.get('env:KB_HOST')}`;
+      if (nconf.get('env:KB_PORT') !== 80) kbLink += `:${nconf.get('env:KB_PORT')}`;
+      kbLink += '/app/kibana#/dashboard/TIMINGS-Dashboard" target="_blank">link</a>';
+    }
     ret.kibana = {
-      KB_HOST: nconf.get('env:KB_HOST') || 'Not set!',
-      KB_PORT: nconf.get('env:KB_PORT') || 'Not set!'
+      'kibana_version': nconf.get('env:KB_VERSION') || 'Unknown',
+      'Kibana host': nconf.get('env:KB_HOST') || 'Not set!',
+      'Kibana port': nconf.get('env:KB_PORT') || 'Not set!',
+      'Imported items?': nconf.get('env:HAS_KB_ITEMS'),
+      'Kibana Link': encodeURIComponent(kbLink)
     };
   } else {
-    ret.es = `ElasticSearch is not available or 'flags.esCreate=false'!`;
+    ret.es = {
+      'Elasticsearch active': nconf.get('env:useES')
+    };
   }
   return ret;
 }

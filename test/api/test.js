@@ -131,7 +131,7 @@ describe('POST endpoint ', function () {
         expect(res.body).to.be.an('object');
         expect(res.body).to.have.property('message');
         expect(res.body.message).to.be.a('string');
-        expect(res.body.message).to.contain(`ValidationError: child 'multirun' fails`);
+        expect(res.body.message).to.contain(`ValidationError: 'multirun.id' is required`);
         done();
       });
   });

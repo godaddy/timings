@@ -1,6 +1,7 @@
 /**
  * Created by mverkerk on 9/25/2016.
  */
+const fs = require('fs');
 const express = require('express');
 // eslint-disable-next-line new-cap
 const router = express.Router();
@@ -8,11 +9,26 @@ const puUtils = require('../../src/v2/perf-utils');
 const joi = require('joi');
 const bodyParser = require('body-parser');
 const nconf = require('nconf');
+const config = require('../../src/config');
 
 var jsonParser = bodyParser.json();
 
+router.post('/config', jsonParser, async (req, res, next) => {
+  // Save file here
+  const data = JSON.stringify(req.body);
+  try {
+    // eslint-disable-next-line no-sync
+    const returnJSON = fs.writeFileSync(nconf.get('env:APP_CONFIG'), data);
+    // Reload configs
+    config.setConfig();
+    res.json(returnJSON);
+  } catch (e) {
+    return next(e);
+  }
+});
+
 router.post('/navtiming', jsonParser, (req, res, next) => {
-  const pu = new puUtils.PUClass(req.body, req.route.path);
+  const pu = new puUtils.PUClass(req.body, req.route.path, mergeParams(req.body));
   validateSchema('navtiming', req, pu);
   pu.handler((err, returnJSON) => {
     if (err) {
@@ -70,6 +86,42 @@ router.post('/injectjs', jsonParser, (req, res, next) => {
     res.json(returnJSON);
   });
 });
+
+function mergeParams(body) {
+  const confDefaults = nconf.get('params:defaults');
+
+  if (
+    body.hasOwnProperty('flags') &&
+    body.flags.hasOwnProperty('assertRum')
+  ) {
+    body.flags.assertBaseline = body.flags.assertRum;
+    delete body.flags.assertRum;
+  }
+
+  return mergeDeep({}, confDefaults, body);
+}
+
+function mergeDeep(target, ...sources) {
+  if (!sources.length) return target;
+  const source = sources.shift();
+
+  if (isObject(target) && isObject(source)) {
+    for (const key in source) {
+      if (isObject(source[key])) {
+        if (!target[key]) Object.assign(target, { [key]: {} });
+        mergeDeep(target[key], source[key]);
+      } else {
+        Object.assign(target, { [key]: source[key] });
+      }
+    }
+  }
+
+  return mergeDeep(target, ...sources);
+}
+
+function isObject(item) {
+  return (item && typeof item === 'object' && !Array.isArray(item));
+}
 
 function validateSchema(route, req, pu) {
   // Schema for request validation (extended in individual routes)
@@ -173,7 +225,8 @@ function validateSchema(route, req, pu) {
   };
 
   // Validate!!
-  const validate = joi.validate(req.body, extendedSchema[route]);
+  const validate = extendedSchema[route].validate(req.body);
+  // const validate = joi.validate(req.body, extendedSchema[route]);
   if (validate.error) {
     validate.error.status = 422;
     pu.saveError(validate.error, req);

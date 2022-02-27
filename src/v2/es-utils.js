@@ -2,12 +2,18 @@
 * Created by mverkerk on 10/20/2016.
 */
 const fs = require('fs');
+const path = require('path');
 const elasticsearch = require('@elastic/elasticsearch');
 const nconf = require('nconf');
 const waitOn = require('wait-port');
 const logger = require('../../log.js');
 const kbImportJson = require('../../.kibana_items.json');
 const sampleData = require('../../.sample_data.json');
+
+const esPkg = fs.readFileSync(
+  path.join(__dirname, '..', '..', 'node_modules', '@elastic', 'elasticsearch', 'package.json'), 'utf8'
+);
+const { version } = JSON.parse(esPkg);
 
 /* eslint no-sync: 0 */
 class ESClass {
@@ -17,27 +23,27 @@ class ESClass {
 
     // Basic ES config - no auth
     const esConfig = {
-      node: this.env.ES_PROTOCOL + '://' + this.env.ES_HOST + ':' + this.env.ES_PORT,
-      requestTimeout: this.env.ES_TIMEOUT || 5000,
+      node: nconf.get('env:ES_PROTOCOL') + '://' + nconf.get('env:ES_HOST') + ':' + nconf.get('env:ES_PORT'),
+      requestTimeout: nconf.get('env:ES_TIMEOUT') || 5000,
       log: 'error'
     };
 
     // Check if user/passwd are provided - configure basic auth
-    if (this.env.ES_USER && this.env.ES_PASS) {
+    if (nconf.get('env:ES_USER') && nconf.get('env:ES_PASS')) {
       esConfig.auth = {
-        username: this.env.ES_USER,
-        password: this.env.ES_PASS
+        username: nconf.get('env:ES_USER'),
+        password: nconf.get('env:ES_PASS')
       };
     }
 
     // Check if SSL cert/key are provided - configure SSL
-    if (this.env.ES_SSL_CERT && this.env.ES_SSL_KEY) {
+    if (nconf.get('env:ES_SSL_CERT') && nconf.get('env:ES_SSL_KEY')) {
       // Cert overwrites basic auth! Delete the 'auth' key
       esConfig.host = [
         {
           ssl: {
-            cert: fs.readFileSync(this.env.ES_SSL_CERT).toString(),
-            key: fs.readFileSync(this.env.ES_SSL_KEY).toString(),
+            cert: fs.readFileSync(nconf.get('env:ES_SSL_CERT')).toString(),
+            key: fs.readFileSync(nconf.get('env:ES_SSL_KEY')).toString(),
             rejectUnauthorized: true
           }
         }
@@ -46,111 +52,159 @@ class ESClass {
 
     // Create the ES client!
     this.client = new elasticsearch.Client(esConfig);
+    this.clientVersion = version;
+    this.clientVersionMajor = parseInt(version.substring(0, 1), 10);
+  }
+
+  esOpts(itemType, id) {
+    let _type;
+    let _id;
+    switch (parseInt(nconf.get('env:ES_MAJOR'), 10)) {
+      case 5:
+        _type = itemType;
+        _id = id;
+        break;
+      case 6:
+        _type = 'doc';
+        _id = `${itemType}:${id}`;
+        break;
+      case 7:
+      case 8:
+      default:
+        _type = '_doc';
+        _id = `${itemType}:${id}`;
+    }
+    return ({ _type, type: itemType, _id });
+  }
+
+  checkEsResponse(response) {
+    return response.body || response.body === '' ? response.body : response;
   }
 
   async healthy(timeout = '90s', status = 'green') {
     try {
       await this.client.cluster.health({ level: 'cluster', wait_for_status: status, timeout: timeout });
-      this.logElastic('info', `[HEALTHCHECK] status [${status}] of host [${this.env.ES_HOST}] is OK!`);
+      this.logElastic('info', `[HEALTHCHECK] status [${status}] of host [${nconf.get('env:ES_HOST')}] is OK!`);
     } catch (err) {
-      this.logElastic('error', `Could not check cluster health for host [${this.env.ES_HOST}]! Error: ${err}`);
+      this.logElastic('error', `Could not check cluster health for host [${nconf.get('env:ES_HOST')}]! Error: ${err}`);
     }
   }
 
   async waitPort(timeoutMs = 120000, host, port) {
-    this.logElastic('info', `[PORTCHECK] waiting for host [${this.env.ES_HOST}] at port [${this.env.ES_PORT}] ...`);
+    this.logElastic('info', `[PORTCHECK] waiting for host [${nconf.get('env:ES_HOST')}:${nconf.get('env:ES_PORT')}] ...`);
     if (!await waitOn({ host: host, port: port, output: 'silent', timeout: timeoutMs })) {
-      throw new Error(`[PORTCHECK] - timeout on port [${this.env.ES_PORT}]`);
+      throw new Error(`[PORTCHECK] - timeout on port [${nconf.get('env:ES_PORT')}]`);
     }
   }
 
-  async info() {
-    const response = await this.client.info();
-    // Update ES version in nconf
-    const version = response.body.version.number;
-    nconf.set('env:ES_VERSION', version);
-    nconf.set('env:ES_MAJOR', parseInt(version.substr(0, 1), 10));
-    this.env = nconf.get('env');
-    this.logElastic('info', `[INFO] found elastic v${this.env.ES_VERSION} ...`);
-  }
-
   async putTemplate(name, body) {
+    const params = { name: name, body: body };
+    if (nconf.get('env:ES_MAJOR') === 6) {
+      params.include_type_name = false;
+    }
     try {
-      if (parseInt(this.env.ES_MAJOR, 10) > 6) {
-        await this.client.indices.putIndexTemplate({ name: name, body: body });
+      let result;
+      if (parseInt(nconf.get('env:ES_MAJOR'), 10) > 6) {
+        result = await this.client.indices.putIndexTemplate(params);
       } else {
-        await this.client.indices.putTemplate({ name: name, body: body });
+        result = await this.client.indices.putTemplate(params);
       }
-      this.logElastic('info', `[TEMPLATE] created/updated [${name}]`);
+      this.logElastic('info', `[TEMPLATE] created/updated [${name}] success!`);
+      return result;
     } catch (e) {
-      this.logElastic('error', `[TEMPLATE] create failure! Error: ${e}`);
+      this.logElastic('error', `[TEMPLATE] create [${name}] failure! Error: ${e}`);
     }
   }
 
   async getTemplate(name) {
-    if (parseInt(this.env.ES_MAJOR, 10) > 6) {
-      // For ES 7.x - use the newer '_index_template'
-      if (await this.client.indices.existsIndexTemplate({ name: name })) {
-        return await this.client.indices.getIndexTemplate({ name: name });
-      }
+    const params = { name: name };
+    if (nconf.get('env:ES_MAJOR') === 6) {
+      params.include_type_name = false;
     }
     // For ES 5/6 - use legacy '_template'
-    if (await this.client.indices.existsTemplate({ name: name })) {
-      return await this.client.indices.getTemplate({ name: name });
+    if (parseInt(nconf.get('env:ES_MAJOR'), 10) > 6) {
+      // For ES 7.x - use the newer '_index_template'
+      return this.checkEsResponse(await this.client.indices.getIndexTemplate(params));
     }
-    return;
+    return this.checkEsResponse(await this.client.indices.getTemplate(params));
   }
 
   async exists(index, type, id) {
     const existsBody = {
       index: index,
-      id: id
+      id: id,
+      type: this.esOpts(type)._type
     };
-    if (this.env.ES_MAJOR < 7) {
-      existsBody.type = (this.env.ES_MAJOR < 6) ? type : 'doc';
+    if (nconf.get('env:ES_MAJOR') === 6) {
+      existsBody.include_type_name = false;
     }
-    return await this.client.exists(existsBody);
+    return this.checkEsResponse(await this.client.exists(existsBody));
   }
 
   async search(index, type, body) {
     const searchBody = {
       index: index,
-      body: body
+      body: body,
+      type: this.esOpts(type)._type
     };
-    if (this.env.ES_MAJOR < 7) {
-      searchBody.type = (this.env.ES_MAJOR < 6) ? type : 'doc';
+    return this.checkEsResponse(await this.client.search(searchBody));
+  }
+
+  async getIncides(index) {
+    try {
+      const searchBody = {
+        index: index,
+        format: 'json'
+      };
+      if (nconf.get('env:ES_MAJOR') === 6) {
+        searchBody.include_type_name = false;
+      }
+      return this.checkEsResponse(await this.client.cat.indices(searchBody));
+    } catch (e) {
+      return null;
     }
-    return await this.client.search(searchBody);
+  }
+
+  async info() {
+    return this.checkEsResponse(await this.client.info());
   }
 
   async getKBVer() {
     let index;
     try {
-      index = await this.client.indices.getAlias({ name: (this.env.KB_INDEX || '.kibana') });
+      index = this.checkEsResponse(await this.client.indices.getAlias({ name: (nconf.get('env:KB_INDEX') || '.kibana') }));
+      index = Object.keys(index)[0];
     } catch (err) {
       if (err) index = '.kibana';
     }
-    index = Object.keys(index.body)[0];
 
-    if (await this.client.indices.exists({ index: index })
-    ) {
-      const settings = await this.client.indices.getSettings({ index: index, includeDefaults: true, human: true });
-      return (settings.body[index].settings.index.version.created_string || '0');
+    if (await this.client.indices.exists({ index: index })) {
+      const settings = this.checkEsResponse(
+        await this.client.indices.getSettings({ index: index, include_defaults: true, human: true })
+      );
+      if (Object.keys(settings).length > 0) {
+        if (settings[index]) {
+          return settings[index].settings.index.version.created_string;
+        }
+        return (settings[Object.keys(settings)[0]].settings.index.version.created_string || '0');
+      }
     }
     return '0';
   }
 
   async getTemplateVersion(esVersion) {
     try {
-      const currTemplate = await this.getTemplate(this.env.INDEX_PERF);
-      if (currTemplate.body) {
+      const currTemplate = this.checkEsResponse(await this.getTemplate(nconf.get('env:INDEX_PERF')));
+      if (
+        currTemplate[nconf.get('env:INDEX_PERF')] || (currTemplate.index_templates && currTemplate.index_templates.length > 0)
+      ) {
         switch (esVersion) {
           case 5:
-            return currTemplate.body[this.env.INDEX_PERF].mappings._default._meta.api_version;
+            return currTemplate[nconf.get('env:INDEX_PERF')].mappings._default_._meta.api_version;
           case 6:
-            return currTemplate.body[this.env.INDEX_PERF].mappings.doc._meta.api_version;
+            return currTemplate[nconf.get('env:INDEX_PERF')].mappings._meta.api_version;
           case 7:
-            return currTemplate.body.index_templates[0].index_template.template.mappings._meta.api_version;
+            return currTemplate.index_templates[0].index_template.template.mappings._meta.api_version;
           default:
             return false;
         }
@@ -161,7 +215,7 @@ class ESClass {
         return null;
       }
       if (err) {
-        throw new Error(`Unable to get Template ${this.env.INDEX_PERF}! Error: ${err}`);
+        throw new Error(`Unable to get Template ${nconf.get('env:INDEX_PERF')}! Error: ${err}`);
       }
     }
   }
@@ -171,15 +225,20 @@ class ESClass {
       const sendBody = {
         index: index,
         body: body,
+        type: this.esOpts(type)._type,
         ...id && { id: id }
       };
-      if (this.env.ES_MAJOR < 7) {
-        sendBody.type = (this.env.ES_MAJOR < 6) ? type : 'doc';
-      }
-      return await this.client.index(sendBody);
+      return this.checkEsResponse(await this.client.index(sendBody));
     } catch (err) {
       this.logElastic('error', `Unable to index record! Error: ${err}`);
     }
+  }
+
+  async legacyBulk(docs) {
+    const response = this.checkEsResponse(await this.client.bulk({
+      body: docs
+    }));
+    return response.statusCode < 300;
   }
 
   async bulk(docs) {
@@ -211,40 +270,108 @@ class ESClass {
   }
 
   async esImport() {
-    for (const index of Object.keys(sampleData)) {
-      const item = sampleData[index];
-      const type = (parseInt(nconf.get('env:ES_MAJOR'), 10) < 6) ? item.route : '_doc';
-      await this.index(item._index, type, item._id, item._source);
+    const response = {
+      info: [],
+      ok: false
+    };
+    try {
+      const replaceDate = new Date().toISOString().split('T')[0];
+      const versionData = parseInt(nconf.get('env:ES_MAJOR'), 10) < 6 ? sampleData.v5 : sampleData.latest;
+      const data = JSON.parse(JSON.stringify(versionData).replace(/==date==/g, replaceDate));
+      for (const index of Object.keys(data)) {
+        const item = data[index];
+        const type = this.esOpts(item._type)._type;
+        await this.index(item._index, type, item._id, item._source);
+      }
+      response.ok = true;
+      response.info.push('[IMPORT] Successfully imported sample data into elasticsearch! You can now find the sample data in ' +
+        'Elasticsearch indices [cicd-*-sample] and visualize them in Kibana');
+      this.logElastic('info', '[IMPORT] Successfully imported sample data into elasticsearch!');
+    } catch (err) {
+      if (err) {
+        response.ok = false;
+        response.info.push(`Could not import sample data into Elasticsearch! Error: ${err}`);
+        this.logElastic('error', response.info);
+      }
     }
-    this.logElastic('info', `[IMPORT] Imported sample data into elasticsearch!`);
+    return response;
   }
 
   async kbImport() {
-    for (const index of Object.keys(kbImportJson)) {
-      let item = kbImportJson[index];
-      const title = item._source.title;
-      if (item._type === 'index-pattern' && item._id === 'cicd-perf*') {
-        const apiHost = (this.env.HTTP_PORT !== 80) ? this.env.HOST + ':' + this.env.HTTP_PORT : this.env.HOST;
-        item._source.fieldFormatMap = item._source.fieldFormatMap.replace('__api__hostname', apiHost.toLowerCase());
+    const response = {
+      info: [],
+      ok: false
+    };
+    try {
+      for (const index of Object.keys(kbImportJson)) {
+        let item = kbImportJson[index];
+        const title = item._source.title;
+        if (item._type === 'index-pattern' && item._id === 'cicd-perf*') {
+          const apiHost = (nconf.get('env:HTTP_PORT') !== 80)
+            ? `${nconf.get('env:HOST')}:${nconf.get('env:HTTP_PORT')}`
+            : nconf.get('env:HOST');
+          item._source.fieldFormatMap = item._source.fieldFormatMap.replace('__api__hostname', apiHost.toLowerCase());
+        }
+        item = this.upgradeConvert(item);
+        const indexResponse = await this.index((nconf.get('env:KB_INDEX') || '.kibana'), item._type, item._id, item._source);
+        this.checkImportErrors(
+          indexResponse,
+          'import [' + item._type + ']', title
+        );
       }
-      item = this.upgradeConvert(item);
-      this.checkImportErrors(
-        await this.index((this.env.KB_INDEX || '.kibana'), item._type, item._id, item._source),
-        'import [' + item._type + ']', title
-      );
+      response.ok = true;
+      response.info.push(`[IMPORT] Successfully created/updated ${Object.keys(kbImportJson).length} Kibana item(s)! ` +
+        'You can now enjoy dashboards and visualizations in Kibana!');
+      this.logElastic('info', `[IMPORT] Created/updated ${Object.keys(kbImportJson).length} Kibana item(s)!`);
+    } catch (err) {
+      if (err) {
+        response.ok = false;
+        response.info.push(`Could not create/update Kibana item(s)! Error: ${err}`);
+        this.logElastic('error', response.info);
+      }
     }
-    this.logElastic('info', `[IMPORT] Created/updated ${Object.keys(kbImportJson).length} Kibana item(s)!`);
+    return response;
   }
 
   async checkImportErrors(response, job, item) {
-    if (response.body.hasOwnProperty('error')) {
-      this.logElastic('error', `[IMPORT] ${job} - item: ${item} - ERROR! - reason: ${response.body.error.reason}`);
+    if (response.hasOwnProperty('error')) {
+      this.logElastic('error', `[IMPORT] ${job} - item: ${item} - ERROR! - reason: ${response.error.reason}`);
     } else {
-      this.logElastic('debug', `[IMPORT] ${job} - item: ${item} - ${response.body.result.toUpperCase() || 'SUCCESS'}!`);
+      this.logElastic('debug', `[IMPORT] ${job} - item: ${item} - ${response.result.toUpperCase() || 'SUCCESS'}!`);
     }
   }
 
-  upgradeConvert(item) {
+  async setDefaultIndex() {
+    const { _type, type, _id } = this.esOpts('config', nconf.get('env:ES_VERSION'));
+    const body = {};
+    switch (nconf.get('env:ES_MAJOR')) {
+      case 5:
+        body.doc = {
+          defaultIndex: `${nconf.get('env:INDEX_PERF')}*`
+        };
+        break;
+      case 6:
+      case 7:
+      default:
+        body[_type] = {
+          [type]: {
+            defaultIndex: `${nconf.get('env:INDEX_PERF')}*`
+          },
+          type: type,
+          updated_at: new Date().toISOString()
+        };
+    }
+    const sendBody = {
+      id: _id,
+      index: nconf.get('env:KB_INDEX') || '.kibana',
+      type: _type,
+      refresh: true,
+      body: body
+    };
+    return this.checkEsResponse(await this.client.update(sendBody));
+  }
+
+  upgradeConvert_old(item) {
     if (parseInt(nconf.get('env:ES_MAJOR'), 10) > 5 && parseInt(nconf.get('env:ES_MAJOR'), 10) < 7) {
       item._id = item._type + ':' + item._id;
       item._type + ':' + item._id;
@@ -258,6 +385,20 @@ class ESClass {
         [item._type]: item._source
       };
       item._type = '_doc';
+    }
+    return item;
+  }
+
+  upgradeConvert(item) {
+    const esVersion = parseInt(nconf.get('env:ES_MAJOR'), 10);
+    const { _type, type, _id } = this.esOpts(item._type, item._id);
+    item._type = _type;
+    item._id = _id;
+    if (esVersion > 5) {
+      item._source = {
+        [type]: item._source,
+        type: type
+      };
     }
     return item;
   }

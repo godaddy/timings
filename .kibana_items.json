@@ -588,7 +588,7 @@
           "version": 1,
           "timeRestore": true,
           "timeTo": "now",
-          "timeFrom": "now-15m",
+          "timeFrom": "now-24h",
           "refreshInterval": {
             "display": "5 seconds",
             "pause": true,

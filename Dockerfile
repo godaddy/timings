@@ -1,4 +1,4 @@
-FROM node:12.20.1
+FROM node:17.6.0
 
 LABEL Description="timings"
 

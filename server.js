@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 const nconf = require('nconf');
 const git = require('git-rev');
-require('./src/config');
+const config = require('./src/config');
+config.setConfig();
 const logger = require('./log.js');
 const app = require('./src/app');
 
@@ -23,8 +24,8 @@ git.tag(apiVer => {
   // Check ES (if in use)
   if (nconf.get('env:ES_HOST')) {
     const runES = require('./src/run-es');
-    const checkES = new runES.Elastic();
-    checkES.setup();
+    const es = new runES.Elastic();
+    es.init();
   } else {
     logger.warn(`timings API - CONFIG - No Elasticsearch HOST in config ` +
       `[${nconf.get('env:APP_CONFIG')}] - data will NOT be saved!`);

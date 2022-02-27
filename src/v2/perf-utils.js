@@ -13,28 +13,20 @@ const esUtils = require('./es-utils.js');
 const mime = require('mime-types');
 
 class PUClass {
-  constructor(body, route) {
+  constructor(body, route, objParams) {
     this.body = body;
     this.route = route.replace('/', '');
     this.env = nconf.get('env');
     if (this.env.useES === true) {
       this.es = new esUtils.ESClass();
     }
-    this.defaults = nconf.get('params:defaults');
     this.debugMsg = [];
     this.esTrace = [];
     this.infoMsg = [];
     this.errorMsg = [];
     this.dl = '';
     this.timing = {};
-    if (
-      this.body.hasOwnProperty('flags') &&
-      this.body.flags.hasOwnProperty('assertRum')
-    ) {
-      this.body.flags.assertBaseline = this.body.flags.assertRum;
-      delete this.body.flags.assertRum;
-    }
-    this.objParams = this.mergeDeep({}, this.defaults, body);
+    this.objParams = objParams;
     if (body.hasOwnProperty('sla')) {
       this.assertMetric = Object.keys(body.sla)[0] || '';
       this.assertSLA = body.sla[this.assertMetric] || '';
@@ -69,10 +61,10 @@ class PUClass {
           index: `${this.env.INDEX_PERF}-*`, search_query: blQuery
         });
         const response = await this.es.search(`${this.env.INDEX_PERF}-*`, this.route, blQuery);
-        this.esTrace.push({ type: 'ES_RESPONSE', response: response.body });
-        this.es_took = response.body.took;
-        if (response.body.hasOwnProperty('aggregations')) {
-          this.baseline = this.checkBaseline(response.body);
+        this.esTrace.push({ type: 'ES_RESPONSE', response: response });
+        this.es_took = response.took;
+        if (response.hasOwnProperty('aggregations')) {
+          this.baseline = this.checkBaseline(response);
         } else {
           this.baseline = 0;
         }
@@ -87,10 +79,10 @@ class PUClass {
         this.esTrace.push({ type: 'ES_CREATE', exportData });
         const docId = this.getDocId(exportData);
         const response = await this.es.index(`${this.env.INDEX_PERF}-${indexDay}`, this.route, (docId || ''), exportData);
-        this.esSaved = ['created', 'updated'].includes(response.body.result);
+        this.esSaved = ['created', 'updated'].includes(response.result);
         if (this.esSaved && this.route === 'navtiming') {
           const resBody = this.getResourcesBody(exportData['@_uuid']);
-          this.resourcesSaved = await this.es.bulk(resBody);
+          this.resourcesSaved = await this.es.legacyBulk(resBody);
         }
       }
       // Send create response and send back to router
@@ -100,11 +92,10 @@ class PUClass {
     }
   }
 
-  /* eslint complexity: 0 */
   async multirun() {
     // Temp file is the multirun's ID (to be provided by client)
     const multiFile = path.resolve(`./multi_tmp/${this.route}_${this.objParams.multirun.id}.json`);
-    if (this.objParams.multirun.currentRun > 1 && !await fs.exists(multiFile)) {
+    if (this.objParams.multirun.currentRun > 1 && !fs.accessSync(multiFile)) {
       const err = new Error();
       err.status = 400;
       err.message = 'Missing first run - currentRun has to be 1 for the first run!';
@@ -148,7 +139,6 @@ class PUClass {
     return;
   }
 
-  /* eslint max-statements: ["error", 150, { "ignoreTopLevelFunctions": true }] */
   navtiming() {
     // Check for mandatory & default parameters in objParams
     let injectJSdata = this.objParams.injectJS;
@@ -417,9 +407,9 @@ class PUClass {
 
     // Add params to the export object
     exportData.log = this.objParams.log;
-    exportData.flags = Object.assign({}, this.defaults.flags, this.objParams.flags);
+    exportData.flags = this.objParams.flags;
     exportData.multirun = this.objParams.multirun || false;
-    exportData.baseline = Object.assign({}, this.defaults.baseline, this.objParams.baseline);
+    exportData.baseline = this.objParams.baseline;
 
     // Add the 'nav' section (if 'navtiming')
     if (this.route === 'navtiming') {
@@ -513,7 +503,7 @@ class PUClass {
     try {
       const response = await this.es.search([this.env.INDEX_PERF + '*', this.env.INDEX_RES + '*'], '', body);
       // Strip the meta-data from the hits
-      const hits = response.body.hits.hits;
+      const hits = response.hits.hits;
       const resources = [];
       hits.forEach((hit) => {
         const resource = hit._source;
@@ -551,7 +541,7 @@ class PUClass {
       ? new Date(this.objParams.injectJS.time).toISOString()
       : new Date().toISOString();
     const indexDay = new Date(et).toISOString().slice(0, 10).replace(/-/g, '.');
-    const body = [this.resNav(uuid, et)];
+    let body = [this.resNav(uuid, et)];
 
     // Create entries for resources
     rt.forEach((resource) => {
@@ -591,14 +581,18 @@ class PUClass {
         'responseStart': resource.responseStart,
         'responseDuration': resource.responseStart > 0 ? resource.responseEnd - resource.responseStart : 0
       };
-      const resEntry = {
-        _index: `${this.env.INDEX_RES}-${indexDay}`,
-        ...res
-      };
-      if (parseInt(this.env.ES_MAJOR, 10) < 7) {
-        resEntry._type = (parseInt(this.env.ES_MAJOR, 10) > 5) ? 'doc' : 'resource';
+      if (parseInt(this.env.ES_MAJOR, 10) === 5) {
+        body += `{ "index" : { "_index" : "${this.env.INDEX_RES}-${indexDay}", "_type" : "resource" } }\n`;
+      } else {
+        const resEntry = {
+          _index: `${this.env.INDEX_RES}-${indexDay}`,
+          ...res
+        };
+        if (parseInt(this.env.ES_MAJOR, 10) === 6) {
+          resEntry._type = 'doc';
+        }
+        body.push(resEntry);
       }
-      body.push(resEntry);
     });
     return body;
   }
@@ -641,12 +635,20 @@ class PUClass {
       'loadEventStart': timing.loadEventStart - timing.navigationStart,
       'loadEventDuration': timing.loadEventEnd - timing.loadEventStart
     };
-    const navEntry = {
-      _index: `${this.env.INDEX_RES}-${indexDay}`,
-      ...nt
-    };
-    if (parseInt(this.env.ES_MAJOR, 10) < 7) {
-      navEntry._type = (parseInt(this.env.ES_MAJOR, 10) > 5) ? 'doc' : 'resource';
+
+    let navEntry = '';
+    if (parseInt(this.env.ES_MAJOR, 10) === 5) {
+      const type = 'resource';
+      navEntry += `{ "index" : { "_index" : "${this.env.INDEX_RES}-${indexDay}", "_type" : "${type}" } }\n`;
+      navEntry += JSON.stringify(nt) + '\n';
+    } else {
+      navEntry = {
+        _index: `${this.env.INDEX_RES}-${indexDay}`,
+        ...nt
+      };
+      if (parseInt(this.env.ES_MAJOR, 10) === 6) {
+        navEntry._type = 'doc';
+      }
     }
     return navEntry;
   }
@@ -757,28 +759,6 @@ class PUClass {
     parsedUrl.protocol = fullUrl.indexOf('http') < 0 ? 'none' : parsedUrl.protocol.replace(':', '');
 
     return parsedUrl;
-  }
-
-  isObject(item) {
-    return (item && typeof item === 'object' && !Array.isArray(item));
-  }
-
-  mergeDeep(target, ...sources) {
-    if (!sources.length) return target;
-    const source = sources.shift();
-
-    if (this.isObject(target) && this.isObject(source)) {
-      for (const key in source) {
-        if (this.isObject(source[key])) {
-          if (!target[key]) Object.assign(target, { [key]: {} });
-          this.mergeDeep(target[key], source[key]);
-        } else {
-          Object.assign(target, { [key]: source[key] });
-        }
-      }
-    }
-
-    return this.mergeDeep(target, ...sources);
   }
 
   getInjectCode(type = null, mark = null, stripQueryString = false) {
