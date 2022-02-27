@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <%- include('../partials/head'); %>
+</head>
+
+<body class="container-fluid">
+
+  <header>
+    <%- include('../partials/nav'); %>
+  </header>
+
+  <main>
+    <div class="container-fluid py-5">
+      <div class="p-4 bg-light rounded-3 m-1">
+        <div class="container-fluid py-5">
+          <h1 class="display-5 fw-bold">Welcome to your <span class="text-danger"><em>Timings API</em></span> server!</h1>
+          <p class="col-md-8 fs-4">Below you can check the status of your server and the backend.</p>
+          <p>More details and actions for Elasticsearch (if in use) can be found <a class="link-success" href="/es_admin">here</a></p>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <div class="p-4 text-white bg-dark rounded-3 m-1">
+            <h2 id="card_header_api">API info</h2>
+            <hr>
+            <div id="card_api" class="row  position-relative"></div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="p-4 text-white bg-dark rounded-3 m-1">
+            <h2 id="card_header_system">System info</h2>
+            <hr>
+            <div id="card_system" class="row  position-relative"></div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <div class="p-4 text-white bg-dark rounded-3 m-1">
+            <h2 id="card_header_es">Elasticsearch</h2>
+            <hr>
+            <div id="card_es" class="row  position-relative"></div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="p-4 text-white bg-dark rounded-3 m-1">
+            <h2 id="card_header_kibana">Kibana</h2>
+            <hr>
+            <div id="card_kibana" class="row  position-relative"></div>
+          </div>
+        </div>
+      </div>
+    
+      <footer class="pt-3 mt-4 text-muted border-top">
+        &copy; 2021
+      </footer>
+    </div>
+  </main>
+
+  <footer>
+    <%- include('../partials/footer'); %>
+  </footer>
+
+  <%- include('../partials/js'); %>
+
+  <script>
+    $(function () {
+      const svrHealth = JSON.parse('<%- svrHealth %>');
+      drawHomeCards(svrHealth);
+    });
+  </script>
+
+</body>
+
+</html>

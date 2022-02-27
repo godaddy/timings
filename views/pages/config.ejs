@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <%- include('../partials/head'); %>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.7.2/jsoneditor.min.css"
+    integrity="sha512-LDaPaKECzpambd6J0xPGx2s/z8EA1rAm3JzmoMgKO0VTRbXHTeE54oDLRw26eFiyBZ3Cf888tBEHzeUTYA3ddw=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+
+<body class="container-fluid">
+
+  <header>
+    <%- include('../partials/nav'); %>
+  </header>
+
+  <main>
+    <div class="container-fluid py-5">
+      <div class="shadow-lg p-1 mb-2 text-white bg-dark rounded-3">
+        <div class="container-fluid py-1">
+          <h1 class="display-5 fw-bold">Config Editor</h1>
+        </div>
+      </div>
+      <div class="shadow-lg p-2 mb-2 bg-light rounded-3">
+        <div id="configeditor" style="height: 70vh;"></div>
+        <div class="d-flex is-small mt-3">
+          <button class="btn btn-sm btn-danger me-3 p-2 shadow-sm" type="button" id="saveEditor" onclick="saveEditor()">Save</button>
+          <div class="alert alert-sm alert-success m-0 p-2" style="display:none;" role="alert" id="saveResult"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <%- include('../partials/footer'); %>
+  </footer>
+
+  <%- include('../partials/js'); %>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.7.2/jsoneditor.min.js"
+    integrity="sha512-9T9AIzkTI9pg694MCTReaZ0vOimxuTKXA15Gin+AZ4eycmg85iEXGX811BAjyY+NOcDCdlA9k2u9SqVAyNqFkQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    const configJSON = JSON.parse('<%- config %>')
+    setEditor('configeditor', configJSON)
+  </script>
+</body>
+
+</html>
