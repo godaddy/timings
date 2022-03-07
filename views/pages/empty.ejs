@@ -12,7 +12,7 @@
   </header>
 
   <main>
-    <div class="container-fluid py-5">
+    <div class="container-fluid pt-5">
       <div class="shadow-lg p-1 mb-1 text-white bg-dark rounded-3">
         <div class="container-fluid py-1">
           <h1 class="display-5 fw-bold">Header</h1>
@@ -27,12 +27,12 @@
 
     </div>
   </main>
+  <%- include('../partials/footer'); %>
+  <%- include('../partials/pre_js'); %>
 
-  <footer>
-    <%- include('../partials/footer'); %>
-  </footer>
+  <!-- ✅ load page-specific JS here... ✅ -->
 
-  <%- include('../partials/js'); %>
+  <%- include('../partials/post_js'); %>
 
 </body>
 

@@ -14,7 +14,7 @@
   </header>
 
   <main>
-    <div class="container-fluid py-5">
+    <div class="container-fluid pt-5">
       <table id="title" class="table table-sm table-bordered" width="100%" style="margin: 0px;">
         <tbody>
           <tr class="table-info">
@@ -96,20 +96,19 @@
       </div>
     </div>
   </main>
-
-  <footer>
-    <%- include('../partials/footer'); %>
-  </footer>
-
-  <%- include('../partials/js'); %>
+  <%- include('../partials/footer'); %>
+  <%- include('../partials/pre_js'); %>
+  
+  <!-- ✅ load page-specific JS here... ✅ -->
   <script type="text/javascript"
-    src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.28.15/js/jquery.tablesorter.js" defer></script>
+  src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.28.15/js/jquery.tablesorter.js" defer></script>
   <script type="text/javascript" src="/public/js/waterfall.js" defer></script>
+
+  <%- include('../partials/post_js'); %>
   <script>
     window.onload = function (e) {
       createWaterfall();
     };
-
   </script>
 
 </body>

@@ -15,7 +15,7 @@
   </header>
 
   <main>
-    <div class="container-fluid py-5">
+    <div class="container-fluid pt-5">
       <div class="shadow-lg p-1 mb-2 text-white bg-dark rounded-3">
         <div class="container-fluid py-1">
           <h1 class="display-5 fw-bold">Config Editor</h1>
@@ -30,19 +30,19 @@
       </div>
     </div>
   </main>
+  <%- include('../partials/footer'); %>
+  <%- include('../partials/pre_js'); %>
 
-  <footer>
-    <%- include('../partials/footer'); %>
-  </footer>
-
-  <%- include('../partials/js'); %>
+  <!-- ✅ load page-specific JS here... ✅ -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.7.2/jsoneditor.min.js"
-    integrity="sha512-9T9AIzkTI9pg694MCTReaZ0vOimxuTKXA15Gin+AZ4eycmg85iEXGX811BAjyY+NOcDCdlA9k2u9SqVAyNqFkQ=="
-    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  integrity="sha512-9T9AIzkTI9pg694MCTReaZ0vOimxuTKXA15Gin+AZ4eycmg85iEXGX811BAjyY+NOcDCdlA9k2u9SqVAyNqFkQ=="
+  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <%- include('../partials/post_js'); %>
   <script>
     const configJSON = JSON.parse('<%- config %>')
     setEditor('configeditor', configJSON)
   </script>
+
 </body>
 
 </html>

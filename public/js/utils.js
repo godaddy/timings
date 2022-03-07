@@ -46,21 +46,24 @@ function getCardData(caller, div, url) {
 function kbImport(caller, div, url) {
   result = getCardData(caller, div, url)
   esInfo.hasKibanaItems = result.ok
-  $("#esImport").toggle(esInfo.hasKibanaItems && esInfo.templateVersion);
+  if (esInfo.hasKibanaItems) {
+    $("#esImport").show();
+  }
 }
 
-function drawHomeCards(data, parentKey) {
+function drawHomeCards(data, subKey, parentKey) {
+  if (!parentKey) parentKey = subKey;
   Object.entries(data).map(([key, value]) => {
     if (key === `${parentKey}_version`) {
       // Add version to card header
       $('#card_header_' + parentKey).text(`${$('#card_header_' + parentKey).text()} - v.${value}`)
     } else {
       if (typeof value === 'object') {    // NESTED OBJECT
-        drawHomeCards(value, key);
+        drawHomeCards(value, key, parentKey);
       } else {
         cardEntry = document.createElement("div");
         cardEntry.classList.add('.col-md-8');
-        cardEntry.innerHTML = key;
+        cardEntry.innerHTML = `${parentKey}.${key}`;
         cardSpan = document.createElement("span");
         if (key.toLowerCase().indexOf('link') < 0) {
           cardSpan.classList.add('badge');
@@ -76,31 +79,6 @@ function drawHomeCards(data, parentKey) {
       }
     }
   })
-}
-
-function drawTable(data, table, parentKey) {
-  // CREATE DYNAMIC TABLE.
-  if (!table) {
-    table = document.createElement("table");
-    table.classList.add('table', 'table-condensed', 'table-bordered', 'table-striped', 'tablesorter')
-  }
-
-  Object.entries(data).map(([key, value]) => {
-    if (typeof value === 'object') {    // NESTED OBJECT
-      drawTable(value, table, parentKey ? `${parentKey}.${key}` : key);
-    } else {
-      const tr = table.insertRow(-1);
-      const keyCell = tr.insertCell(-1);
-      keyCell.innerHTML = parentKey ? `${parentKey}.${key}` : key;
-      var valueCell = tr.insertCell(-1);
-      valueCell.innerHTML = value;
-    }
-  })
-
-  // FINALLY ADD THE NEWLY CREATED TABLE WITH JSON DATA TO A CONTAINER.
-  var divContainer = document.getElementById("divTable");
-  divContainer.innerHTML = "";
-  divContainer.appendChild(table);
 }
 
 function callApi(ajaxData, type, url, dataType, cache, cb) {
@@ -186,7 +164,7 @@ function callApi(ajaxData, type, url, dataType, cache, cb) {
 function setEditor(elem, json) {
   const container = document.getElementById(elem);
   let modes = ['tree', 'text'];
-  if ('error' in json) {
+  if ('error' in json || json.editable === false) {
     modes = ['text'];
     $('#saveEditor').prop('disabled', true).hide();
   }
@@ -223,4 +201,127 @@ function saveEditor() {
       $('#saveResult').fadeOut('slow');
     }, 2000); // <-- time in milliseconds
   })
+}
+
+function getLogs(type = 'access') {
+  const data = callApi(null, 'GET', `/getlog?log=${type}`, null, false);
+  if (data && data[type]) {
+    const output = data[type].map((logEntry) => {
+      const entry = JSON.parse(logEntry);
+      return entry;
+    });
+    drawLogsTable(output, 'logviewer');
+  }
+}
+
+function drawLogsTable(data) {
+  const tableBody = document.getElementById('logBody');
+  let keyCell;
+  Object.entries(data).map(([key, value]) => {
+    const tr = tableBody.insertRow();
+    keyCell = tr.insertCell();
+    keyCell.innerHTML = new Date(value.timestamp).toLocaleString();
+    keyCell = tr.insertCell();
+    keyCell.innerHTML = value.level.toUpperCase();
+    if (value.req && typeof value.req === 'object') {
+      if (key === "0") {
+        // Add header cells only on first row
+        Object.keys(value.req).map((header) => {
+          if (header !== 'headers') {
+            $('#logHeadRow').append(`<th>${header}</th>`);
+          }
+        });
+      }
+      Object.entries(value.req).map(([key, value]) => {
+        if (key !== 'headers') {
+          keyCell = tr.insertCell();
+          keyCell.innerHTML = typeof value === 'object' ? JSON.stringify(value, null, 2) : value;
+        }
+      });
+    } else {
+      if (key === "0") {
+        $('#logHeadRow').append(`<th>Message</th>`);
+      }
+      keyCell = tr.insertCell();
+      keyCell.innerHTML = value.message;
+    }
+    if (value.responseTime) {
+      if (key === "0") {
+        $('#logHeadRow').append(`<th>Response time</th>`);
+      }
+      keyCell = tr.insertCell();
+      keyCell.innerHTML = value.responseTime;
+    }
+    tableBody.appendChild(tr);
+  });
+  loadTablesorter();
+}
+
+function loadTablesorter() {
+  pagerOptions = {
+    pageReset: true, // Reset pager to this page after filtering
+    container: $(".pager"),
+    updateArrows: true,
+    savePages: true,
+    storageKey: 'tablesorter-pager',
+    fixedHeight: true,
+    // css class names of pager arrows
+    cssNext: '.next', // next page arrow
+    cssPrev: '.prev', // previous page arrow
+    cssFirst: '.first', // go to first page arrow
+    cssLast: '.last', // go to last page arrow
+    cssGoto: '.gotoPage', // select dropdown to allow choosing a page
+    cssPageDisplay: '.pagedisplay', // location of where the "output" is displayed
+    cssPageSize: '.pagesize', // page size selector - select dropdown that sets the "size" option
+    // class added to arrows when at the extremes (i.e. prev/first arrows are "disabled" when on the first page)
+    cssDisabled: 'disabled', // Note there is no period "." in front of this class name
+    cssErrorRow: 'tablesorter-errorRow', // ajax error information row
+    page: 0,
+    size: 20,
+    output: '{startRow} to {endRow} of {filteredRows} total rows'
+  }
+  $("table").tablesorter({
+    theme: 'blue',
+    // this is the default setting
+    cssChildRow: "tablesorter-childRow",
+    // sortList: [[1, 0]],
+    // initialize zebra and filter widgets
+    widgets: ["zebra", "filter", "pager"],
+
+    widgetOptions: {
+      pager_pageReset: 0,
+      filter_columnFilters: true,
+      filter_placeholder: { search: 'Search...' },
+      filter_saveFilters: false,
+      // include child row content while filtering, if true
+      filter_childRows: true,
+      // class name applied to filter row and each input
+      filter_cssFilter: 'tablesorter-filter',
+      // search from beginning
+      filter_startsWith: false,
+      // Set this option to false to make the searches case sensitive
+      filter_ignoreCase: true,
+      filter_external: '.search',
+      filter_reset: '.reset_filter',
+      filter_formatter: {
+        // Date (two inputs)
+        0: function ($cell, indx) {
+          return $.tablesorter.filterFormatter.uiDatepicker($cell, indx, {
+            // from : '08/01/2013', // default from date
+            // to   : '1/18/2014',  // default to date
+            textFrom: 'From: ',
+            textTo: '\nTo: ',
+            changeMonth: true,
+            changeYear: true
+          });
+        }
+      }
+    },
+    headers: {
+      99: {
+        sorter: false,
+        filter: false
+      }
+    }
+  }).tablesorterPager(pagerOptions).toggle();
 }

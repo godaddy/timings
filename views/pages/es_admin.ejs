@@ -5,14 +5,10 @@
   <%- include('../partials/head'); %>
 </head>
 
-<body class="container-fluid">
-
-  <header>
-    <%- include('../partials/nav'); %>
-  </header>
-
+<body class="d-flex flex-column min-vh-100">
+  <%- include('../partials/nav'); %>
   <main>
-    <div class="container-fluid py-5">
+    <div class="container-fluid pt-5">
       <div class="shadow-lg p-1 mb-2 text-white bg-dark rounded-3">
         <div class="container-fluid py-1">
           <h1 class="display-5 fw-bold">Elasticsearch Admin</h1>
@@ -29,12 +25,12 @@
             </div>
           </div>
 
-          <div class="card m-2">
-            <div id="cardEsActions" class="card-header is-result">Elasticsearch actions</div>
+          <div id="cardEsActions" class="card m-2" style="display:none;">
+            <div class="card-header is-result">Elasticsearch actions</div>
             <div class="card-body">
               <div class="row-fluid">
-                <button type="button" id="kbImport" class="btn btn-sm btn-primary m-2" onclick="kbImport(this, '#es_actions_result', '/kb_import')">Import Kibana items</button>
-                <button type="button" id="esImport" class="btn btn-sm btn-primary m-2" onclick="getCardData(this, '#es_actions_result', '/es_import')">Import sample data</button>
+                <button type="button" id="kbImport" class="btn btn-sm btn-primary m-2" style="display:none;" onclick="kbImport(this, '#es_actions_result', '/kb_import')">Import Kibana items</button>
+                <button type="button" id="esImport" class="btn btn-sm btn-primary m-2" style="display:none;" onclick="getCardData(this, '#es_actions_result', '/es_import')">Import sample data</button>
               </div><hr>
               <pre id="es_actions_result" class="small is-result-pre"></pre>
             </div>
@@ -44,21 +40,23 @@
     </div>
   </main>
 
-  <footer>
-    <%- include('../partials/footer'); %>
-  </footer>
+  <%- include('../partials/footer'); %>
+  <%- include('../partials/pre_js'); %>
 
-  <%- include('../partials/js'); %>
+  <!-- ✅ load page-specific JS here... ✅ -->
+  <%- include('../partials/post_js'); %>
   <script>
     const esInfo = JSON.parse('<%- esInfo %>')
     $(function () {
       setCardData('#cardES', '#es_check_result', esInfo)
       if (esInfo.checkTemplate) {
-        setCardData('#cardTemplate', '#templ_check_result', esInfo.checkTemplate)
-        $("#esImport").toggle(esInfo.hasKibanaItems && esInfo.templateVersion);
-      } else {
-        $("#esImport").hide();
-        $("#kbImport").hide();
+        // setCardData('#cardTemplate', '#templ_check_result', esInfo.checkTemplate)
+        if (!esInfo.hasKibanaItems) {
+          $("#kbImport, #cardEsActions").show();
+        }
+        if (esInfo.hasKibanaItems && !esInfo.hasTimingsData) {
+          $("#esImport").show();
+        }
       }
     });
   </script>

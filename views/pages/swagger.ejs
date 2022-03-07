@@ -13,19 +13,16 @@
   </header>
 
   <main>
-    <div class="container-fluid py-5">
+    <div class="container-fluid pt-5">
       <div id="swagger-ui"></div>
     </div>
   </main>
+  <%- include('../partials/footer'); %>
+  <%- include('../partials/pre_js'); %>
 
-  <footer>
-    <%- include('../partials/footer'); %>
-  </footer>
-
-  <%- include('../partials/js'); %>
+  <!-- ✅ load page-specific JS here... ✅ -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.6.0/swagger-ui-bundle.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.6.0/swagger-ui-standalone-preset.js"></script>
-
   <script>
     window.onload = function () {
       // Build a system
@@ -65,7 +62,6 @@
       }
     }
   </script>
-
 </body>
 
 </html>
