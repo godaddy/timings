@@ -1,27 +1,14 @@
 /* eslint no-console: 0 */
 const expect = require('chai').expect;
 const params = require('../params/params');
-const env = require('../config/env.json');
-require('../../src/config');
-
-const nodeEnv = process.env.NODE_ENV || 'ci';
-
 let request;
-console.log('nodeEnv: ' + nodeEnv);
-if (nodeEnv === 'ci') {
-  console.log(`CI test against [Local app]`);
-  // require('../../src/config');
-  request = require('supertest')(require('../../src/app'));
-} else {
-  console.log(`Testing against this API: [${env[nodeEnv]}]`);
-  request = require('supertest')(env[nodeEnv]);
-}
 
 describe('POST endpoint ', function () {
   this.timeout(5000); // How long to wait for a response (ms)
 
   before(function () {
-
+    const app = require('../../server');
+    request = require('supertest')(app);
   });
 
   after(function () {
@@ -287,7 +274,8 @@ describe('GET endpoint ', function () {
   this.timeout(5000); // How long to wait for a response (ms)
 
   before(function () {
-
+    const app = require('../../server');
+    request = require('supertest')(app);
   });
 
   after(function () {
@@ -295,7 +283,7 @@ describe('GET endpoint ', function () {
   });
 
   // GET - Home
-  it('[/] should return Swagger page', (done) => {
+  it.only('[/] should return Welcome page', (done) => {
     request.get('/')
       .expect(200)
       .expect('Content-Type', /text\/html/)
@@ -307,7 +295,43 @@ describe('GET endpoint ', function () {
         expect(res).to.have.property('ok');
         expect(res.ok).to.be.true;
         expect(res).to.have.property('text');
-        expect(res.text).to.contain('Swagger docs');
+        expect(res.text).to.contain('API info');
+        done();
+      });
+  });
+
+  // GET - Home
+  it('[/swagger] should return Swagger page', (done) => {
+    request.get('/swagger')
+      .expect(200)
+      .expect('Content-Type', /text\/html/)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res).to.be.an('object');
+        expect(res).to.have.property('ok');
+        expect(res.ok).to.be.true;
+        expect(res).to.have.property('text');
+        expect(res.text).to.contain('swagger-ui');
+        done();
+      });
+  });
+
+  // GET - Home
+  it('[/config] should return Swagger page', (done) => {
+    request.get('/config')
+      .expect(200)
+      .expect('Content-Type', /text\/html/)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res).to.be.an('object');
+        expect(res).to.have.property('ok');
+        expect(res.ok).to.be.true;
+        expect(res).to.have.property('text');
+        expect(res.text).to.contain('ES_PROTOCOL');
         done();
       });
   });
@@ -325,7 +349,7 @@ describe('GET endpoint ', function () {
         expect(res).to.have.property('ok');
         expect(res.ok).to.be.false;
         expect(res).to.have.property('text');
-        expect(res.text).to.contain('Found. Redirecting to /404.html');
+        expect(res.text).to.contain('You found the 404 page');
         done();
       });
   });
@@ -340,7 +364,8 @@ describe('GET endpoint ', function () {
           console.log(JSON.stringify(res.body));
         }
         expect(res.body).to.be.an('object');
-        expect(res.body).to.have.property('server');
+        expect(res.body).to.have.property('api');
+        expect(res.body).to.have.property('node');
         expect(res.body).to.have.property('system');
         done();
       });
@@ -356,7 +381,8 @@ describe('GET endpoint ', function () {
           console.log(JSON.stringify(res.body));
         }
         expect(res.body).to.be.an('object');
-        expect(res.body).to.have.property('server');
+        expect(res.body).to.have.property('api');
+        expect(res.body).to.have.property('node');
         expect(res.body).to.have.property('system');
         done();
       });
@@ -376,6 +402,24 @@ describe('GET endpoint ', function () {
         expect(res.ok).to.be.true;
         expect(res).to.have.property('text');
         expect(res.text).to.contain('Waterfall');
+        done();
+      });
+  });
+
+  // GET - waterfall
+  it('[/es_admin] should return ES info page', (done) => {
+    request.get('/es_admin')
+      .expect(200)
+      .expect('Content-Type', /text\/html/)
+      .end((err, res) => {
+        if (err) {
+          console.log(JSON.stringify(res.body));
+        }
+        expect(res).to.be.an('object');
+        expect(res).to.have.property('ok');
+        expect(res.ok).to.be.true;
+        expect(res).to.have.property('text');
+        expect(res.text).to.contain('No value for ES_HOST variable in config');
         done();
       });
   });
