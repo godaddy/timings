@@ -93,14 +93,13 @@ function createApp() {
         ' - ' + err.toString()
       );
     }
-    if (req.xhr) {
-      res.json({
-        status: res.statusCode,
-        message: err.toString().substring(0, 500).replace(/"/g, "'")
-      });
-    } else if (req.method === 'GET') {
+    if (req.cookies.csrftoken && !req.xhr) {
       res.status(500).render('pages/500', { error: err, stack: err.stack });
     }
+    res.json({
+      status: res.statusCode,
+      message: err.toString().substring(0, 500).replace(/"/g, "'")
+    });
     next();
   });
 

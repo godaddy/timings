@@ -19,14 +19,14 @@ class Elastic {
           host: this.app.locals.env.ES_HOST,
           port: this.app.locals.env.ES_PORT,
           output: 'silent',
-          timeout: 5000
+          timeout: this.app.locals.env.ES_TIMEOUT || 5000
         });
         if (!waitResult) {
           this.app.locals.env.ES_REASON =
             `No response from Elasticsearch - is it running? Please check ` +
             `[${this.app.locals.env.ES_HOST}:${this.app.locals.env.ES_PORT}]`;
         } else {
-          const healthResult = await this.es.healthy('60s', 'yellow');
+          const healthResult = await this.es.healthy(`${this.app.locals.env.ES_TIMEOUT / 10}s`, 'yellow');
           if (!healthResult.status === 'yellow') {
             this.app.locals.env.ES_REASON =
               `The Elasticsearch cluster state is [${healthResult.status}] while expecting [yellow] - Please check ` +

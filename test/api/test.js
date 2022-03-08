@@ -283,10 +283,10 @@ describe('GET endpoint ', function () {
   });
 
   // GET - Home
-  it.only('[/] should return Welcome page', (done) => {
+  it('[/] should return Welcome page', (done) => {
     request.get('/')
       .expect(200)
-      .expect('Content-Type', /text\/html/)
+      .expect('Content-Type', /application\/json/)
       .end((err, res) => {
         if (err) {
           console.log(JSON.stringify(res.body));
@@ -295,7 +295,8 @@ describe('GET endpoint ', function () {
         expect(res).to.have.property('ok');
         expect(res.ok).to.be.true;
         expect(res).to.have.property('text');
-        expect(res.text).to.contain('API info');
+        expect(JSON.parse(res.text)).to.have.property('app');
+        expect(JSON.parse(res.text)).to.have.property('system');
         done();
       });
   });
@@ -364,7 +365,7 @@ describe('GET endpoint ', function () {
           console.log(JSON.stringify(res.body));
         }
         expect(res.body).to.be.an('object');
-        expect(res.body).to.have.property('api');
+        expect(res.body).to.have.property('app');
         expect(res.body).to.have.property('node');
         expect(res.body).to.have.property('system');
         done();
@@ -381,7 +382,7 @@ describe('GET endpoint ', function () {
           console.log(JSON.stringify(res.body));
         }
         expect(res.body).to.be.an('object');
-        expect(res.body).to.have.property('api');
+        expect(res.body).to.have.property('app');
         expect(res.body).to.have.property('node');
         expect(res.body).to.have.property('system');
         done();
@@ -419,7 +420,7 @@ describe('GET endpoint ', function () {
         expect(res).to.have.property('ok');
         expect(res.ok).to.be.true;
         expect(res).to.have.property('text');
-        expect(res.text).to.contain('No value for ES_HOST variable in config');
+        expect(res.text).to.contain('No response from Elasticsearch');
         done();
       });
   });
