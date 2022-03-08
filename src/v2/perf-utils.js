@@ -5,7 +5,6 @@
 const fs = require('fs-extra');
 const path = require('path');
 const url = require('url'); // Used in usertimings method only
-const nconf = require('nconf');
 const { v4: uuidv4 } = require('uuid');
 const percentile = require('percentile');
 const crypto = require('crypto');
@@ -13,12 +12,12 @@ const esUtils = require('./es-utils.js');
 const mime = require('mime-types');
 
 class PUClass {
-  constructor(body, route, objParams) {
+  constructor(body, route, objParams, app) {
+    this.env = app.locals.env;
     this.body = body;
     this.route = route.replace('/', '');
-    this.env = nconf.get('env');
-    if (this.env.useES === true) {
-      this.es = new esUtils.ESClass();
+    if (this.env.ES_ACTIVE === true) {
+      this.es = new esUtils.ESClass(app);
     }
     this.debugMsg = [];
     this.esTrace = [];
@@ -55,7 +54,7 @@ class PUClass {
       }
       this.measuredPerf = this[this.route]();
       // Run baseline
-      if (this.env.useES === true) {
+      if (this.env.ES_ACTIVE === true) {
         const blQuery = this.buildBaselineQuery();
         this.esTrace.push({ type: 'ES_SEARCH', host: this.env.ES_HOST,
           index: `${this.env.INDEX_PERF}-*`, search_query: blQuery
@@ -75,31 +74,31 @@ class PUClass {
       const exportData = this.createExportData();
       const indexDay = new Date(exportData.et).toISOString().slice(0, 10).replace(/-/g, '.');
       // Store results in ES
-      if (this.env.useES === true && this.objParams.flags.esCreate === true) {
+      if (this.env.ES_ACTIVE === true && this.objParams.flags.esCreate === true) {
         this.esTrace.push({ type: 'ES_CREATE', exportData });
         const docId = this.getDocId(exportData);
-        const response = await this.es.index(`${this.env.INDEX_PERF}-${indexDay}`, this.route, (docId || ''), exportData);
+        const response = await this.es.index(`${this.env.INDEX_PERF}-${indexDay}`, exportData, docId || '');
         this.esSaved = ['created', 'updated'].includes(response.result);
         if (this.esSaved && this.route === 'navtiming') {
           const resBody = this.getResourcesBody(exportData['@_uuid']);
-          this.resourcesSaved = await this.es.legacyBulk(resBody);
+          this.resourcesSaved = await this.es.bulk(resBody);
         }
       }
       // Send create response and send back to router
       return cb(null, this.buildResponse(exportData));
-    } catch (err) {
-      return cb(err);
+    } catch (e) {
+      return cb(e);
     }
   }
 
   async multirun() {
     // Temp file is the multirun's ID (to be provided by client)
     const multiFile = path.resolve(`./multi_tmp/${this.route}_${this.objParams.multirun.id}.json`);
-    if (this.objParams.multirun.currentRun > 1 && !fs.accessSync(multiFile)) {
-      const err = new Error();
-      err.status = 400;
-      err.message = 'Missing first run - currentRun has to be 1 for the first run!';
-      throw err;
+    if (this.objParams.multirun.currentRun > 1 && !fs.existsSync(multiFile)) {
+      const e = new Error();
+      e.status = 400;
+      e.message = 'Missing first run - currentRun has to be 1 for the first run!';
+      throw e;
     }
     const appendObject = this.objParams.multirun.currentRun < 2 ? {} : await fs.readJson(multiFile);
     appendObject[this.objParams.multirun.currentRun] = this.objParams;
@@ -245,9 +244,7 @@ class PUClass {
     // Add the time range to the query object
     const mustRange = { range: { et: { from: 'now-' + baselineParams.days + 'd', to: 'now' } } };
     query.bool.must.push(mustUrl, mustRange);
-    if (parseInt(this.env.ES_MAJOR, 10) > 5) {
-      query.bool.must.push({ term: { type: { value: this.route } } });
-    }
+    query.bool.must.push({ term: { type: { value: this.route } } });
 
     // Add baseline includes
     if (
@@ -448,7 +445,7 @@ class PUClass {
       assert: this.objParams.flags.passOnFailedAssert ? true : (this.status !== 'fail'),
       route: this.route
     };
-    if (this.env.useES === true) {
+    if (this.env.ES_ACTIVE === true) {
       returnJSON.esServer = this.env.ES_HOST;
       returnJSON.esIndex = this.env.INDEX_PERF + '-*';
       returnJSON.esSaved = this.esSaved;
@@ -479,7 +476,7 @@ class PUClass {
   // RESOURCES //
   async getResources(req, cb) {
     // Collect POST data
-    if (this.env.useES === false) {
+    if (this.env.ES_ACTIVE === false) {
       return cb(null, {
         status: 200,
         kibana_host: (this.env.ES_PROTOCOL || 'http') + '://' + this.env.KB_HOST,
@@ -520,8 +517,8 @@ class PUClass {
       returnJSON.kibana_rename = this.env.KB_RENAME;
       returnJSON.resources = resources;
       return cb(null, returnJSON);
-    } catch (err) {
-      return cb(err);
+    } catch (e) {
+      return cb(e);
     }
   }
 
@@ -529,7 +526,7 @@ class PUClass {
     // [OUTPUT TO CICD-RESOURCE] Only used for navtiming
     // Check if ES server is there & grab resources
     const rt = this.objParams.injectJS.resources;
-    if (this.env.useES === false || !Array.isArray(rt)) {
+    if (this.env.ES_ACTIVE === false || !Array.isArray(rt)) {
       const err = new Error(
         '[getResourcesBody] ERROR: Resources not saved! Issue with resources array or ELK is not available!'
       );
@@ -541,7 +538,7 @@ class PUClass {
       ? new Date(this.objParams.injectJS.time).toISOString()
       : new Date().toISOString();
     const indexDay = new Date(et).toISOString().slice(0, 10).replace(/-/g, '.');
-    let body = [this.resNav(uuid, et)];
+    const body = [this.resNav(uuid, et)];
 
     // Create entries for resources
     rt.forEach((resource) => {
@@ -581,18 +578,12 @@ class PUClass {
         'responseStart': resource.responseStart,
         'responseDuration': resource.responseStart > 0 ? resource.responseEnd - resource.responseStart : 0
       };
-      if (parseInt(this.env.ES_MAJOR, 10) === 5) {
-        body += `{ "index" : { "_index" : "${this.env.INDEX_RES}-${indexDay}", "_type" : "resource" } }\n`;
-      } else {
-        const resEntry = {
-          _index: `${this.env.INDEX_RES}-${indexDay}`,
-          ...res
-        };
-        if (parseInt(this.env.ES_MAJOR, 10) === 6) {
-          resEntry._type = 'doc';
-        }
-        body.push(resEntry);
-      }
+
+      body.push({
+        _index: `${this.env.INDEX_RES}-${indexDay}`,
+        ...res
+      });
+
     });
     return body;
   }
@@ -636,26 +627,15 @@ class PUClass {
       'loadEventDuration': timing.loadEventEnd - timing.loadEventStart
     };
 
-    let navEntry = '';
-    if (parseInt(this.env.ES_MAJOR, 10) === 5) {
-      const type = 'resource';
-      navEntry += `{ "index" : { "_index" : "${this.env.INDEX_RES}-${indexDay}", "_type" : "${type}" } }\n`;
-      navEntry += JSON.stringify(nt) + '\n';
-    } else {
-      navEntry = {
-        _index: `${this.env.INDEX_RES}-${indexDay}`,
-        ...nt
-      };
-      if (parseInt(this.env.ES_MAJOR, 10) === 6) {
-        navEntry._type = 'doc';
-      }
-    }
-    return navEntry;
+    return {
+      _index: `${this.env.INDEX_RES}-${indexDay}`,
+      ...nt
+    };
   }
 
   // OTHER //
   saveError(err, req) {
-    if (this.env.useES === true) {
+    if (this.env.ES_ACTIVE === true) {
       // post to ELK (if flags.esCreate=true)
       const body = {};
 
@@ -689,16 +669,13 @@ class PUClass {
       }
 
       // Add ERROR message and status
-      body.err_message = err.message ? err.message : 'Missing or Unknown message';
-      body.err_status = err.status ? err.status : 400;
+      body.err_message = err.message || 'Missing or Unknown message';
+      body.err_status = err.status || 400;
+      body.err_stack = err.stack || '';
 
       // console.log("Error to ELK: " + JSON.stringify(body, null, 2));
-      let type = 'error_' + body.route;
-      if (parseInt(this.env.ES_MAJOR, 10) > 5) {
-        body.type = type;
-        type = 'doc';
-      }
-      this.es.index(this.env.INDEX_ERR + '-' + indexDay, type, '', body);
+      body.type = 'error_' + body.route;
+      this.es.index(`${this.env.INDEX_ERR}-${indexDay}`, body);
     }
   }
 
@@ -767,7 +744,7 @@ class PUClass {
     mark = mark || 'visual_complete';
     const docHref = (stripQueryString === true) ? 'document.location.href.split("?")[0]' : 'document.location.href';
     if (type === 'navtiming') {
-      injectCode =
+      injectCode +=
           `var visualCompleteTime = 0;
   if (performance.getEntriesByName('${mark}').length) {
       visualCompleteTime = parseInt(performance.getEntriesByName('${mark}')[0].startTime);
