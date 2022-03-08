@@ -12,49 +12,10 @@
   </header>
 
   <main>
-    <div class="container-fluid pt-5">
+    <div id="cards" class="container-fluid pt-5">
       <div class="bg-light rounded-3 m-1">
         <div class="container-fluid py-2">
           <h1 class="display-5 fw-bold text-center">Welcome to your <span class="text-danger"><em>Timings API</em></span> server!</h1>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col">
-          <div class="p-4 text-white bg-dark rounded-3 m-1">
-            <h2 id="card_header_api">API info</h2>
-            <hr>
-            <div id="card_api" class="row position-relative"></div>
-          </div>
-        </div>
-        <div class="col">
-          <div class="p-4 text-white bg-dark rounded-3 m-1">
-            <h2 id="card_header_node">NODE info</h2>
-            <hr>
-            <div id="card_node" class="row position-relative"></div>
-          </div>
-        </div>
-        <div class="col">
-          <div class="p-4 text-white bg-dark rounded-3 m-1">
-            <h2 id="card_header_system">System info</h2>
-            <hr>
-            <div id="card_system" class="row position-relative"></div>
-          </div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col">
-          <div class="p-4 text-white bg-dark rounded-3 m-1">
-            <h2 id="card_header_es">Elasticsearch</h2>
-            <hr>
-            <div id="card_es" class="row position-relative"></div>
-          </div>
-        </div>
-        <div class="col">
-          <div class="p-4 text-white bg-dark rounded-3 m-1">
-            <h2 id="card_header_kibana">Kibana</h2>
-            <hr>
-            <div id="card_kibana" class="row position-relative"></div>
-          </div>
         </div>
       </div>
     </div>
@@ -67,8 +28,8 @@
   <%- include('../partials/post_js'); %>
   <script>
     $(function () {
-      const svrHealth = JSON.parse('<%- svrHealth %>');
-      drawHomeCards(svrHealth);
+      const apiHealth = JSON.parse('<%- apiHealth %>');
+      drawHomeCards(apiHealth);
     });
   </script>
 

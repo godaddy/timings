@@ -55,27 +55,26 @@ function drawHomeCards(data, subKey, parentKey) {
   if (!parentKey) parentKey = subKey;
   Object.entries(data).map(([key, value]) => {
     if (key === `${parentKey}_version`) {
-      // Add version to card header
-      $('#card_header_' + parentKey).text(`${$('#card_header_' + parentKey).text()} - v.${value}`)
+      // Add card header
+      cardHead = document.createElement("div");
+      cardHead.className = 'text-white bg-dark rounded-3 p-3 m-3';
+      cardHead.innerHTML = `<h2 id="card_header_${parentKey}" class="text-center">${parentKey.toUpperCase()} - v.${value}</h2><hr><div id="card_${parentKey}"></div>`;
+      const cards = document.getElementById(`cards`);
+      cards.appendChild(cardHead);
     } else {
       if (typeof value === 'object') {    // NESTED OBJECT
         drawHomeCards(value, key, parentKey);
       } else {
-        cardEntry = document.createElement("div");
-        cardEntry.classList.add('.col-md-8');
-        cardEntry.innerHTML = `${parentKey}.${key}`;
-        cardSpan = document.createElement("span");
-        if (key.toLowerCase().indexOf('link') < 0) {
-          cardSpan.classList.add('badge');
-          cardSpan.classList.add(value === false ? 'bg-danger' : 'bg-success');
-        } else {
+        cardKey = document.createElement("div");
+        cardKey.className = 'row m-1';
+        if (key.toLowerCase().indexOf('link') >= 0) {
           value = decodeURIComponent(value);
-        };
-        cardSpan.classList.add('position-absolute', 'end-0');
-        cardSpan.innerHTML = value;
-        cardEntry.appendChild(cardSpan);
+          cardKey.innerHTML = `<div class="col-lg-3 text-center mb-1">${key}</div><div class="col-lg-9 text-center mb-1"><a href="${value}" target="_blank">TIMINGS-Dashboard</a></div>`;
+        } else {
+          cardKey.innerHTML = `<div class="col-lg-3 text-center mb-1">${key}</div><div class="col-lg-9 badge ${value === false ? 'bg-danger' : 'bg-success'} text-white text-center mb-1">${value}</div>`;
+        }
         const card = document.getElementById(`card_${parentKey}`);
-        card.appendChild(cardEntry);
+        card.appendChild(cardKey);
       }
     }
   })
@@ -281,6 +280,7 @@ function loadTablesorter() {
     output: '{startRow} to {endRow} of {filteredRows} total rows'
   }
   $("table").tablesorter({
+    sortList: [[0,1]],
     theme: 'blue',
     // this is the default setting
     cssChildRow: "tablesorter-childRow",

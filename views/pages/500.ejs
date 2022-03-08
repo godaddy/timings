@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <%- include('../partials/head'); %>
+</head>
+
+<body class="container">
+
+  <header>
+    <%- include('../partials/nav'); %>
+  </header>
+
+  <main>
+    <div class="container pt-5">
+      <div class="p-5 mb-4 bg-light rounded-3 text-center">
+        <div class="container-fluid py-5">
+          <i class="fa fa-frown-o" style="font-size: 1000%;"></i>
+          <h1 class="display-5 fw-bold">Ouch - so sorry but we hit a snag :-(</h1>
+          <p>Below is some more info about this unfortunate mishap</p>
+          <div class="p-2 mb-2 mt-5 bg-danger rounded-1 text-start">
+            <h4>Error message:</h4><hr>
+            <pre class="text-white"><%= error %></pre>
+          </div>
+          <div class="p-2 mb-2 bg-danger rounded-1 text-start">
+            <h4>Error stack:</h4><hr>
+            <pre class="text-white"><%= stack %></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <%- include('../partials/footer'); %>
+  <%- include('../partials/pre_js'); %>
+  <script>
+    const error = "<%= error %>"
+    const stack = "<%= stack %>"
+  </script>
+</body>
+
+</html>
