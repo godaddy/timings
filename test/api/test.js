@@ -420,7 +420,7 @@ describe('GET endpoint ', function () {
         expect(res).to.have.property('ok');
         expect(res.ok).to.be.true;
         expect(res).to.have.property('text');
-        expect(res.text).to.contain('No response from Elasticsearch');
+        expect(res.text).to.contain('Elasticsearch is not in use');
         done();
       });
   });
