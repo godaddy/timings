@@ -2,6 +2,11 @@
 
 [![Build Status](https://travis-ci.org/godaddy/timings.svg?branch=master)](https://travis-ci.org/godaddy/timings) [![npm version](https://badge.fury.io/js/timings.svg)](https://www.npmjs.com/package/timings) [![Node version](https://img.shields.io/node/v/timings.svg?style=flat)](http://nodejs.org/download/) [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/godaddy/timings/issues)
 
+The timings API is a solution for asserting **web UI or API performance** during functional/integration tests!
+The simple idea is that you inject some javascript into the headless browser that you use for UI testing (i.e. webdriver) to collect navigation timing which can then be stored in elasticsearch. In subsequent runs of your tests, the new performance data can be compared to historical results (the 'baseline') and asserted like any other assertion that you may perform in your tests. For API tests, you can set start/stop timers and store the delta in elasticsearch and follow the same routine to assert.
+
+Run this API in your local network => install one of the clients on your dev/test machine => add a few lines of code => assert perf against historical baselines & visualize historical data!
+
 ## **IMPORTANT NOTICE: SIGNIFICANT UPDATE to 2.0.0**
 
 This version of the Timings API introduces a few major updates and you should carefully read the following announcements!

@@ -7,6 +7,7 @@ const path = require('path');
 const isDocker = require('is-docker');
 const runES = require('../../src/v2/run-es');
 const esUtils = require('../../src/v2/es-utils');
+const kbUtils = require('../../src/v2/kb-utils');
 
 const htmlDir = path.join(__dirname, '../../public/');
 
@@ -181,8 +182,8 @@ module.exports = function (app) {
 
   router.get('/kb_import', async function (req, res, next) {
     try {
-      const es = new esUtils.ESClass(app);
-      const kbImport = await es.kbImport();
+      const kb = new kbUtils.KBClass(app);
+      const kbImport = await kb.kbImport();
       res.json(kbImport);
     } catch (e) {
       return next(e);
@@ -235,6 +236,8 @@ module.exports = function (app) {
       }
       ret.kibana = {
         kibana_version: app.locals.env.KB_VERSION || 'Unknown',
+        kibana_build: app.locals.env.KB_BUILD || 'Unknown',
+        kibana_status: app.locals.env.KB_STATUS || 'Unknown',
         kibana_host: app.locals.env.KB_HOST || 'Not set!',
         kibana_port: app.locals.env.KB_PORT || 'Not set!',
         kibana_items: app.locals.env.HAS_KB_ITEMS,

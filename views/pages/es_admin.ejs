@@ -49,14 +49,11 @@
     const esInfo = JSON.parse('<%- esInfo %>')
     $(function () {
       setCardData('#cardES', '#es_check_result', esInfo)
-      if (esInfo.checkTemplate) {
-        // setCardData('#cardTemplate', '#templ_check_result', esInfo.checkTemplate)
-        if (!esInfo.hasKibanaItems) {
-          $("#kbImport, #cardEsActions").show();
-        }
-        if (esInfo.hasKibanaItems && !esInfo.hasTimingsData) {
-          $("#esImport").show();
-        }
+      if (esInfo.ok && !esInfo.hasKibanaObjects) {
+        $("#kbImport, #cardEsActions").show();
+      }
+      if (esInfo.ok && !esInfo.hasTimingsData) {
+        $("#esImport").show();
       }
     });
   </script>

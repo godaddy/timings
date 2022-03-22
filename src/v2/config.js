@@ -72,6 +72,11 @@ function setConfig(app, appRootPath) {
     INDEX_ERR: 'cicd-errorlog',
     ES_ACTIVE: process.env.ES_ACTIVE === true
   };
+  app.locals.env.APP_URL = `${app.locals.env.HTTP_PORT === 80 ? 'http' : 'https'}://` +
+    `${app.locals.env.HOST}:${app.locals.env.HTTP_PORT}`;
+  app.locals.env.ES_URL = `${app.locals.env.ES_PROTOCOL}://${app.locals.env.ES_HOST}:${app.locals.env.ES_PORT}`;
+  app.locals.env.KB_URL = `${app.locals.env.ES_PROTOCOL}://${app.locals.env.KB_HOST}:${app.locals.env.KB_PORT}`;
+
   app.locals.params = {
     required: appConfig.params.required || ['log.test_info', 'log.env_tester', 'log.team', 'log.browser', 'log.env_target'],
     defaults: {

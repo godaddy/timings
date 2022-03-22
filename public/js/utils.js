@@ -1,7 +1,7 @@
 let editor;
 function setCardResult(caller, result) {
   $('.spinner-border').remove();
-  const card = $(caller).parent('.card');
+  const card = $(caller).parents('.card');
   $(card).children('.is-result').addClass('bg-opacity-75');
   $(card).children('.is-result').addClass('text-white');
   if (result) {
@@ -45,8 +45,8 @@ function getCardData(caller, div, url) {
 
 function kbImport(caller, div, url) {
   result = getCardData(caller, div, url)
-  esInfo.hasKibanaItems = result.ok
-  if (esInfo.hasKibanaItems) {
+  esInfo.hasKibanaObjects = result.ok
+  if (esInfo.hasKibanaObjects) {
     $("#esImport").show();
   }
 }

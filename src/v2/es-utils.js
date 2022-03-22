@@ -144,18 +144,6 @@ class ESClass {
     }
   }
 
-  async getKBVer() {
-    if (!this.client) return;
-    try {
-      const settings = await this.client.indices.getSettings({ index: '.kibana', include_defaults: true, human: true });
-      const kbIndex = Object.keys(settings.body)[0];
-      const kbIndexVersion = settings.body[kbIndex]?.settings?.index?.version?.created_string;
-      return kbIndexVersion;
-    } catch (err) {
-      logger.log('error', `[TEMPLATE] could not get Kibana Index [${this.app.locals.env.KB_INDEX}]!`, err);
-    }
-  }
-
   async getTemplateVersion() {
     if (!this.client) return;
     const indexPerf = this.app.locals.env.INDEX_PERF;
@@ -184,7 +172,7 @@ class ESClass {
       const response = await this.client.index(params);
       return response.body;
     } catch (err) {
-      logger.log('error', `Unable to index record`, err);
+      return err;
     }
   }
 
@@ -212,89 +200,39 @@ class ESClass {
   }
 
   async esImport() {
-    const sampleData = require('../../config/.sample_data.json');
     const response = {
       info: [],
-      ok: false
+      imports: [],
+      ok: true
     };
+    const sampleData = require('../../config/.sample_data.json');
     try {
       const replaceDate = new Date().toISOString().split('T')[0];
       const data = JSON.parse(JSON.stringify(sampleData.latest).replace(/==date==/g, replaceDate));
       for (const index of Object.keys(data)) {
         const item = data[index];
         const type = '_doc';
-        await this.index(item._index, type, item._id, item._source);
+        const indexResponse = await this.index(item._index, type, item._id, item._source);
+        if (typeof indexResponse === Error) response.ok = false;
+        response.imports.push({
+          result: typeof indexResponse === Error ? 'ERROR' : 'SUCCESS',
+          index: item._index,
+          type: type,
+          id: item._id,
+          overwrite: true
+        });
       }
       response.ok = true;
-      response.info.push('[IMPORT] Successfully imported sample data into elasticsearch! You can now find the sample data in ' +
-        'Elasticsearch indices [cicd-*-sample] and visualize them in Kibana');
-      logger.log('info', '[IMPORT] Successfully imported sample data into elasticsearch!');
+      response.info.push(
+        `[IMPORT] processed [${response.imports.length}] sample items into elasticsearch! You can now find the sample data in ` +
+        'the Elasticsearch [cicd-*-sample] indices');
+      logger.log('info', `[IMPORT] processed [${response.imports.length}] sample items into elasticsearch!`);
     } catch (err) {
       response.ok = false;
       response.info.push(`Could not import sample data into Elasticsearch - error: ${err}`);
       logger.log('error', response.info, err);
     }
     return response;
-  }
-
-  async kbImport() {
-    const kbImportJson = require('../../config/.kibana_items.json');
-    const response = {
-      info: [],
-      ok: false
-    };
-    try {
-      for (const index of Object.keys(kbImportJson)) {
-        const item = kbImportJson[index];
-        const title = item._source.title;
-        if (item._type === 'index-pattern' && item._id === 'cicd-perf*') {
-          const apiHost = (this.app.locals.env.HTTP_PORT !== 80)
-            ? `${this.app.locals.env.HOST}:${this.app.locals.env.HTTP_PORT}`
-            : this.app.locals.env.HOST;
-          item._source.fieldFormatMap = item._source.fieldFormatMap.replace('__api__hostname', apiHost.toLowerCase());
-        }
-        // Conversion for v7
-        item._id = `${item._type}:${item._id}`;
-        const indexResponse = await this.index((this.app.locals.env.KB_INDEX || '.kibana'), item._source, item._id);
-        this.checkImportErrors(indexResponse, 'import [' + item._type + ']', title);
-      }
-      response.ok = true;
-      response.info.push(`[IMPORT] Successfully created/updated ${Object.keys(kbImportJson).length} Kibana item(s)! ` +
-        'You can now enjoy dashboards and visualizations in Kibana!');
-      logger.log('info', `[IMPORT] Created/updated ${Object.keys(kbImportJson).length} Kibana item(s)!`);
-    } catch (err) {
-      response.ok = false;
-      response.info.push(`Could not create/update Kibana item(s) - error: ${err}`);
-      logger.log('error', response.info, err);
-    }
-    return response;
-  }
-
-  async checkImportErrors(response, job, item) {
-    if (response.hasOwnProperty('error')) {
-      logger.log('error', `[IMPORT] ${job} - item: ${item} - ERROR! - reason: ${response.error.reason}`);
-    } else {
-      logger.log('info', `[IMPORT] ${job} - item: ${item} - ${response.result.toUpperCase() || 'SUCCESS'}!`);
-    }
-  }
-
-  async setDefaultIndex() {
-    if (!this.client) return;
-    const sendBody = {
-      id: `config:${this.app.locals.env.ES_VERSION}`,
-      index: this.app.locals.env.KB_INDEX || '.kibana',
-      type: '_doc',
-      refresh: true,
-      body: {
-        config: {
-          defaultIndex: `${this.app.locals.env.INDEX_PERF}*`
-        },
-        type: 'config',
-        updated_at: new Date().toISOString()
-      }
-    };
-    const response = await this.client.update(sendBody);
-    return response.body;
   }
 }
 

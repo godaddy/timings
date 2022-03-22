@@ -22,8 +22,8 @@ function createApp() {
   app = express();
   require('./src/v2/config')(app, __dirname);
   app.locals.env.NODE_VERSIONS = process.versions;
-  app.logger.log('info', `[CONFIG] - Using config ["${app.locals.env.APP_CONFIG || '{unknown}'}"]`);
-  app.logger.log('info', `[NODE] - NODE version: ${app.locals.env.NODE_VERSIONS.node}`);
+  app.logger.log('info', `[INIT] - Using config ["${app.locals.env.APP_CONFIG || '{unknown}'}"]`);
+  app.logger.log('info', `[INIT] - NODE version: ${app.locals.env.NODE_VERSIONS.node}`);
 
   // Add the current app version to the config
   const apiVer = semver.valid(pkg.version);
@@ -106,7 +106,7 @@ function createApp() {
   app.locals.env.HTTP_PORT = app.locals.env.HTTP_PORT || 80;
   app.listen(app.locals.env.HTTP_PORT);
 
-  app.logger.log('info', `[STATUS] - Server v${app.locals.env.APP_VERSION || '{unknown}'} is running at ` +
+  app.logger.log('info', `[INIT] - Server v${app.locals.env.APP_VERSION || '{unknown}'} is running at ` +
     `http://${app.locals.env.HOST}:${app.locals.env.HTTP_PORT}`);
 
   // Initialize ES
