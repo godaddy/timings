@@ -6,7 +6,7 @@ name: Timings CI - test
 on:
   push:
     branches:
-    - "**"
+    - "!main"
 
 jobs:
   test:
@@ -30,11 +30,15 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         file: coverage/cobertura-coverage.xml
+    - name: Extract branch name
+      shell: bash
+      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+      id: extract_branch
     - name: Semantic Release Dry-run
       uses: cycjimmy/semantic-release-action@v3
       id: semantic
       with:
-        branch: '!main'
+        branch: ${{ steps.extract_branch.outputs.branch }}
         dry_run: true
         extra_plugins: |
           @semantic-release/changelog
