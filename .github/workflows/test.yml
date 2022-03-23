@@ -6,7 +6,9 @@ name: Timings CI - test
 on:
   push:
     branches:
-    - "!main"
+    - "**"
+    branches-ignore:
+    - "main"
 
 jobs:
   test:
