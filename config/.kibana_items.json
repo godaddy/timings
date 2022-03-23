@@ -255,16 +255,6 @@
         }
     },
     {
-        "_id": "[TIMINGS]-RUM-section-separator-for-PROD",
-        "_type": "visualization",
-        "_source": "delete_this"
-    },
-    {
-        "_id": "[TIMINGS]-RUM-section-separator-for-TEST",
-        "_type": "visualization",
-        "_source": "delete_this"
-    },
-    {
         "_id": "1a915ec0-7879-11e7-b725-058d04350fac",
         "_type": "visualization",
         "_source": {
@@ -587,11 +577,6 @@
         }
     },
     {
-        "_id": "[TIMINGS]-Top-20-External-Domains",
-        "_type": "visualization",
-        "_source": "delete_this"
-    },
-    {
         "_id": "TIMINGS-Dashboard",
         "_type": "dashboard",
         "_source": {
@@ -603,7 +588,7 @@
           "version": 1,
           "timeRestore": true,
           "timeTo": "now",
-          "timeFrom": "now-15m",
+          "timeFrom": "now-24h",
           "refreshInterval": {
             "display": "5 seconds",
             "pause": true,

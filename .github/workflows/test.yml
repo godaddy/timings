@@ -5,17 +5,18 @@ name: Timings CI - test
 
 on:
   push:
-    branches:
-    - "**"
+    branches-ignore:
+    - "main"
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [10.x, 12.x, 14.x]
+        node-version: [17.x]
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v2
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v2.1.4
       with:
@@ -29,3 +30,20 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         file: coverage/cobertura-coverage.xml
+    - name: Extract branch name
+      shell: bash
+      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+      id: extract_branch
+    - name: Semantic Release Dry-run
+      uses: cycjimmy/semantic-release-action@v3
+      id: semantic
+      with:
+        branch: ${{ steps.extract_branch.outputs.branch }}
+        dry_run: true
+        extra_plugins: |
+          @semantic-release/changelog
+          @semantic-release/git
+          @semantic-release/npm
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

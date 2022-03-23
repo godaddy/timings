@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <%- include('../partials/head'); %>
+  <%- include('../partials/tablesorter_css'); %>
+</head>
+
+<body class="container-fluid">
+  <%- include('../partials/nav'); %>
+  <main>
+    <div class="container-fluid pt-5">
+      <div class="shadow-lg p-1 mb-2 text-white bg-dark rounded-3">
+        <div class="container-fluid py-1">
+          <h1 class="display-5 fw-bold">Log viewer</h1>
+        </div>
+      </div>
+      <div class="shadow-lg p-2 mb-2 bg-light rounded-3">
+        <div style="height: 70vh;">
+          <table id="logTable" class="tablesorter" style="font-size:x-small; display:none;">
+            <thead>
+              <tr id="logHeadRow">
+                <th data-column="timestamp" class="filter-date" style="width:20%;">Timestamp</th>
+                <th data-column="timestamp" class="filter-select">level</th>
+              </tr>
+            </thead>
+            <tbody id="logBody"></tbody>
+          </table>
+          <%- include('../partials/tablePager'); %>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <%- include('../partials/footer'); %>
+  <%- include('../partials/pre_js'); %>
+
+  <!-- ✅ load page-specific JS here... ✅ -->
+  <%- include('../partials/tablesorter_js'); %>
+
+  <%- include('../partials/post_js'); %>
+  <script>
+    const type = "<%= log %>"
+    $(function () {
+      getLogs(type);
+    })
+  </script>
+</body>
+
+</html>

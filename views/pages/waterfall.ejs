@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <%- include('../partials/head'); %>
+    <link rel="stylesheet" type=""
+      href="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.28.15/css/theme.blue.css" />
+</head>
+
+<body class="container-fluid">
+
+  <header>
+    <%- include('../partials/nav'); %>
+  </header>
+
+  <main>
+    <div class="container-fluid pt-5">
+      <table id="title" class="table table-sm table-bordered" width="100%" style="margin: 0px;">
+        <tbody>
+          <tr class="table-info">
+            <td colspan="42">
+            <div class="row">
+              <div class="col-sm-2 d-flex align-items-center">
+                <div class="col-sm-2 start-0 h2"><strong>Waterfall</strong></div>
+              </div>
+              <div class="col-sm-6 d-flex align-items-center">
+                <div class="input-group input-group-sm" style="width: 100%;">
+                  <span class="input-group-text" id="sizing-addon1">Filter:</span>
+                  <input id="srch-term" name="srch-term" type="text" class="form-control" placeholder="Search"
+                    aria-label="Search" aria-describedby="sizing-addon3">
+                </div>
+              </div>
+              <div class="col-sm-4 d-flex align-items-center text-right">
+                <div class="btn-toolbar" role="toolbar" aria-label="Toolbar with button groups">
+                  <div class="btn-group me-2" role="group" aria-label="First group">
+                    <button type="button" id="fltr_all" class="btn btn-sm btn-info">All</button>
+                    <button type="button" id="fltr_xhr" class="btn btn-sm btn-outline-info">XHR</button>
+                    <button type="button" id="fltr_js" class="btn btn-sm btn-outline-info">JS</button>
+                    <button type="button" id="fltr_css" class="btn btn-sm btn-outline-info">CSS</button>
+                    <button type="button" id="fltr_img" class="btn btn-sm btn-outline-info">IMG</button>
+                    <button type="button" id="fltr_med" class="btn btn-sm btn-outline-info">Media</button>
+                    <button type="button" id="fltr_fnt" class="btn btn-sm btn-outline-info">Font</button>
+                    <button type="button" id="fltr_oth" class="btn btn-sm btn-outline-info">Other</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            </td>
+          </tr>
+          <tr class="table-warning small">
+            <td class="small" width='65%'><strong>Page URL</strong></td>
+            <td class="small"><strong>Date/time</strong></td>
+            <td class="small"><strong>Team</strong></td>
+            <td class="small"><strong>Tester</strong></td>
+            <td class="small"><strong>Target</strong></td>
+          </tr>
+          <tr class="table-warning small">
+            <td class="small"></td>
+            <td class="small"></td>
+            <td class="small"></td>
+            <td class="small"></td>
+            <td class="small"></td>
+          </tr>
+        </tbody>
+      </table>
+      <table id="info" class="table table-sm table-bordered" width="100%" style="visibility: hidden;">
+        <tbody>
+          <tr class="small">
+            <td class="small"><strong>Asserted Metric</strong></td>
+            <td class="small"><strong>Measured</strong></td>
+            <td class="small" style="color: darkgreen;"><strong>Baseline</strong></td>
+            <td class="small" style="color: purple;"><strong>Threshold</strong></td>
+            <td class="small"><strong>RESULT</strong></td>
+            <td class="small" style="color: lime;border-left-width: thick;"><strong>First Byte</strong></td>
+            <td class="small" style="color: orange;"><strong>DOM Interactive</strong></td>
+            <td class="small" style="color: blue;"><strong>Load Event</strong></td>
+            <td class="small" style="color: red;"><strong>Visual Complete</strong></td>
+          </tr>
+          <tr class="warning small">
+            <td class="small"></td>
+            <td class="small"></td>
+            <td class="small"></td>
+            <td class="small"></td>
+            <td class="small"></td>
+            <td class="small" style="border-left-width: thick;"></td>
+            <td class="small"></td>
+            <td class="small"></td>
+            <td class="small"></td>
+          </tr>
+        </tbody>
+      </table>
+      <div id="svg_canvas"></div>
+      <div id="divTable" class="col-lg-12 dataTable" style="padding-right:0px; padding-left:0px;">
+        <table id="tbl_resources" class="table table-condensed table-bordered table-striped tablesorter" width="100%"
+          style="font-size: 12px;"></table>
+      </div>
+    </div>
+  </main>
+  <%- include('../partials/footer'); %>
+  <%- include('../partials/pre_js'); %>
+  
+  <!-- ✅ load page-specific JS here... ✅ -->
+  <script type="text/javascript"
+  src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.28.15/js/jquery.tablesorter.js" defer></script>
+  <script type="text/javascript" src="/public/js/waterfall.js" defer></script>
+
+  <%- include('../partials/post_js'); %>
+  <script>
+    window.onload = function (e) {
+      createWaterfall();
+    };
+  </script>
+
+</body>
+
+</html>

@@ -446,82 +446,10 @@ function strShort(str, length, side) {
             ? rightCut = 4 / 5
             : rightCut = 1 / 5;
         str.length > length
-            ? strOut = str.substr(0, length * (leftCut)) + " ... " + str.slice(-length * (rightCut))
+            ? strOut = str.substring(0, length * (leftCut)) + " ... " + str.slice(-length * (rightCut))
             : strOut = str;
     }
     return strOut;
-};
-
-function callAjax(ajaxData, type, url, dataType, cache, cb) {
-    var result = null;
-    if (typeof(cache) != 'boolean') {
-        cache = true;
-    }
-
-    $.ajaxSetup({
-        error: function (jqXHR, exception, errorThrown) {
-            var responseMsg,
-                errorMsg = "";
-            if (jqXHR.responseText) {
-                var msgArray = jqXHR
-                    .responseText
-                    .replace(/[\r\n]/g, ' ')
-                    .match(/<p.*>(.*)<\/p>/);
-                if (typeof msgArray === 'array' && msgArray.length() > 0) {
-                    //There is a full HTML response message WITH a <p> paragraph in there! Grab it!
-                    responseMsg = msgArray[1];
-                } else {
-                    responseMsg = jqXHR.responseText;
-                }
-            }
-            if (jqXHR.status === 0) {
-                errorMsg = 'Not connect.\n Verify Network.';
-            } else if (jqXHR.status == 404) {
-                errorMsg = 'Requested page not found. [404]';
-            } else if (jqXHR.status == 500) {
-                errorMsg = 'Internal Server Error [500].';
-            } else if (exception === 'parsererror') {
-                errorMsg = 'Requested JSON parse failed.';
-            } else if (exception === 'timeout') {
-                errorMsg = 'Time out error.';
-            } else if (exception === 'abort') {
-                errorMsg = 'Ajax request aborted.';
-            } else {
-                errorMsg = 'Uncaught Error.';
-            }
-            console.warn('Ajax Error', 'Message: ' + errorMsg + '<br>' + responseMsg, 'error');
-        },
-        timeout: 20000
-    });
-    var hasCallBack = typeof(cb) === 'function';
-
-    var contentType = "application/x-www-form-urlencoded";
-    if (dataType.toUpperCase() === "JSON") {
-        contentType = "application/json"
-        ajaxData = (typeof(ajaxData) === 'object')
-            ? JSON.stringify(ajaxData)
-            : ajaxData;
-    }
-
-    $.ajax({
-        url: url,
-        data: ajaxData,
-        type: type,
-        dataType: dataType,
-        contentType: contentType + ";charset=UTF-8",
-        async: hasCallBack,
-        cache: cache,
-        success: function (data) {
-            if (hasCallBack) {
-                cb(null, data);
-            }
-            result = data;
-        }
-    })
-        .fail(function (e) {
-            console.warn("ajax 'error' for [" + this.type + "] to [" + this.url + "]\nResponse text: " + e.responseText);
-        })
-    return result;
 };
 
 function tableSorterSort(tbl, col, dir, sticky) {
@@ -646,3 +574,201 @@ function entryFilter(entry, fltrType) {
     }
     return result;
 };
+
+function waterfallTable(div, resources, fltr) {
+    $('#info').css('visibility', '');
+    $('#filter').css('visibility', '');
+    $(div).empty();
+    var tbl_header = '<thead><tr>';
+    tbl_header += '<th>#</th>';
+    tbl_header += '<th>Resource</th>';
+    tbl_header += '<th>Content-type</th>';
+    tbl_header += '<th>Request Start</th>';
+    tbl_header += '<th>Duration</th>';
+    tbl_header += '<th>DNS Lookup</th>';
+    tbl_header += '<th>TCP connect</th>';
+    tbl_header += '<th>SSL time</th>';
+    tbl_header += '<th>TTFB</th>';
+    tbl_header += '<th>Content Download</th>';
+    tbl_header += '<th>Bytes Downloaded</th></tr></thead>';
+    $(div).append(tbl_header + '<tbody>');
+    var onload = 0;
+
+    for (var n = 0; n < resources.length; n++) {
+        var entry = resources[n];
+        if (fltr && entry.hasOwnProperty("initiatorType")) {
+            if (fltr.indexOf("fltr_") === 0) {
+                // this is a type filter
+                var fltrType = fltr.replace("fltr_", "");
+                if (this.entryFilter(entry, fltrType) !== (fltrType !== 'oth')) {
+                    continue;
+                } else if (fltrType === 'oth' && entry.mimeType !== 'other') {
+                    continue;
+                }
+            } else {
+                // must be a text filter
+                if (entry.uri.indexOf(fltr) < 0) {
+                    continue;
+                }
+            }
+        }
+        if (typeof entry === 'object' && !entry.hasOwnProperty("status")) {
+            // This entry is from the 'resources' data
+            if ("loadEventStart" in entry) {
+                // Add value to the top table
+                onload = entry.loadEventStart;
+                $('#info tbody>tr:nth-child(2)>td:nth-child(8)').text(onload).css('color', 'blue');
+            }
+            //Create row for the main table
+            var tbl_row = '<tr id="row_' + n + '">';
+
+            //Check if the resource started before/after onload
+            var beforeOnload = '';
+            if (entry.start < onload) {
+                beforeOnload += ' degrade';
+            } else {
+                beforeOnload += ' improve';
+            }
+
+            //Check if TAO opt-in is necessary (this is the case when responseStart is 0)
+            //See also: https://github.com/w3c/resource-timing/issues/42#issuecomment-206508028
+            //If this is the case, there will be no transferSize - we can use that cell to mention TAO!
+            if (entry.responseStart === 0) {
+                transferSize = 'TAO opt-in missing';
+            } else if (entry.type === 'navtiming') {
+                //Check if resource loaded from cache
+                //We're passed the TAO check - if transferSize is still 0, the resource loaded from cache!
+                var transferSize = '-';
+            } else {
+                //Check if resource loaded from cache
+                //We're passed the TAO check - if transferSize is still 0, the resource loaded from cache!
+                var transferSize = ("transferSize" in entry && entry.transferSize > 0) ? (entry.transferSize / 1000).toFixed(1) + ' KB' : 'cache';
+            }
+
+            tbl_row += '<td class="static' + beforeOnload + '" align="center">' + n + '</td>';
+            var uri = entry.uri || entry.url;
+
+            if (entry.type === 'navtiming') {
+                uri = entry.dl;
+                var link = window.kibana_host + "/app/kibana#/dashboard/" + window.kibana_rename + "-Dashboard?_g=(time:(from:now-7d,mode:quick,to:now))&_a=(query:(query_string:(analyze_wildcard:!t,query:"
+                link += "'dl:" + encodeURIComponent('"' + uri + '"') + "')))";
+            } else {
+                var link = window.kibana_host + "/app/kibana#/dashboard/" + window.kibana_rename + "-Resources?_g=(time:(from:now-7d,mode:quick,to:now))&_a=(query:(query_string:(analyze_wildcard:!t,query:"
+                link += "'uri:" + encodeURIComponent('"' + uri + '"') + "')))";
+            }
+            if (uri.length > 65) {
+                uri = strShort(uri, 65, 'left');
+            }
+
+            tbl_row += '<td class="static' + beforeOnload + '" nowrap><a href="' + link + '" target="_blank">' + uri + '</a></td>';
+            tbl_row += '<td class="static' + beforeOnload + '" nowrap>' + (entry.mimeType || 'other') + '</td>';
+            tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + (entry.start / 1000).toFixed(3) + ' s</td>';
+            tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + entry.duration.toFixed(2) + ' ms</td>';
+            tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + entry.dnsDuration.toFixed(2) + ' ms</td>';
+            tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + entry.tcpDuration.toFixed(2) + ' ms</td>';
+            tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + entry.sslDuration.toFixed(2) + ' ms</td>';
+            tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + entry.requestDuration.toFixed(2) + ' ms</td>';
+            tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + entry.responseDuration.toFixed(2) + ' ms</td>';
+            tbl_row += '<td class="static' + beforeOnload + '" align="center" nowrap>' + transferSize + '</td>';
+            tbl_row += '</tr>';
+            $(div + ' tbody').append(tbl_row);
+        } else if (entry.hasOwnProperty("status")) {
+            // This entry is from the 'test results' data
+            $('#title tbody>tr:nth-child(3)>td:nth-child(1)').text(entry.dl);
+            $('#title tbody>tr:nth-child(3)>td:nth-child(2)').text(new Date(entry['@timestamp']).toLocaleString());
+            $('#title tbody>tr:nth-child(3)>td:nth-child(3)').text(entry.log.team.toUpperCase());
+            // Below is for GoDaddy compatibility
+            var tester = '-field not used-';
+            var target = '-field not used-';
+            if ((entry.log.hasOwnProperty('env_tester') || entry.log.hasOwnProperty('platform')) && (entry.log.hasOwnProperty('env_target') || entry.log.hasOwnProperty('environment'))) {
+                var tester = ('env_tester' in entry.log) ? entry.log.env_tester.toUpperCase() : entry.log.platform.toUpperCase();
+                var target = ('env_target' in entry.log) ? entry.log.env_target.toUpperCase() : entry.log.environment.toUpperCase();
+            }
+            $('#title tbody>tr:nth-child(3)>td:nth-child(4)').text(tester);
+            $('#title tbody>tr:nth-child(3)>td:nth-child(5)').text(target);
+
+            $('#info tbody>tr:nth-child(2)>td:nth-child(1)').text(entry.info.assertMetric || 'n/a');
+            $('#info tbody>tr:nth-child(1)>td:nth-child(2)').html('<strong>Measured ' + (entry.info.assertMetric || '') + '</strong>');
+            if (entry.assertMetric === 'visualCompleteTime') {
+                $('#info tbody>tr:nth-child(2)>td:nth-child(2)').text(entry.perf.visualComplete);
+            } else {
+                $('#info tbody>tr:nth-child(2)>td:nth-child(2)').text(entry.perf.measured);
+            }
+            if (entry.perf.baseline > 0) {
+                $('#info tbody>tr:nth-child(2)>td:nth-child(3)').text(entry.perf.baseline).css('color', 'darkgreen');
+            } else if (entry.info.ranBaseline) {
+                $('#info tbody>tr:nth-child(2)>td:nth-child(3)').text('None found').css('color', 'red');
+            } else {
+                $('#info tbody>tr:nth-child(2)>td:nth-child(3)').text('Didn\'t run').css('color', 'red');
+            }
+            $('#info tbody>tr:nth-child(2)>td:nth-child(4)').text(entry.perf.threshold).css('color', 'purple');
+            var status_color = entry.status.toUpperCase() === 'PASS' ? 'green' : 'red';
+            $('#info tbody>tr:nth-child(2)>td:nth-child(5)').text(entry.status.toUpperCase()).css('color', status_color);
+            $('#info tbody>tr:nth-child(2)>td:nth-child(6)').text(entry.nav.firstByteTime).css('color', 'lime');
+            $('#info tbody>tr:nth-child(2)>td:nth-child(7)').text(entry.nav.domInteractive).css('color', 'orange');
+            $('#info tbody>tr:nth-child(2)>td:nth-child(9)').text(entry.perf.visualComplete || 'n/a').css('color', 'red');
+        }
+    }
+    //Sort table
+    this.tableSorterSort(div, 0, 0);
+};
+
+function drawWaterfall(res_id) {
+    // Draw the page here - should be called from 'loadPage'
+    // Usually this is where you would make AJAX calls for any dynamic data
+
+    // Grab data from the PERF-API server
+    if (typeof window.resources == 'undefined') {
+        var tmp_data = {
+            "id": res_id
+        };
+        callApi(tmp_data, 'POST', '/v2/api/cicd/resources', 'json', true, function (err, res) {
+            if (err) {
+                console.warn('Missing Data', 'No data returned!');
+            } else {
+                if ("resources" in res && res.resources.length > 0) {
+                    window.resources = res.resources
+                    window.kibana_host = (res.kibana_port && res.kibana_port !== 80) ? res.kibana_host + ":" + res.kibana_port : res.kibana_host;
+                    window.kibana_rename = res.kibana_rename || 'TIMINGS';
+                    waterfall('#svg_canvas', res.resources);
+                    this.waterfallTable('#tbl_resources', res.resources);
+                } else {
+                    $('#info').css('visibility', 'hidden');
+                    $('#title tbody>tr:nth-child(3)>td:nth-child(1)').text('"Sorry - no resources available for this test!').css('color', 'red');
+                }
+            }
+        });
+    } else {
+        waterfall('#svg_canvas', window.resources);
+        this.waterfallTable('#tbl_resources', window.resources);
+    }
+};
+
+function createWaterfall() {
+    var id = getQueryStringParameterVal('id');
+    if (id) {
+        drawWaterfall(id);
+        $('body').show();
+    } else {
+        $('#info').css('visibility', 'hidden');
+        $('#title tbody>tr:nth-child(3)>td:nth-child(1)').text('No ID specified').css('color', 'red');
+    };
+
+    $("[id^=fltr_]").on("click", function () {
+        $("[id^=fltr_]").removeClass("btn-info");
+        $(this).addClass("btn-info");
+        const fltr = (this.id === 'fltr_all') ? '' : this.id;
+        waterfall('#svg_canvas', window.resources, fltr);
+        waterfallTable('#tbl_resources', window.resources, fltr);
+    })
+
+    $("#srch-term").on("change paste keyup", function () {
+        const fltr = this.value;
+        waterfall('#svg_canvas', window.resources, fltr);
+        waterfallTable('#tbl_resources', window.resources, fltr);
+    })
+
+    $(window).on('resize', function () {
+        drawWaterfall(id);
+    });
+}

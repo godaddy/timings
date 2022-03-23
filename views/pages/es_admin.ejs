@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <%- include('../partials/head'); %>
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+  <%- include('../partials/nav'); %>
+  <main>
+    <div class="container-fluid pt-5">
+      <div class="shadow-lg p-1 mb-2 text-white bg-dark rounded-3">
+        <div class="container-fluid py-1">
+          <h1 class="display-5 fw-bold">Elasticsearch Admin</h1>
+        </div>
+      </div>
+      <div class="shadow-lg p-1 mb-2 bg-light rounded-3">
+        <div class="container-fluid py-1">
+          <h3>Status of elasticsearch server:</h3><hr>
+
+          <div class="card m-2">
+            <div id="cardES" class="card-header is-result">Elasticsearch version check</div>
+            <div class="card-body">
+              <pre id="es_check_result" class="small is-result-pre"></pre>
+            </div>
+          </div>
+
+          <div id="cardEsActions" class="card m-2" style="display:none;">
+            <div class="card-header is-result">Elasticsearch actions</div>
+            <div class="card-body">
+              <div class="row-fluid">
+                <button type="button" id="kbImport" class="btn btn-sm btn-primary m-2" style="display:none;" onclick="kbImport(this, '#es_actions_result', '/kb_import')">Import Kibana items</button>
+                <button type="button" id="esImport" class="btn btn-sm btn-primary m-2" style="display:none;" onclick="getCardData(this, '#es_actions_result', '/es_import')">Import sample data</button>
+              </div><hr>
+              <pre id="es_actions_result" class="small is-result-pre"></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <%- include('../partials/footer'); %>
+  <%- include('../partials/pre_js'); %>
+
+  <!-- ✅ load page-specific JS here... ✅ -->
+  <%- include('../partials/post_js'); %>
+  <script>
+    const esInfo = JSON.parse('<%- esInfo %>')
+    $(function () {
+      setCardData('#cardES', '#es_check_result', esInfo)
+      if (esInfo.ok && !esInfo.hasKibanaObjects) {
+        $("#kbImport, #cardEsActions").show();
+      }
+      if (esInfo.ok && !esInfo.hasTimingsData) {
+        $("#esImport").show();
+      }
+    });
+  </script>
+</body>
+
+</html>

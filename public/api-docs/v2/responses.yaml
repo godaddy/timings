@@ -16,7 +16,7 @@ healthresponse:
         NODE_ENV:
           type: "string"
           example: "local"
-        useES:
+        ES_ACTIVE:
           type: "boolean"
           example: true
     es:

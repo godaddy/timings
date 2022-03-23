@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <%- include('../partials/head'); %>
+</head>
+
+<body class="container">
+
+  <header>
+    <%- include('../partials/nav'); %>
+  </header>
+
+  <main>
+    <div class="container pt-5">
+      <div class="p-5 mb-4 bg-light rounded-3 text-center">
+        <div class="container-fluid py-5">
+          <i class="fa fa-frown-o" style="font-size: 1000%;"></i>
+          <h1 class="display-5 fw-bold">You found the 404 page!</h1>
+          <p>The url you requested [<%= originalUrl %>] does not exist on this server - please click here to go back: <a href="/">TIMINGS API</a></p>
+        </div>
+      </div>
+    </div>
+  </main>
+  <%- include('../partials/footer'); %>
+  <%- include('../partials/pre_js'); %>
+  <script>
+    const originalUrl = "<%= originalUrl %>"
+  </script>
+</body>
+
+</html>

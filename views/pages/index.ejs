@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <%- include('../partials/head'); %>
+</head>
+
+<body class="container-fluid">
+
+  <header>
+    <%- include('../partials/nav'); %>
+  </header>
+
+  <main>
+    <div id="cards" class="container-fluid pt-5">
+      <div class="bg-light rounded-3 m-1">
+        <div class="container-fluid py-2">
+          <h1 class="display-5 fw-bold text-center">Welcome to your <span class="text-danger"><em>Timings API</em></span> server!</h1>
+        </div>
+      </div>
+    </div>
+  </main>
+  <%- include('../partials/footer'); %>
+  <%- include('../partials/pre_js'); %>
+
+  <!-- ✅ load page-specific JS here... ✅ -->
+
+  <%- include('../partials/post_js'); %>
+  <script>
+    $(function () {
+      const apiHealth = JSON.parse('<%- apiHealth %>');
+      drawHomeCards(apiHealth);
+    });
+  </script>
+
+</body>
+
+</html>

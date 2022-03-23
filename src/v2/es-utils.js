@@ -2,199 +2,190 @@
 * Created by mverkerk on 10/20/2016.
 */
 const fs = require('fs');
+const path = require('path');
 const elasticsearch = require('@elastic/elasticsearch');
-const nconf = require('nconf');
-const waitOn = require('wait-port');
-const logger = require('../../log.js');
+const logger = require('../log')(module.id);
+
+const esPkg = fs.readFileSync(
+  path.join(__dirname, '..', '..', 'node_modules', '@elastic', 'elasticsearch', 'package.json'), 'utf8'
+);
+const { version } = JSON.parse(esPkg);
 
 /* eslint no-sync: 0 */
 class ESClass {
   // Class to handle interactions with elasticsearch
-  constructor() {
-    this.env = nconf.get('env');
-
-    // Basic ES config - no auth
-    const esConfig = {
-      node: this.env.ES_PROTOCOL + '://' + this.env.ES_HOST + ':' + this.env.ES_PORT,
-      requestTimeout: this.env.ES_TIMEOUT || 5000,
-      log: 'error'
-    };
-
-    // Check if user/passwd are provided - configure basic auth
-    if (this.env.ES_USER && this.env.ES_PASS) {
-      esConfig.auth = {
-        username: this.env.ES_USER,
-        password: this.env.ES_PASS
-      };
-    }
-
-    // Check if SSL cert/key are provided - configure SSL
-    if (this.env.ES_SSL_CERT && this.env.ES_SSL_KEY) {
-      // Cert overwrites basic auth! Delete the 'auth' key
-      esConfig.host = [
-        {
-          ssl: {
-            cert: fs.readFileSync(this.env.ES_SSL_CERT).toString(),
-            key: fs.readFileSync(this.env.ES_SSL_KEY).toString(),
-            rejectUnauthorized: true
-          }
-        }
-      ];
-    }
-
+  constructor(app) {
+    this.app = app;
+    this.env = this.app.locals.env;
     // Create the ES client!
-    this.client = new elasticsearch.Client(esConfig);
+    this.client = this.esClient();
+    this.clientVersion = version;
+    this.clientVersionMajor = parseInt(version.substring(0, 1), 10);
+  }
+
+  esClient() {
+    if (this.app.locals.env.ES_HOST) {
+      // Basic ES config - no auth
+      const esConfig = {
+        node: this.app.locals.env.ES_PROTOCOL + '://' + this.app.locals.env.ES_HOST + ':' + this.app.locals.env.ES_PORT,
+        requestTimeout: this.app.locals.env.ES_TIMEOUT || 5000,
+        log: 'error'
+      };
+
+      // Check if user/passwd are provided - configure basic auth
+      if (this.app.locals.env.ES_USER && this.app.locals.env.ES_PASS) {
+        esConfig.auth = {
+          username: this.app.locals.env.ES_USER,
+          password: this.app.locals.env.ES_PASS
+        };
+      }
+
+      // Check if SSL cert/key are provided - configure SSL
+      if (this.app.locals.env.ES_SSL_CERT && this.app.locals.env.ES_SSL_KEY) {
+        // Cert overwrites basic auth! Delete the 'auth' key
+        esConfig.host = [
+          {
+            ssl: {
+              cert: fs.readFileSync(this.app.locals.env.ES_SSL_CERT).toString(),
+              key: fs.readFileSync(this.app.locals.env.ES_SSL_KEY).toString(),
+              rejectUnauthorized: true
+            }
+          }
+        ];
+      }
+      return new elasticsearch.Client(esConfig);
+    }
   }
 
   async healthy(timeout = '90s', status = 'green') {
+    if (!this.client) return {};
     try {
-      await this.client.cluster.health({ level: 'cluster', wait_for_status: status, timeout: timeout });
-      this.logElastic('info', `[HEALTHCHECK] status [${status}] of host [${this.env.ES_HOST}] is OK!`);
+      const response = await this.client.cluster.health({ level: 'cluster', wait_for_status: status, timeout: timeout });
+      logger.log('info', `[ELASTIC] status [${status}] of host ` +
+        `[${this.app.locals.env.ES_HOST}://${this.app.locals.env.ES_HOST}:${this.app.locals.env.ES_PORT}] is OK!`);
+      return response.body;
     } catch (err) {
-      this.logElastic('error', `Could not check cluster health for host [${this.env.ES_HOST}]! Error: ${err}`);
+      logger.log('error', `Could not check Elasticsearch cluster health for host [${this.app.locals.env.ES_HOST}]!`, err);
+      return err.meta.body;
     }
-  }
-
-  async waitPort(timeoutMs = 120000, host, port) {
-    this.logElastic('info', `[PORTCHECK] waiting for host [${this.env.ES_HOST}] at port [${this.env.ES_PORT}] ...`);
-    if (!await waitOn({ host: host, port: port, output: 'silent', timeout: timeoutMs })) {
-      throw new Error(`[PORTCHECK] - timeout on port [${this.env.ES_PORT}]`);
-    }
-  }
-
-  async info() {
-    const response = await this.client.info();
-    // Update ES version in nconf
-    const version = response.body.version.number;
-    nconf.set('env:ES_VERSION', version);
-    nconf.set('env:ES_MAJOR', parseInt(version.substr(0, 1), 10));
-    this.env = nconf.get('env');
-    this.logElastic('info', `[INFO] found elastic v${this.env.ES_VERSION} ...`);
   }
 
   async putTemplate(name, body) {
+    if (!this.client) return;
+    const params = { name: name, body: body };
     try {
-      if (parseInt(this.env.ES_MAJOR, 10) > 6) {
-        await this.client.indices.putIndexTemplate({ name: name, body: body });
-      } else {
-        await this.client.indices.putTemplate({ name: name, body: body });
-      }
-      this.logElastic('info', `[TEMPLATE] created/updated [${name}]`);
-    } catch (e) {
-      this.logElastic('error', `[TEMPLATE] create failure! Error: ${e}`);
+      const response = await this.client.indices.putIndexTemplate(params);
+      logger.log('info', `[TEMPLATE] created/updated [${name}] successfully!`);
+      return response.body;
+    } catch (err) {
+      logger.log('error', `[TEMPLATE] create [${name}] failure!`, err);
     }
   }
 
   async getTemplate(name) {
-    if (parseInt(this.env.ES_MAJOR, 10) > 6) {
-      // For ES 7.x - use the newer '_index_template'
-      if (await this.client.indices.existsIndexTemplate({ name: name })) {
-        return await this.client.indices.getIndexTemplate({ name: name });
-      }
+    if (!this.client) return;
+    try {
+      const response = await this.client.indices.getIndexTemplate({ name: name });
+      return response.body;
+    } catch (err) {
+      logger.log('error', `[TEMPLATE] could not get template [${name}]!`, err);
     }
-    // For ES 5/6 - use legacy '_template'
-    if (await this.client.indices.existsTemplate({ name: name })) {
-      return await this.client.indices.getTemplate({ name: name });
-    }
-    return;
   }
 
   async exists(index, type, id) {
-    const existsBody = {
-      index: index,
-      id: id
-    };
-    if (this.env.ES_MAJOR < 7) {
-      existsBody.type = (this.env.ES_MAJOR < 6) ? type : 'doc';
+    if (!this.client) return;
+    try {
+      const response = await this.client.exists({
+        index: index,
+        id: id
+      });
+      return response.body;
+    } catch (err) {
+      logger.log('error', `[INDEX] could check for index [${index}]!`, err);
     }
-    return await this.client.exists(existsBody);
   }
 
   async search(index, type, body) {
-    const searchBody = {
-      index: index,
-      body: body
-    };
-    if (this.env.ES_MAJOR < 7) {
-      searchBody.type = (this.env.ES_MAJOR < 6) ? type : 'doc';
-    }
-    return await this.client.search(searchBody);
-  }
-
-  async getKBVer() {
-    let index;
+    if (!this.client) return;
     try {
-      index = await this.client.indices.getAlias({ name: (this.env.KB_INDEX || '.kibana') });
+      const response = await this.client.search({
+        index: index,
+        body: body
+      });
+      return response.body;
     } catch (err) {
-      if (err) index = '.kibana';
+      logger.log('error', `[INDEX] search in index [${index}] failed!`, err);
     }
-    index = Object.keys(index.body)[0];
-
-    if (await this.client.indices.exists({ index: index })
-    ) {
-      const settings = await this.client.indices.getSettings({ index: index, includeDefaults: true, human: true });
-      return (settings.body[index].settings.index.version.created_string || '0');
-    }
-    return '0';
   }
 
-  async getTemplateVersion(esVersion) {
+  async getIncides(index) {
+    if (!this.client) return;
     try {
-      const currTemplate = await this.getTemplate(this.env.INDEX_PERF);
-      if (currTemplate.body) {
-        switch (esVersion) {
-          case 5:
-            return currTemplate.body[this.env.INDEX_PERF].mappings._default._meta.api_version;
-          case 6:
-            return currTemplate.body[this.env.INDEX_PERF].mappings.doc._meta.api_version;
-          case 7:
-            return currTemplate.body.index_templates[0].index_template.template.mappings._meta.api_version;
-          default:
-            return false;
-        }
+      const response = await this.client.cat.indices({
+        index: index,
+        format: 'json'
+      });
+      return response.body;
+    } catch (err) {
+      if (err.statusCode === 404) {
+        return null;
+      }
+      logger.log('error', `[INDEX] search for index [${index}] failed!`, err);
+    }
+  }
+
+  async info() {
+    if (!this.client) return;
+    try {
+      const response = await this.client.info();
+      return response.body;
+    } catch (err) {
+      logger.log('error', `[ELASTIC] could not get ES info!`, err);
+    }
+  }
+
+  async getTemplateVersion() {
+    if (!this.client) return;
+    const indexPerf = this.app.locals.env.INDEX_PERF;
+    try {
+      const currTemplate = await this.client.indices.getIndexTemplate({ name: indexPerf });
+      if (currTemplate.body.index_templates && currTemplate.body.index_templates.length > 0) {
+        return currTemplate.body.index_templates[0].index_template?.template?.mappings?._meta?.api_version;
       }
     } catch (err) {
       if (err.statusCode === 404) {
         // cicd-perf template doesn't exist - new installation?
-        return null;
+        return;
       }
-      if (err) {
-        throw new Error(`Unable to get Template ${this.env.INDEX_PERF}! Error: ${err}`);
-      }
+      logger.log('error', `[TEMPLATE] could not get template [${indexPerf}]!`, err);
     }
   }
 
-  async index(index, type, id, body) {
-    const sendBody = {
-      index: index,
-      body: body,
-      ...id && { id: id }
-    };
-    if (this.env.ES_MAJOR < 7) {
-      sendBody.type = (this.env.ES_MAJOR < 6) ? type : 'doc';
-    }
+  async index(index, body, id = null) {
+    if (!this.client) return;
     try {
-      return await this.client.index(sendBody);
+      const params = {
+        index: index,
+        body: body
+      };
+      if (id) params.id = id;
+      const response = await this.client.index(params);
+      return response.body;
     } catch (err) {
-      this.logElastic('error', `Unable to index record! Error: ${err}`);
+      return err;
     }
   }
 
   async bulk(docs) {
+    if (!this.client) return;
     const response = await this.client.helpers.bulk({
       datasource: docs,
       onDocument(document) {
-        const rec = {
+        return {
           index: {
             _index: document._index
           }
         };
-        if (document._type) {
-          rec.index._type = document._type;
-        }
-        delete document._index;
-        delete document._type;
-        return rec;
       },
       onDrop(doc) {
         console.error(`ERROR: elastic dropped document: ${JSON.stringify(doc, null, 2)}`);
@@ -205,11 +196,43 @@ class ESClass {
       ignore: [404],
       maxRetries: 3
     });
-    return response.successful > 0;
+    return response.body.successful > 0;
   }
 
-  logElastic(level, msg) {
-    logger[level](`Elasticsearch - UTILS - ${msg}`);
+  async esImport() {
+    const response = {
+      info: [],
+      imports: [],
+      ok: true
+    };
+    const sampleData = require('../../config/.sample_data.json');
+    try {
+      const replaceDate = new Date().toISOString().split('T')[0];
+      const data = JSON.parse(JSON.stringify(sampleData.latest).replace(/==date==/g, replaceDate));
+      for (const index of Object.keys(data)) {
+        const item = data[index];
+        const type = '_doc';
+        const indexResponse = await this.index(item._index, type, item._id, item._source);
+        if (typeof indexResponse === Error) response.ok = false;
+        response.imports.push({
+          result: typeof indexResponse === Error ? 'ERROR' : 'SUCCESS',
+          index: item._index,
+          type: type,
+          id: item._id,
+          overwrite: true
+        });
+      }
+      response.ok = true;
+      response.info.push(
+        `[IMPORT] processed [${response.imports.length}] sample items into elasticsearch! You can now find the sample data in ` +
+        'the Elasticsearch [cicd-*-sample] indices');
+      logger.log('info', `[IMPORT] processed [${response.imports.length}] sample items into elasticsearch!`);
+    } catch (err) {
+      response.ok = false;
+      response.info.push(`Could not import sample data into Elasticsearch - error: ${err}`);
+      logger.log('error', response.info, err);
+    }
+    return response;
   }
 }
 
