@@ -6,7 +6,7 @@
         "start": "node ./server",
         "lint": "eslint .",
         "test:mocha": "mocha test/**/*.js --exit",
-        "test": "nyc npm run test:mocha",
+        "test": "nyc --reporter=cobertura npm run test:mocha",
         "posttest": "npm run lint"
     },
     "engines": {
@@ -59,6 +59,7 @@
         "@semantic-release/git": "^10.0.1",
         "@semantic-release/npm": "^9.0.1",
         "chai": "^4.3.6",
+        "cz-conventional-changelog": "^3.3.0",
         "dotenv": "^16.0.0",
         "eslint": "^8.10.0",
         "eslint-config-godaddy": "^6.0.0",
