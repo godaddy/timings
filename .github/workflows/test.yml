@@ -5,8 +5,6 @@ name: Timings CI - test
 
 on:
   push:
-    branches:
-    - "**"
     branches-ignore:
     - "main"
 
