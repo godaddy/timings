@@ -17,6 +17,10 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+    - name: Install, build, and run tests
+      id: npm_ci
+      run: |
+        npm ci
     - name: Semantic Release
       uses: cycjimmy/semantic-release-action@v3
       id: semantic
