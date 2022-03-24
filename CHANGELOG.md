@@ -1,3 +1,15 @@
+## 2.0.0 (2022-03-24)
+
+* build(deps): bump color-string from 1.5.4 to 1.9.0 (#93) ([5f1fb90](https://github.com/godaddy/timings/commit/5f1fb90)), closes [#93](https://github.com/godaddy/timings/issues/93)
+* build(npm): missing npm ci command in workflow ([79d2fa0](https://github.com/godaddy/timings/commit/79d2fa0))
+* build(snyk): include vulnerability merge ([86cd939](https://github.com/godaddy/timings/commit/86cd939))
+* ci(workflows): run test on main also and trigger release ([fde4490](https://github.com/godaddy/timings/commit/fde4490))
+* Add pre-release workflow to actions ([47fb004](https://github.com/godaddy/timings/commit/47fb004))
+* Delete workflow ([2efcc70](https://github.com/godaddy/timings/commit/2efcc70))
+* Merge branch 'master' into main ([41466a4](https://github.com/godaddy/timings/commit/41466a4))
+* buil(snyk): package.json & package-lock.json to reduce vulnerabilities (#94) ([61111d4](https://github.com/godaddy/timings/commit/61111d4)), closes [#94](https://github.com/godaddy/timings/issues/94)
+* major(es7): ES7 and UI major update (#92) ([f21ed7b](https://github.com/godaddy/timings/commit/f21ed7b)), closes [#92](https://github.com/godaddy/timings/issues/92)
+
 <a name="1.1.5"></a>
 ## 1.1.5 (2018-01-10)
 
@@ -137,6 +149,3 @@
 * Update README.md ([a5d9544](https://github.com/godaddy/timings/commit/a5d9544))
 * Update README.md ([d01c0b4](https://github.com/godaddy/timings/commit/d01c0b4))
 * Updated documentation ([68c6c06](https://github.com/godaddy/timings/commit/68c6c06))
-
-
-
