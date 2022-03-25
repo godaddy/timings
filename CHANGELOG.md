@@ -1,3 +1,7 @@
+## <small>2.0.1 (2022-03-25)</small>
+
+* fix(bug_fixes): fix waiting routine for elastic/kibana ([6d01e7e](https://github.com/godaddy/timings/commit/6d01e7e))
+
 ## 2.0.0 (2022-03-24)
 
 * build(deps): bump color-string from 1.5.4 to 1.9.0 (#93) ([5f1fb90](https://github.com/godaddy/timings/commit/5f1fb90)), closes [#93](https://github.com/godaddy/timings/issues/93)
