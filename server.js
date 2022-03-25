@@ -24,6 +24,9 @@ function createApp() {
   app.locals.env.NODE_VERSIONS = process.versions;
   app.logger.log('info', `[INIT] - Using config ["${app.locals.env.APP_CONFIG || '{unknown}'}"]`);
   app.logger.log('info', `[INIT] - NODE version: ${app.locals.env.NODE_VERSIONS.node}`);
+  app.logger.log('info', `[INIT] - Elasticsearch host: [${app.locals.env.ES_HOST}:${app.locals.env.ES_PORT}]`);
+  app.logger.log('info', `[INIT] - Kibana host: [${app.locals.env.KB_HOST}:${app.locals.env.KB_PORT}]`);
+  app.logger.log('info', `[INIT] - timings-docker: [${app.locals.env.IS_DOCKER || 'false'}]`);
 
   // Add the current app version to the config
   const apiVer = semver.valid(pkg.version);
@@ -56,6 +59,7 @@ function createApp() {
   // Setup routes
   try {
     app.use('/', require(path.join(app.locals.appRootPath, 'routes', 'v2', 'static-routes'))(app));
+    app.use('/api/', require(path.join(app.locals.appRootPath, 'routes', 'v2', 'static-routes'))(app));
     app.use(`/v2/api/cicd/`, require(path.join(app.locals.appRootPath, 'routes', 'v2', 'post-routes'))(app));
   } catch (err) {
     console.error(err);
@@ -93,7 +97,7 @@ function createApp() {
         ' - ' + err.toString()
       );
     }
-    if (req.cookies.csrftoken && !req.xhr) {
+    if (!req.baseUrl.startsWith('/api') && !req.xhr) {
       res.status(500).render('pages/500', { error: err, stack: err.stack });
     }
     res.json({

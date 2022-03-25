@@ -133,7 +133,7 @@ function callApi(ajaxData, type, url, dataType, cache, cb) {
   }
 
   $.ajax({
-    url: url,
+    url: url.startsWith('/') ? `/api${url}` : `/api/${url}`,
     data: ajaxData,
     type: type,
     dataType: dataType,

@@ -18,12 +18,13 @@ class Elastic {
     if (!this.app.locals.env.ES_HOST) {
       this.app.locals.env.ES_REASON.push(`No value for ES_HOST variable in config!`);
       this.app.logger.log('warn', `[INIT] - No value for ES_HOST variable in config - data will NOT be saved!`);
-    }
-    try {
-      this.waitLoop(attempt, attempts);
-    } catch (e) {
-      this.app.locals.env.ES_REASON.push(`Error setting up Elastic! Data will NOT be saved to ES! Error: ${e}`);
-      logger.log('error', `[INIT] Error setting up Elastic! Data will NOT be saved to ES!`, e);
+    } else {
+      try {
+        this.waitLoop(attempt, attempts);
+      } catch (e) {
+        this.app.locals.env.ES_REASON.push(`Error setting up Elastic! Data will NOT be saved to ES! Error: ${e}`);
+        logger.log('error', `[INIT] Error setting up Elastic! Data will NOT be saved to ES!`, e);
+      }
     }
   }
 
@@ -66,12 +67,12 @@ class Elastic {
 
   async checkKBStatus() {
     const healthResult = await this.kb.getKBStatus();
-    if (healthResult.status) {
-      this.app.locals.env.KB_VERSION = healthResult.version.number || 'unknown';
-      this.app.locals.env.KB_BUILD = healthResult.version.build_number || 'unknown';
-      this.app.locals.env.KB_STATUS = healthResult.status.overall?.state || 'unknown';
-      this.app.locals.env.ES_REASON.push(`Kibana status: ${this.app.locals.env.KB_STATUS}`);
-      const esStatus = healthResult.status.statuses.filter(s => s.id.indexOf('core:elasticsearch') === 0);
+    this.app.locals.env.KB_VERSION = healthResult?.version?.number || 'unknown';
+    this.app.locals.env.KB_BUILD = healthResult?.version?.build_number || 'unknown';
+    this.app.locals.env.KB_STATUS = healthResult?.status?.overall?.state || 'unknown';
+    this.app.locals.env.ES_REASON.push(`Kibana status: ${this.app.locals.env.KB_STATUS}`);
+    if (Array.isArray(healthResult?.status?.statuses)) {
+      const esStatus = healthResult?.status?.statuses.filter(s => s.id.indexOf('core:elasticsearch') === 0);
       if (esStatus.length > 0) {
         this.app.locals.env.ES_STATUS = esStatus[0].state || 'unknown';
         if (['green', 'yellow'].includes(this.app.locals.env.ES_STATUS)) {
@@ -79,12 +80,14 @@ class Elastic {
           this.app.locals.env.ES_REASON.push(`Elasticsearch  status: ${this.app.locals.env.ES_STATUS}`);
         }
       }
-    }
+    } else this.app.locals.env.ES_STATUS = 'unknown';
 
     // const healthResult = await this.es.healthy(`${this.app.locals.env.ES_TIMEOUT / 10}s`, 'yellow');
-    if (!this.app.locals.env.KB_STATUS === 'green') {
-      this.app.locals.env.ES_REASON.push(`Kibana state is [${this.app.locals.env.KB_STATUS}] while expecting [green] - ` +
-        `Please check [${this.app.locals.env.ES_PROTOCOL}://${this.app.locals.env.KB_HOST}:${this.app.locals.env.KB_PORT}]`);
+    if (this.app.locals.env.KB_STATUS !== 'green') {
+      const msg = `Kibana state is [${this.app.locals.env.KB_STATUS}] while expecting [green] - ` +
+        `Please check [${this.app.locals.env.ES_PROTOCOL}://${this.app.locals.env.KB_HOST}:${this.app.locals.env.KB_PORT}]`;
+      logger.log('warn', msg);
+      this.app.locals.env.ES_REASON.push(msg);
     } else {
       // Elastic looks good!
       this.app.locals.env.ES_ACTIVE = true;

@@ -14,14 +14,29 @@ class KBClass {
     this.env = this.app.locals.env;
   }
 
-  async getKBStatus() {
+  async getKBStatus(attempt = 1, retries = 10, retryDelay = 5000) {
+    const delay = (ms) => new Promise((resolve) => setTimeout(() => resolve(), ms));
+    let data;
+
     try {
       const kbResponse = await fetch(`${this.app.locals.env.KB_URL}/api/status`);
-      const data = await kbResponse.json();
+      data = await kbResponse.json();
+      // logger.log('info', `[KIBANA] Kibana Status is [${data.status?.overall?.state}]`);
+      if (data.status?.overall?.state !== 'green') {
+        await delay(retryDelay);
+        data = await this.getKBStatus(++attempt);
+      }
       return data;
     } catch (err) {
-      logger.log('error', `[KIBANA] could not get Kibana Status!`, err);
+      if (attempt <= retries) {
+        logger.log('info', `[KIBANA] Kibana Status is [unknown]`);
+        await delay(retryDelay);
+        data = await this.getKBStatus(++attempt);
+      } else {
+        logger.log('error', `[KIBANA] could not get Kibana Status!`, err);
+      }
     }
+    return data;
   }
 
   async getKBVer() {

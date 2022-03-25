@@ -95,7 +95,7 @@ function createLoggers() {
         ...logFileSettings
       })]
     });
-    // loggers.app.log('info', `timings API - LOGGING - log file location: [${logPath}]`);
+    loggers.app.log('info', `timings API - LOGGING - log path: ["${app.locals.env.LOG_PATH}"]`);
   } else {
     loggers.app.log('warn', `timings API - LOGGING - could not create log path - OUTPUT TO CONSOLE ONLY!`);
   }
