@@ -1,4 +1,5 @@
 FROM node:17.6.0
+RUN apt-get update && apt-get upgrade -y
 
 LABEL Description="timings"
 
