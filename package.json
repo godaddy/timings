@@ -52,7 +52,7 @@
         "serve-favicon": "^2.5.0",
         "uuid": "^8.3.2",
         "wait-port": "^0.2.9",
-        "snyk": "^1.465.0",
+        "snyk": "^1.996.0",
         "winston": "^3.6.0"
     },
     "devDependencies": {
