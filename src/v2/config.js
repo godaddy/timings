@@ -1,31 +1,21 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const yargs = require('yargs');
 const pkg = require('../../package.json');
+// const app = require('../../server');
 
-const { CONFIGFILE } = process.env;
+const { CONFIGFILE, ES_UPGRADE } = process.env;
 
+// Load config file - only JSON!
+let configFile = CONFIGFILE;
+if (!configFile || !configFile.endsWith('.json') || !fs.existsSync(path.resolve(configFile))) {
+  // Bad config file provided - Load defaults [./config/default.js]
+  configFile = path.resolve(__dirname, '../../config', 'default.json');
+}
 function setConfig(app, appRootPath) {
-  // Add arguments
-  const argv = yargs
-    .command('c', 'Used to points the API at a custom config file', {
-      configfile: {
-        description: 'absolute path to the config file',
-        alias: 'configFile',
-        type: 'string'
-      }
-    })
-    .help()
-    .alias('help', 'h').argv;
+  app.locals.configFile = app.locals.configFile || configFile;
 
-  // Load config file - only JSON!
-  let configFile = CONFIGFILE || argv.configfile; // ENV var gets the preference!
-  if (!configFile || !configFile.endsWith('.json') || !fs.existsSync(path.resolve(configFile))) {
-    // No ENV var or argument provided - Load defaults [./config/default.js]
-    configFile = path.resolve(appRootPath, 'config', 'default.json');
-  }
-  const appConfig = require(path.resolve(configFile));
+  const appConfig = JSON.parse(fs.readFileSync(path.resolve(configFile)));
 
   // Check for missing keys & add some ENV vars
   if (!appConfig.env) {
@@ -45,11 +35,11 @@ function setConfig(app, appRootPath) {
   }
 
   // Combine ENV variables with config - ENV is leading!
+  app.locals.esUpgrade = ES_UPGRADE;
   app.locals.appRootPath = appRootPath;
   app.locals.env = {
     LOG_LEVEL: process.env.LOG_LEVEL,
     LOG_PATH: process.env.LOG_PATH,
-    ES_UPGRADE: process.env.ES_UPGRADE,
     ES_PROTOCOL: process.env.ES_PROTOCOL || appConfig.env.ES_PROTOCOL || 'http',
     ES_HOST: process.env.ES_HOST || appConfig.env.ES_HOST || process.env.KB_HOST || appConfig.env.KB_HOST || '',
     ES_PORT: process.env.ES_PORT || appConfig.env.ES_PORT || 9200,
@@ -65,7 +55,7 @@ function setConfig(app, appRootPath) {
     HTTP_PORT: process.env.HTTP_PORT || appConfig.env.HTTP_PORT || 80,
     HOST: process.env.API_HOST || appConfig.env.HOST || os.hostname(),
     APP_NAME: pkg.name,
-    APP_CONFIG: configFile,
+    APP_CONFIG: app.locals.configFile,
     NODE_ENV: process.env.NODE_ENV || 'development',
     INDEX_PERF: 'cicd-perf',
     INDEX_RES: 'cicd-resource',
@@ -94,7 +84,7 @@ function setConfig(app, appRootPath) {
       }
     }
   };
-  const logger = require('../log')(module.id, app);
+  const logger = require('../log')(module, app);
   app.logger = logger;
 
 }

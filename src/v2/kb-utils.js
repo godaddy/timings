@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
 const FormData = require('form-data');
-const logger = require('../log')(module.id);
+const logger = require('../log')(module);
 
 class KBClass {
   // Class to handle interactions with elasticsearch
@@ -16,10 +16,19 @@ class KBClass {
 
   async getKBStatus(attempt = 1, retries = 10, retryDelay = 5000) {
     const delay = (ms) => new Promise((resolve) => setTimeout(() => resolve(), ms));
+    const fetchParams = {
+      method: 'GET'
+    };
     let data;
 
     try {
-      const kbResponse = await fetch(`${this.app.locals.env.KB_URL}/api/status`);
+      if (this.app.locals.env.ES_USER && this.app.locals.env.ES_PASS) {
+        fetchParams.headers = {
+          Authorization: 'Basic ' + Buffer.from(`${this.app.locals.env.ES_USER}:${this.app.locals.env.ES_PASS}`)
+            .toString('base64')
+        };
+      }
+      const kbResponse = await fetch(`${this.app.locals.env.KB_URL}/api/status`, fetchParams);
       data = await kbResponse.json();
       // logger.log('info', `[KIBANA] Kibana Status is [${data.status?.overall?.state}]`);
       if (data.status?.overall?.state !== 'green') {
