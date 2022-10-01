@@ -14,7 +14,7 @@ function setCardResult(caller, result) {
 }
 
 function esUpgrade(caller, div, url) {
-  const data = callApi(null, 'GET', url, null, false);
+  const data = callApi(null, 'GET', url, null, true);
   $(div).text(typeof data === 'object'
     ? JSON.stringify(data, null, 2)
     : data);
@@ -38,7 +38,7 @@ function getCardData(caller, div, url) {
     $(caller).prepend(templ.content.childNodes);
   }
   $(div).text('Working on it ...')
-  const data = callApi(null, 'GET', url);
+  const data = callApi(null, 'GET', `${url}?f=json`, null, true);
   setCardData(caller, div, data);
   return data;
 }
@@ -71,7 +71,7 @@ function drawHomeCards(data, subKey, parentKey) {
           value = decodeURIComponent(value);
           cardKey.innerHTML = `<div class="col-lg-3 text-center mb-1">${key}</div><div class="col-lg-9 text-center mb-1"><a href="${value}" target="_blank">TIMINGS-Dashboard</a></div>`;
         } else {
-          cardKey.innerHTML = `<div class="col-lg-3 text-center mb-1">${key}</div><div class="col-lg-9 badge ${value === false ? 'bg-danger' : 'bg-success'} text-white text-center mb-1">${value}</div>`;
+          cardKey.innerHTML = `<div class="col-lg-3 text-center mb-1">${key}</div><div class="col-lg-9 badge ${(value === false || value.indexOf('[false]') >= 0) ? 'bg-danger' : 'bg-success'} text-white text-center mb-1">${value}</div>`;
         }
         const card = document.getElementById(`card_${parentKey}`);
         card.appendChild(cardKey);
@@ -133,7 +133,7 @@ function callApi(ajaxData, type, url, dataType, cache, cb) {
   }
 
   $.ajax({
-    url: url.startsWith('/') ? `/api${url}` : `/api/${url}`,
+    url: url,
     data: ajaxData,
     type: type,
     dataType: dataType,
@@ -149,7 +149,7 @@ function callApi(ajaxData, type, url, dataType, cache, cb) {
     })
     .fail(function (e) {
       if (hasCallBack) {
-        cb(e, null);
+        cb(e);
       }
       result = { err: true, errorMessage: "ajax 'error' for [" + this.type + "] to [" + this.url + "]\nResponse text: " + e.responseText };
     })
@@ -182,18 +182,18 @@ function setEditor(elem, json) {
 // get json
 function saveEditor() {
   const json = editor.get();
-  callApi(json, 'POST', '/config', 'json', false, (data) => {
-    if (data.err) {
+  callApi(json, 'POST', '/config', 'json', false, (err, data) => {
+    if (err) {
       $('#saveResult')
-        .removeClass('alert-success')
-        .addClass('alert-danger')
-        .text(err.responseJSON.message || err)
+        .removeClass('text-success')
+        .addClass('text-danger')
+        .text(err.responseJSON?.message || err)
         .show();
     } else {
       $('#saveResult')
-        .removeClass('alert-danger')
-        .addClass('alert-success')
-        .text('file saved')
+        .removeClass('text-danger')
+        .addClass('text-success')
+        .text('file was saved successfully & server was restarted...')
         .show();
     }
     setTimeout(function () {
@@ -203,7 +203,7 @@ function saveEditor() {
 }
 
 function getLogs(type = 'access') {
-  const data = callApi(null, 'GET', `/getlog?log=${type}`, null, false);
+  const data = callApi(null, 'GET', `/getlog?log=${type}&f=json`, null, true);
   if (data && data[type]) {
     const output = data[type].map((logEntry) => {
       const entry = JSON.parse(logEntry);

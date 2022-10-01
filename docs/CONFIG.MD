@@ -77,7 +77,6 @@ Variable|Description|Examples|Default value
 **NODE_ENV**|The node environment|`"production"`, `"test"`, `"development"`|`"development"`
 **LOG_LEVEL**|The desired level of logging - used for console output and app log|`"info"`, `"debug"`, `"error"`|`"info"`
 **LOG_PATH**|Custom logging path|`"/var/logs/timings"`, `"/home/user/logs/timings"`|`"<installation path>/logs/"`
-**ES_UPGRADE**|Boolean to force update of the [cicd-perf] template|`"true"` or `"false"`|`"false"`
 
 ## The "required" array
 
