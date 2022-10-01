@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node ./server",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test:mocha": "mocha test/**/*.js --exit",
     "test": "nyc --reporter=cobertura npm run test:mocha",
     "posttest": "npm run lint"
