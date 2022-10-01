@@ -83,7 +83,7 @@ The recommended method is "**docker-compose**" as it includes ELK and requires t
 
 **NOTE**: It is important that you **create a config file** before you start the API! Your config file can be in JS, JSON or YML format (examples are provided in the root of this repo).
 
-You need to point the API at the config file using the `-c` or `--configfile` argument. If you fail to do this, the API will use defaults settings such as `""` for the elasticsearch server (= don't use ElasticSearch)! Please refer to [CONFIG.MD](CONFIG.MD) for more details.
+You need to point the API at the config file using the `CONFIGFILE` environment variable. If you fail to do this, the API will use defaults settings such as `""` for the elasticsearch server (= don't use ElasticSearch)! Please refer to [CONFIG.MD](CONFIG.MD) for more details.
 
 Below are the different install & run commands for each method as well as the instructions on how to point to the config file:
 
@@ -105,9 +105,9 @@ You have to run ELK yourself! See also here: [installing-elasticsearch-and-kiban
 Activity|Command
 ---|---
 Installation|`$ git clone https://www.github.com/godaddy/timings.git`<br>`$ cd timings`<br>`$ npm i`
-Startup|`$ node ./server.js --configfile {path}`
-Upgrade|`$ git pull`<br>`$ node ./server.js --configfile {path}`
-Config|Can be anywhere! Use `--configfile` argument!
+Startup|`$ CONFIGFILE={path} node ./server.js`
+Upgrade|`$ git pull`<br>`$ CONFIGFILE={path} node ./server.js`
+Config|Can be anywhere! Use the `CONFIGFILE` environment variable!
 
 ## NPM install
 
@@ -116,9 +116,9 @@ You have to run ELK yourself! See also here: [installing-elasticsearch-and-kiban
 Activity|Command
 ---|---
 Installation|`$ npm install -g timings`
-Startup|`$ timings --configfile {path}`
-Upgrade|`$ npm update -g timings`<br>`$ timings --configfile {path}`
-Config|Can be anywhere! Use `--configfile` argument!
+Startup|`$ CONFIGFILE={path} timings`
+Upgrade|`$ npm update -g timings`<br>`$ CONFIGFILE={path} timings`
+Config|Can be anywhere! Use the `CONFIGFILE` environment variable!
 
 ## Docker (stand-alone)
 

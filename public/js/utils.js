@@ -71,7 +71,10 @@ function drawHomeCards(data, subKey, parentKey) {
           value = decodeURIComponent(value);
           cardKey.innerHTML = `<div class="col-lg-3 text-center mb-1">${key}</div><div class="col-lg-9 text-center mb-1"><a href="${value}" target="_blank">TIMINGS-Dashboard</a></div>`;
         } else {
-          cardKey.innerHTML = `<div class="col-lg-3 text-center mb-1">${key}</div><div class="col-lg-9 badge ${(value === false || value.indexOf('[false]') >= 0) ? 'bg-danger' : 'bg-success'} text-white text-center mb-1">${value}</div>`;
+          cardKey.innerHTML = `<div class="col-lg-3 text-center mb-1">${key}</div><div class="col-lg-9 badge ${(
+            value === false ||
+            (typeof value === 'string' && value.indexOf('[false]') >= 0)
+          ) ? 'bg-danger' : 'bg-success'} text-white text-center mb-1">${value}</div>`;
         }
         const card = document.getElementById(`card_${parentKey}`);
         card.appendChild(cardKey);

@@ -1,5 +1,4 @@
 const semver = require('semver');
-const waitOn = require('wait-port');
 const esUtils = require('./es-utils');
 const kbUtils = require('./kb-utils');
 const logger = require('../log')(module);
@@ -29,48 +28,48 @@ class Elastic {
   }
 
   waitLoop(attempt = 1, attempts = 5) {
-    logger.log('info', `[INIT] Waiting for Elasticsearch:${this.app.locals.env.ES_PORT} and ` +
-      `Kibana:${this.app.locals.env.KB_PORT} - attempt #${attempt} ...`);
+    logger.log('info', `[INIT] Checking status of Kibana and Elasticsearch [attempt # ${attempt} of 5]`);
     this.waitES()
       .then(waitResults => {
         if (!waitResults) {
-          setTimeout(async () => {
-            if (attempt < attempts && !waitResults) {
-              waitResults = this.waitLoop(attempt + 1);
-            } else if (!waitResults) {
-              this.app.locals.env.ES_REASON.push(
-                `[INIT] Response from Elasticsearch and or Kibana: [false] - are they running? Please check ` +
-                `[${this.app.locals.env.ES_HOST}:${this.app.locals.env.ES_PORT}]`);
-            }
-          }, this.app.locals.env.ES_TIMEOUT);
+          if (attempt < attempts) {
+            logger.log('info', `[INIT] Waiting ${this.app.locals.env.ES_TIMEOUT / 1000} seconds to check status of ` +
+              `Kibana and Elasticsearch again ...`);
+            setTimeout(async () => {
+              if (attempt < attempts && !waitResults) {
+                waitResults = this.waitLoop(attempt + 1);
+              } else if (!waitResults) {
+                this.app.locals.env.ES_REASON.push(
+                  `[INIT] Response from Elasticsearch and or Kibana: [false] - are they running? Please check ` +
+                    `[${this.app.locals.env.ES_HOST}:${this.app.locals.env.ES_PORT}]`);
+              }
+            }, this.app.locals.env.ES_TIMEOUT);
+          } else {
+            logger.log('warn', 'Could not connect to Kibana or Elasticsearch!\nPlease check your config and/or ' +
+              'check the health of the elastic cluster!\nThe Timings API is running at ' +
+              `[http://${this.app.locals.env.HOST}:${this.app.locals.env.HTTP_PORT}] but data will NOT be saved to Elasticsearch`
+            );
+          }
         } else {
           logger.log('info', this.app.locals.env.ES_REASON);
+          if (this.app.locals.env.ES_ACTIVE === true) {
+            logger.log('info', `\n${'='.repeat(100)}\nThe Timings API is running at ` +
+              `[http://${this.app.locals.env.HOST}:${this.app.locals.env.HTTP_PORT}]\n${'='.repeat(100)}`
+            );
+          }
         }
       });
   }
 
   async waitES() {
-    // Wait for healthy status and get info
-    const waitESResult = await waitOn({
-      host: this.app.locals.env.ES_HOST,
-      port: this.app.locals.env.ES_PORT,
-      output: 'silent',
-      timeout: this.app.locals.env.ES_TIMEOUT || 5000
-    });
-    const waitKBResult = await waitOn({
-      host: this.app.locals.env.KB_HOST,
-      port: this.app.locals.env.KB_PORT,
-      output: 'silent',
-      timeout: this.app.locals.env.ES_TIMEOUT || 5000
-    });
-    if (waitKBResult) await this.checkKBStatus();
-    if (waitESResult) {
+    const kbStatus = await this.checkKBStatus();
+    if (kbStatus?.status?.overall?.state === 'green') {
       await this.checkESStatus();
       if (this.app.locals.env.ES_ACTIVE) {
         if (this.app.locals.esUpgrade === true) {
           // Forced upgrade --es-upgrade flag is set
           await this.upgrade();
-          return waitESResult && waitKBResult;
+          return kbStatus;
         }
         // Check for necessary ES upgrades
         const upgrades = await this.checkUpgrade();
@@ -85,7 +84,7 @@ class Elastic {
         }
       }
     }
-    return waitESResult && waitKBResult;
+    return kbStatus?.status?.overall?.state === 'green';
   }
 
   async checkKBStatus() {
@@ -114,6 +113,7 @@ class Elastic {
       this.app.locals.env.ES_REASON.push(`[KIBANA] Kibana status green: [false] - ` +
         `Please check [${this.app.locals.env.ES_PROTOCOL}://${this.app.locals.env.KB_HOST}:${this.app.locals.env.KB_PORT}]`);
     }
+    return healthResult;
   }
 
   async checkESStatus() {
