@@ -46,7 +46,7 @@ function createLoggers() {
             winston.format.timestamp(),
             winston.format.printf(info => {
               const msgs = Array.isArray(info.message) ? info.message : [info.message];
-              const output = [];
+              let output = [];
               msgs.forEach(msg => {
                 const line = [];
                 if (this.local) line.push('LOCAL RUN');
@@ -60,6 +60,9 @@ function createLoggers() {
                 }
                 output.push(`[${line.join('][')}] ${msg}`);
               });
+              if (['warn', 'error'].includes(info.level)) {
+                output = ['', `=`.repeat(100), ...output, `=`.repeat(100)];
+              }
               return output.join('\n');
             })
           )

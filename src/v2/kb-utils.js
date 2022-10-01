@@ -14,7 +14,7 @@ class KBClass {
     this.env = this.app.locals.env;
   }
 
-  async getKBStatus(attempt = 1, retries = 10, retryDelay = 5000) {
+  async getKBStatus(attempt = 1, retries = 5, retryDelay = 5000) {
     const delay = (ms) => new Promise((resolve) => setTimeout(() => resolve(), ms));
     const fetchParams = {
       method: 'GET'
@@ -38,11 +38,9 @@ class KBClass {
       return data;
     } catch (err) {
       if (attempt <= retries) {
-        logger.log('info', `[KIBANA] Kibana Status is [unknown]`);
+        logger.log('info', `[KIBANA] Status is [${data?.status?.overall?.state}] [attempt ${attempt} out of ${retries}]`);
         await delay(retryDelay);
         data = await this.getKBStatus(++attempt);
-      } else {
-        logger.log('error', `[KIBANA] could not get Kibana Status!`, err);
       }
     }
     return data;
