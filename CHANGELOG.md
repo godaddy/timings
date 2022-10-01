@@ -1,3 +1,8 @@
+## <small>2.0.2 (2022-10-01)</small>
+
+* refactor(npm-audit): apply fixes from npm audit (#116) ([8a62813](https://github.com/godaddy/timings/commit/8a62813)), closes [#116](https://github.com/godaddy/timings/issues/116)
+* build(sec-updates): update dependencies to address security PRs (#113) ([df6705f](https://github.com/godaddy/timings/commit/df6705f)), closes [#113](https://github.com/godaddy/timings/issues/113)
+
 ## <small>2.0.1 (2022-03-25)</small>
 
 * fix(bug_fixes): fix waiting routine for elastic/kibana ([6d01e7e](https://github.com/godaddy/timings/commit/6d01e7e))
