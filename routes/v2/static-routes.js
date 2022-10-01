@@ -136,7 +136,10 @@ module.exports = function (app) {
         res.json(esInfo || app.locals.env.ES_REASON || {});
       } else {
         res.render('pages/es_admin', {
-          esInfo: JSON.stringify(esInfo || app.locals.env.ES_REASON || {})
+          esInfo: JSON.stringify(esInfo || app.locals.env.ES_REASON || {
+            status: 'Elasticsearch is not in use (no value for ES_HOST variable?)',
+            ...app.locals.env
+          })
         });
       }
     } catch (e) {

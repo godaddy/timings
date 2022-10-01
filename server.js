@@ -113,9 +113,13 @@ function createApp() {
     `http://${app.locals.env.HOST}:${app.locals.env.HTTP_PORT}`);
 
   // Initialize ES
-  const runES = require('./src/v2/run-es');
-  const es = new runES.Elastic(app);
-  es.esInit();
+  if (app.locals.env.ES_HOST) {
+    const runES = require('./src/v2/run-es');
+    const es = new runES.Elastic(app);
+    es.esInit();
+  } else {
+    app.locals.env.ES_ACTIVE = false;
+  }
 
   return app;
 }
