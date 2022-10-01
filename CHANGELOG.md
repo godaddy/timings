@@ -1,3 +1,7 @@
+## <small>2.0.3 (2022-10-01)</small>
+
+* refactor(es-init): remove wait-port dependency to check ES status (#117) ([2d2aa99](https://github.com/godaddy/timings/commit/2d2aa99)), closes [#117](https://github.com/godaddy/timings/issues/117)
+
 ## <small>2.0.2 (2022-10-01)</small>
 
 * refactor(npm-audit): apply fixes from npm audit (#116) ([8a62813](https://github.com/godaddy/timings/commit/8a62813)), closes [#116](https://github.com/godaddy/timings/issues/116)
