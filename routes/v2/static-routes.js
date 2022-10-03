@@ -22,10 +22,10 @@ module.exports = function (app) {
   router.get(['/health*', '/v2/api/cicd/health*'], async function (req, res, next) {
     try {
       const apiHealth = await health();
-      if (req.cookies.csrftoken) {
-        res.render('pages/health', { apiHealth: JSON.stringify(apiHealth) });
-      } else {
+      if (req.query.f === 'json') {
         res.json(apiHealth);
+      } else {
+        res.render('pages/health', { apiHealth: JSON.stringify(apiHealth) });
       }
     } catch (e) {
       return next(e);
@@ -35,10 +35,10 @@ module.exports = function (app) {
   router.get('/', async function (req, res, next) {
     try {
       const apiHealth = await health();
-      if (req.cookies.csrftoken) {
-        res.render('pages/index', { apiHealth: JSON.stringify(apiHealth) });
-      } else {
+      if (req.query.f === 'json') {
         res.json(apiHealth);
+      } else {
+        res.render('pages/index', { apiHealth: JSON.stringify(apiHealth) });
       }
 
     } catch (e) {
@@ -73,10 +73,10 @@ module.exports = function (app) {
       } catch (e) {
         config.error = `Error fetching config file [${cfgFile}] - ${e}`;
       }
-      if (req.cookies.csrftoken) {
-        res.render('pages/config', { config: JSON.stringify(config) });
-      } else {
+      if (req.query.f === 'json') {
         res.json(config);
+      } else {
+        res.render('pages/config', { config: JSON.stringify(config) });
       }
 
     } catch (e) {
@@ -123,15 +123,24 @@ module.exports = function (app) {
   });
 
   router.get('/es_admin', async function (req, res, next) {
+    let esInfo;
     try {
-      const es = new runES.Elastic(app);
-      const esInfo = await es.getEsInfo();
-      if (req.cookies.csrftoken) {
-        res.render('pages/es_admin', {
-          esInfo: JSON.stringify(esInfo)
-        });
+      if (app.locals.env.ES_HOST && app.locals.env.KB_HOST) {
+        const es = new runES.Elastic(app);
+        if (Object.keys(req.query).includes('re-check')) {
+          await es.waitES();
+        }
+        esInfo = await es.getEsInfo();
+      }
+      if (req.query.f === 'json') {
+        res.json(esInfo || app.locals.env.ES_REASON || {});
       } else {
-        res.json(esInfo);
+        res.render('pages/es_admin', {
+          esInfo: JSON.stringify(esInfo || app.locals.env.ES_REASON || {
+            status: 'Elasticsearch is not in use (no value for ES_HOST variable?)',
+            ...app.locals.env
+          })
+        });
       }
     } catch (e) {
       return next(e);
@@ -153,7 +162,7 @@ module.exports = function (app) {
   router.get('/es_check', async function (req, res, next) {
     try {
       const es = new runES.Elastic(app);
-      const esInfo = await es.checkES();
+      const esInfo = await es.waitES();
       res.json(esInfo);
     } catch (e) {
       return next(e);
@@ -211,8 +220,10 @@ module.exports = function (app) {
     };
 
     // Add ELK info - if it's active
-    const es = new runES.Elastic(app);
-    await es.getEsInfo();
+    if (app.locals.env.ES_HOST) {
+      const es = new runES.Elastic(app);
+      await es.getEsInfo();
+    }
     if (app.locals.env.ES_ACTIVE) {
       ret.es = {
         es_version: app.locals.env.ES_VERSION || 'Unknown',
@@ -247,7 +258,7 @@ module.exports = function (app) {
       ret.es = {
         es_version: '',
         es_active: app.locals.env.ES_ACTIVE,
-        es_reason: app.locals.env.ES_REASON
+        es_info: app.locals.env.ES_REASON
       };
     }
 

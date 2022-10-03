@@ -22,8 +22,11 @@ function createApp() {
   app = express();
   require('./src/v2/config')(app, __dirname);
   app.locals.env.NODE_VERSIONS = process.versions;
-  app.logger.log('info', `[INIT] - Using config ["${app.locals.env.APP_CONFIG || '{unknown}'}"]`);
-  app.logger.log('info', `[INIT] - NODE version: ${app.locals.env.NODE_VERSIONS.node}`);
+  app.logger.log('info', `[INIT] Using config ["${app.locals.env.APP_CONFIG || '{unknown}'}"]`);
+  app.logger.log('info', `[INIT] NODE version: ${app.locals.env.NODE_VERSIONS.node}`);
+  app.logger.log('info', `[INIT] Elasticsearch host: [${app.locals.env.ES_HOST}:${app.locals.env.ES_PORT}]`);
+  app.logger.log('info', `[INIT] Kibana host: [${app.locals.env.KB_HOST}:${app.locals.env.KB_PORT}]`);
+  app.logger.log('info', `[INIT] timings-docker: [${app.locals.env.IS_DOCKER || 'false'}]`);
 
   // Add the current app version to the config
   const apiVer = semver.valid(pkg.version);
@@ -93,7 +96,7 @@ function createApp() {
         ' - ' + err.toString()
       );
     }
-    if (req.cookies.csrftoken && !req.xhr) {
+    if (!req.url.indexOf('/api/') < 0 && req.query?.f !== 'json' && !req.xhr) {
       res.status(500).render('pages/500', { error: err, stack: err.stack });
     }
     res.json({
@@ -106,13 +109,17 @@ function createApp() {
   app.locals.env.HTTP_PORT = app.locals.env.HTTP_PORT || 80;
   app.listen(app.locals.env.HTTP_PORT);
 
-  app.logger.log('info', `[INIT] - Server v${app.locals.env.APP_VERSION || '{unknown}'} is running at ` +
+  app.logger.log('info', `[INIT] Server v${app.locals.env.APP_VERSION || '{unknown}'} is running at ` +
     `http://${app.locals.env.HOST}:${app.locals.env.HTTP_PORT}`);
 
   // Initialize ES
-  const runES = require('./src/v2/run-es');
-  const es = new runES.Elastic(app);
-  es.esInit();
+  if (app.locals.env.ES_HOST) {
+    const runES = require('./src/v2/run-es');
+    const es = new runES.Elastic(app);
+    es.esInit();
+  } else {
+    app.locals.env.ES_ACTIVE = false;
+  }
 
   return app;
 }

@@ -1,3 +1,16 @@
+## <small>2.0.3 (2022-10-01)</small>
+
+* refactor(es-init): remove wait-port dependency to check ES status (#117) ([2d2aa99](https://github.com/godaddy/timings/commit/2d2aa99)), closes [#117](https://github.com/godaddy/timings/issues/117)
+
+## <small>2.0.2 (2022-10-01)</small>
+
+* refactor(npm-audit): apply fixes from npm audit (#116) ([8a62813](https://github.com/godaddy/timings/commit/8a62813)), closes [#116](https://github.com/godaddy/timings/issues/116)
+* build(sec-updates): update dependencies to address security PRs (#113) ([df6705f](https://github.com/godaddy/timings/commit/df6705f)), closes [#113](https://github.com/godaddy/timings/issues/113)
+
+## <small>2.0.1 (2022-03-25)</small>
+
+* fix(bug_fixes): fix waiting routine for elastic/kibana ([6d01e7e](https://github.com/godaddy/timings/commit/6d01e7e))
+
 ## 2.0.0 (2022-03-24)
 
 * build(deps): bump color-string from 1.5.4 to 1.9.0 (#93) ([5f1fb90](https://github.com/godaddy/timings/commit/5f1fb90)), closes [#93](https://github.com/godaddy/timings/issues/93)

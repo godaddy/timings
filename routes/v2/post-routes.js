@@ -8,7 +8,7 @@ const router = express.Router();
 const joi = require('joi');
 const bodyParser = require('body-parser');
 const puUtils = require('../../src/v2/perf-utils');
-const config = require('../../src/v2/config');
+const runES = require('../../src/v2/run-es');
 
 const jsonParser = bodyParser.json();
 
@@ -18,10 +18,12 @@ module.exports = function (app) {
     const data = JSON.stringify(req.body);
     try {
       // eslint-disable-next-line no-sync
-      const returnJSON = fs.writeFileSync(app.locals.env.APP_CONFIG, data);
-      // Reload configs
-      config.setConfig();
-      res.json(returnJSON);
+      fs.writeFileSync(app.locals.env.APP_CONFIG, data);
+      // Config updated - re-init the server
+      const es = new runES.Elastic(app);
+      require('../../src/v2/config')(app, app.locals.appRootPath);  // this resets the config!
+      es.esInit();
+      res.json({ ok: true });
     } catch (e) {
       return next(e);
     }

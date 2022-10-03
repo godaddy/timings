@@ -33,6 +33,12 @@ This version of the Timings API introduces a few major updates and you should ca
 
 For other changes, please see the [CHANGELOG](./CHANGELOG.md)
 
+### **BREAKING CHANGES**
+
+> **The `--configfile` argument is no longer supported**
+If you are currently using the `--configfile` argument to start your timings API server, you have to replace it with a `CONFIGFILE` environment variable!
+For more info and updated startup commands, see [here](../timings/docs/CONFIG.MD#startup-commands)
+
 ## Recommendations
 
 It is highly recommended that you run this product in a Docker environment using the [timings-docker](https://mverkerk-godaddy/timings-docker) repo. This repo provides a convenient way to run the timings API as well as the currently supported Elastic Stack.

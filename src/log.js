@@ -45,18 +45,25 @@ function createLoggers() {
             winston.format.errors({ stack: true }),
             winston.format.timestamp(),
             winston.format.printf(info => {
+              const msgs = Array.isArray(info.message) ? info.message : [info.message];
               let output = [];
-              if (this.local) output.push('LOCAL RUN');
-              output.push(info.timestamp);
-              output.push(info.level.toUpperCase());
-              if (info.caller) {
-                output.push(info.caller);
+              msgs.forEach(msg => {
+                const line = [];
+                if (this.local) line.push('LOCAL RUN');
+                line.push(info.timestamp);
+                line.push(info.level.toUpperCase());
+                if (info.caller) {
+                  line.push(info.caller);
+                }
+                if (info.level === 'error' && info.error) {
+                  line.push(`\n>>> Error: ${info.error.stack || info.error}`);
+                }
+                output.push(`[${line.join('][')}] ${msg}`);
+              });
+              if (['warn', 'error'].includes(info.level)) {
+                output = ['', `=`.repeat(100), ...output, `=`.repeat(100)];
               }
-              output = `[${output.join('][')}] ${info.message}`;
-              if (info.level === 'error' && info.error) {
-                output += `\n>>> Error: ${info.error.stack || info.error}`;
-              }
-              return output;
+              return output.join('\n');
             })
           )
         })
@@ -95,11 +102,11 @@ function createLoggers() {
         ...logFileSettings
       })]
     });
-    // loggers.app.log('info', `timings API - LOGGING - log file location: [${logPath}]`);
+    loggers.app.log('info', `[LOGGING] log path: ["${app.locals.env.LOG_PATH}"]`);
   } else {
-    loggers.app.log('warn', `timings API - LOGGING - could not create log path - OUTPUT TO CONSOLE ONLY!`);
+    loggers.app.log('warn', `[LOGGING] could not create log path - OUTPUT TO CONSOLE ONLY!`);
   }
-  loggers.app.log('info', `timings API - LOGGING - log level: ${(app.locals.env.LOG_LEVEL || 'info').toUpperCase()}`);
+  loggers.app.log('info', `[LOGGING] log level: ${(app.locals.env.LOG_LEVEL || 'info').toUpperCase()}`);
 
 
   function createPath(paths) {
@@ -124,8 +131,10 @@ function createLoggers() {
   }
 }
 
-module.exports = (callerName, appObject) => {
-  caller = callerName === '.' ? 'server' : callerName.split('/').slice(-1)[0];
+module.exports = (callingModule, appObject) => {
+  const parts = callingModule.filename.split('/');
+  caller = parts[parts.length - 2] + '/' + parts.pop();
+  // caller = callerName === '.' ? 'server' : callerName.split('/').slice(-1)[0];
   if (appObject) {
     app = appObject;
     createLoggers();

@@ -2,7 +2,7 @@
 
 Configuration of the timings API can be done through a **JSON** config file and/or **Environment Variables**. Environment variables will always take priority!
 
-The config file can be located **anywhere on your local filesystem**. You can point the API to the file by using the `-c` or `--configfile` argument or through the `CONFIGFILE` environment variable(see [Startup commands](#startup-commands) below).
+The config file can be located **anywhere on your local filesystem**. You can point the API to the file by using the `CONFIGFILE` environment variable (see [Startup commands](#startup-commands) below).
 
 - If you don't provide a config file or ENV vars, the API will use the default settings (see [Default Settings](#default-settings) below)!
   - Note that the defaults settings don't have entries for Elasticsearch and Kibana! You have to use a config file to point at ELK servers/clusters!!
@@ -14,8 +14,8 @@ The config file can be located **anywhere on your local filesystem**. You can po
 Install type|Startup command (where `{path}` is the absolute path to the config file)
 ---|---
 docker-compose|`$ CONFIGFILE={path} docker-compose up`
-stand-alone - local node|`$ node ./server.js --configfile {path}`
-stand-alone - global node|`$ timings --configfile {path}`
+stand-alone - local node|`$ CONFIGFILE={path} node ./server.js`
+stand-alone - global node|`$ CONFIGFILE={path} timings`
 stand-alone - docker|`$ docker run -d -v {path}:/src/config/default.json -v ./timings/logs:/src/logs -p {VM_port}:{Host_port} godaddy/timings:{version}`
 
 NOTE: For non-docker installs, you may need elevated permissions to run the API on ports < 1024
@@ -77,7 +77,6 @@ Variable|Description|Examples|Default value
 **NODE_ENV**|The node environment|`"production"`, `"test"`, `"development"`|`"development"`
 **LOG_LEVEL**|The desired level of logging - used for console output and app log|`"info"`, `"debug"`, `"error"`|`"info"`
 **LOG_PATH**|Custom logging path|`"/var/logs/timings"`, `"/home/user/logs/timings"`|`"<installation path>/logs/"`
-**ES_UPGRADE**|Boolean to force update of the [cicd-perf] template|`"true"` or `"false"`|`"false"`
 
 ## The "required" array
 

@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const elasticsearch = require('@elastic/elasticsearch');
-const logger = require('../log')(module.id);
+const logger = require('../log')(module);
 
 const esPkg = fs.readFileSync(
   path.join(__dirname, '..', '..', 'node_modules', '@elastic', 'elasticsearch', 'package.json'), 'utf8'
