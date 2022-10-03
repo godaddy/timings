@@ -1,4 +1,4 @@
-FROM node:17.9.1
+FROM node:18.10.0
 RUN apt-get update && apt-get upgrade -y
 
 LABEL Description="timings"
