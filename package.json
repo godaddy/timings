@@ -1,6 +1,6 @@
 {
   "name": "timings",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "RESTful API for performance engineering",
   "scripts": {
     "start": "node ./server",

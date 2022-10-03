@@ -1,3 +1,14 @@
+## <small>2.0.4 (2022-10-03)</small>
+
+* ci(test): add node 18 to test matrix (#120) ([17bf59e](https://github.com/godaddy/timings/commit/17bf59e)), closes [#120](https://github.com/godaddy/timings/issues/120)
+* Add apt-get upgrade -y to Dockerfile ([d7cfeb6](https://github.com/godaddy/timings/commit/d7cfeb6))
+* Bump to Node 18.10.0 ([3f6c463](https://github.com/godaddy/timings/commit/3f6c463))
+* Merge branch 'main' into FixDockerfile ([997f784](https://github.com/godaddy/timings/commit/997f784))
+* Merge pull request #110 from godaddy/FixDockerfile ([eca4f87](https://github.com/godaddy/timings/commit/eca4f87)), closes [#110](https://github.com/godaddy/timings/issues/110)
+* Merge pull request #118 from godaddy/BumpNodeTo18 ([81d0d86](https://github.com/godaddy/timings/commit/81d0d86)), closes [#118](https://github.com/godaddy/timings/issues/118)
+* Merge pull request #119 from godaddy/BumpNodeTo18 ([2f0ede8](https://github.com/godaddy/timings/commit/2f0ede8)), closes [#119](https://github.com/godaddy/timings/issues/119)
+* Switch to slim base image ([5515f25](https://github.com/godaddy/timings/commit/5515f25))
+
 ## <small>2.0.3 (2022-10-01)</small>
 
 * refactor(es-init): remove wait-port dependency to check ES status (#117) ([2d2aa99](https://github.com/godaddy/timings/commit/2d2aa99)), closes [#117](https://github.com/godaddy/timings/issues/117)
