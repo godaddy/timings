@@ -7,7 +7,7 @@ The simple idea is that you inject some javascript into the headless browser tha
 
 Run this API in your local network => install one of the clients on your dev/test machine => add a few lines of code => assert perf against historical baselines & visualize historical data!
 
-## **IMPORTANT NOTICE: SIGNIFICANT UPDATE to 2.0.0**
+## **IMPORTANT NOTICE: SIGNIFICANT UPDATE to 2.x**
 
 This version of the Timings API introduces a few major updates and you should carefully read the following announcements!
 
