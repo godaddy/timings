@@ -52,7 +52,7 @@
     "percentile": "^1.6.0",
     "semver": "^7.3.7",
     "serve-favicon": "^2.5.0",
-    "snyk": "^1.1019.0",
+    "snyk": "^1.1064.0",
     "traceback": "^0.3.1",
     "uuid": "^9.0.0",
     "winston": "^3.8.2"
