@@ -21,24 +21,37 @@ jobs:
       id: npm_ci
       run: |
         npm ci
-    - name: Semantic Release
-      uses: cycjimmy/semantic-release-action@v3
-      id: semantic
-      with:
-        branches: main
-        extra_plugins: |
-          @semantic-release/changelog
-          @semantic-release/git
-          @semantic-release/npm
+
+    # Run release
+    - name: semantic-release [DRY-RUN]
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      id: release
+      run: |
+        echo "lastRelease=`cat package.json | jq -r .version`" >> $GITHUB_OUTPUT
+
+        npx semantic-release | tee release.output;
+
+        echo "hasRelease=`if (grep -q 'The next release version is' release.output); then echo true; else echo false; fi`" >> $GITHUB_OUTPUT
+        echo "nextRelease=`grep 'The next release version is' release.output | sed -E 's/.* ([[:digit:].]+)$/\1/'`" >> $GITHUB_OUTPUT
+
+    - name: Update job summary after semantic-release
+      run: |
+        if [ '${{ steps.release.outputs.hasRelease }}' == 'true' ]; then
+          echo - A new release was be published! >> $GITHUB_STEP_SUMMARY
+          echo - Last Release: **${{ steps.release.outputs.lastRelease }}** >> $GITHUB_STEP_SUMMARY
+          echo - Next Release: **${{ steps.release.outputs.nextRelease }}** >> $GITHUB_STEP_SUMMARY
+        else
+          echo - No release was published! The current release is: **${{ steps.release.outputs.lastRelease }}** >> $GITHUB_STEP_SUMMARY
+        fi
+
     - name: Set up Docker Buildx
-      if: steps.semantic.outputs.new_release_published == 'true'
+      if: steps.release.outputs.hasRelease == 'true'
       id: buildx
       uses: docker/setup-buildx-action@master
     - name: Cache Docker layers
-      if: steps.semantic.outputs.new_release_published == 'true'
+      if: steps.release.outputs.hasRelease == 'true'
       uses: actions/cache@v2
       with:
         path: /tmp/.buildx-cache
@@ -46,13 +59,13 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-buildx-
     - name: Login to Docker Hub
-      if: steps.semantic.outputs.new_release_published == 'true'
+      if: steps.release.outputs.hasRelease == 'true'
       uses: docker/login-action@v1 
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
     - name: Docker Build and Push
-      if: steps.semantic.outputs.new_release_published == 'true'
+      if: steps.release.outputs.hasRelease == 'true'
       id: docker_build
       uses: docker/build-push-action@v2
       with:
@@ -62,7 +75,7 @@ jobs:
         push: true
         tags: |
           godaddy/timings:latest
-          godaddy/timings:${{ steps.semantic.outputs.new_release_version }}
+          godaddy/timings:${{ steps.release.outputs.nextRelease }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache
     - name: Image digest
