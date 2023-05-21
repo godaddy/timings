@@ -19,18 +19,15 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Semantic Release
-      uses: cycjimmy/semantic-release-action@v3
+    - name: Semantic Release [PUBLISH]
+      uses: ./.github/actions/semantic
       id: release
-      with:
-        branches: main
-        extra_plugins: |
-          @semantic-release/changelog
-          @semantic-release/git
-          @semantic-release/npm
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      with:
+        publish: true
+        add-summary: true
 
     - name: Update job summary after semantic-release
       run: |
@@ -38,7 +35,6 @@ jobs:
           echo - A new release was be published! >> $GITHUB_STEP_SUMMARY
           echo - Last Release: **${{ steps.release.outputs.last_release_version }}** >> $GITHUB_STEP_SUMMARY
           echo - Next Release: **${{ steps.release.outputs.new_release_version }}** >> $GITHUB_STEP_SUMMARY
-          echo - Release Notes: **${{ steps.release.outputs.new_release_notes }}** >> $GITHUB_STEP_SUMMARY
         else
           echo - No new Release! The current release is: **${{ steps.release.outputs.last_release_version }}** >> $GITHUB_STEP_SUMMARY
         fi
