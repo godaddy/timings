@@ -43,14 +43,3 @@ jobs:
       with:
         publish: false
         add-summary: true
-
-    - name: Update job summary after semantic-release
-      if: ${{ matrix.node-version == '20.x' }}
-      run: |
-        if [ '${{ steps.release.outputs.new_release_published }}' == 'true' ]; then
-          echo - A new release will be published! >> $GITHUB_STEP_SUMMARY
-          echo - Last Release: **${{ steps.release.outputs.last_release_version }}** >> $GITHUB_STEP_SUMMARY
-          echo - Next Release: **${{ steps.release.outputs.new_release_version }}** >> $GITHUB_STEP_SUMMARY
-        else
-          echo - No new Release! The current release is: **${{ steps.release.outputs.last_release_version }}** >> $GITHUB_STEP_SUMMARY
-        fi
