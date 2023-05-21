@@ -10,6 +10,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         node-version: [18.x, 19.x, 20.x]
     steps:
@@ -36,6 +37,7 @@ jobs:
       uses: cycjimmy/semantic-release-action@v3
       id: release
       with:
+        semantic_version: 21
         branch: ${{ github.ref_name }}
         dry_run: true
         extra_plugins: |
