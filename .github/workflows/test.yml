@@ -28,16 +28,23 @@ jobs:
         npm test
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v3
       with:
         file: coverage/cobertura-coverage.xml
+        fail_ci_if_error: false
 
-    # Run semantic-release after testing!
+  dry-release:
+    if: ${{ !failure() && !cancelled() }}
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
     - name: Semantic Release [DRY-RUN]
       uses: cycjimmy/semantic-release-action@v3
       id: release
       with:
-        semantic_version: 21
         branch: ${{ github.ref_name }}
         dry_run: true
         extra_plugins: |
@@ -49,7 +56,6 @@ jobs:
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
     - name: Update job summary after semantic-release
-      if: ${{ matrix.node-version == '20.x' }}
       run: |
         if [ '${{ steps.release.outputs.new_release_published }}' == 'true' ]; then
           echo - A new release will be published! >> $GITHUB_STEP_SUMMARY
