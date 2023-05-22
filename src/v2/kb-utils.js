@@ -14,7 +14,7 @@ class KBClass {
     this.env = this.app.locals.env;
   }
 
-  async getKBStatus(attempt = 1, retries = 5, retryDelay = 5000) {
+  async getKBStatus(attempt = 1, retries = 10, retryDelay = 5000) {
     const delay = (ms) => new Promise((resolve) => setTimeout(() => resolve(), ms));
     const fetchParams = {
       method: 'GET'
@@ -30,15 +30,20 @@ class KBClass {
       }
       const kbResponse = await fetch(`${this.app.locals.env.KB_URL}/api/status`, fetchParams);
       data = await kbResponse.json();
-      // logger.log('info', `[KIBANA] Kibana Status is [${data.status?.overall?.state}]`);
-      if (data.status?.overall?.state !== 'green') {
-        await delay(retryDelay);
-        data = await this.getKBStatus(++attempt);
+      if (data.status?.overall?.state === 'green' || data.status?.overall?.level === 'available') {
+        return data;
       }
-      return data;
+      await delay(retryDelay);
+      data = await this.getKBStatus(++attempt);
     } catch (err) {
       if (attempt <= retries) {
-        logger.log('info', `[KIBANA] Status is [${data?.status?.overall?.state}] [attempt ${attempt} out of ${retries}]`);
+        if (err.code === 'ECONNREFUSED') {
+          logger.log('info', `[KIBANA] Status could not be determined [${err.code}] ` +
+            `[attempt ${attempt} out of ${retries}]`);
+        } else {
+          logger.log('info', `[KIBANA] Status is [${data?.status?.overall?.state || data?.status?.overall?.level}] ` +
+            `[attempt ${attempt} out of ${retries}]`);
+        }
         await delay(retryDelay);
         data = await this.getKBStatus(++attempt);
       }

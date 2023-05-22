@@ -63,10 +63,10 @@ class ESClass {
       const response = await this.client.cluster.health({ level: 'cluster', wait_for_status: status, timeout: timeout });
       logger.log('info', `[ELASTIC] status [${status}] of host ` +
         `[${this.app.locals.env.ES_HOST}://${this.app.locals.env.ES_HOST}:${this.app.locals.env.ES_PORT}] is OK!`);
-      return response.body;
+      return response.body ? response.body : response;
     } catch (err) {
       logger.log('error', `Could not check Elasticsearch cluster health for host [${this.app.locals.env.ES_HOST}]!`, err);
-      return err.meta.body;
+      return err.meta.body || err.meta;
     }
   }
 
@@ -76,7 +76,7 @@ class ESClass {
     try {
       const response = await this.client.indices.putIndexTemplate(params);
       logger.log('info', `[TEMPLATE] created/updated [${name}] successfully!`);
-      return response.body;
+      return response.body ? response.body : response;
     } catch (err) {
       logger.log('error', `[TEMPLATE] create [${name}] failure!`, err);
     }
@@ -86,7 +86,7 @@ class ESClass {
     if (!this.client) return;
     try {
       const response = await this.client.indices.getIndexTemplate({ name: name });
-      return response.body;
+      return response.body ? response.body : response;
     } catch (err) {
       logger.log('error', `[TEMPLATE] could not get template [${name}]!`, err);
     }
@@ -99,7 +99,7 @@ class ESClass {
         index: index,
         id: id
       });
-      return response.body;
+      return response.body ? response.body : response;
     } catch (err) {
       logger.log('error', `[INDEX] could check for index [${index}]!`, err);
     }
@@ -112,7 +112,7 @@ class ESClass {
         index: index,
         body: body
       });
-      return response.body;
+      return response.body ? response.body : response;
     } catch (err) {
       logger.log('error', `[INDEX] search in index [${index}] failed!`, err);
     }
@@ -125,7 +125,7 @@ class ESClass {
         index: index,
         format: 'json'
       });
-      return response.body;
+      return response.body ? response.body : response;
     } catch (err) {
       if (err.statusCode === 404) {
         return null;
@@ -138,7 +138,7 @@ class ESClass {
     if (!this.client) return;
     try {
       const response = await this.client.info();
-      return response.body;
+      return response.body ? response.body : response;
     } catch (err) {
       logger.log('error', `[ELASTIC] could not get ES info!`, err);
     }
@@ -148,9 +148,10 @@ class ESClass {
     if (!this.client) return;
     const indexPerf = this.app.locals.env.INDEX_PERF;
     try {
-      const currTemplate = await this.client.indices.getIndexTemplate({ name: indexPerf });
-      if (currTemplate.body.index_templates && currTemplate.body.index_templates.length > 0) {
-        return currTemplate.body.index_templates[0].index_template?.template?.mappings?._meta?.api_version;
+      const response = await this.client.indices.getIndexTemplate({ name: indexPerf });
+      const currTemplate = response.body ? response.body : response;
+      if (currTemplate.index_templates && currTemplate.index_templates.length > 0) {
+        return currTemplate.index_templates[0].index_template?.template?.mappings?._meta?.api_version;
       }
     } catch (err) {
       if (err.statusCode === 404) {
@@ -170,7 +171,7 @@ class ESClass {
       };
       if (id) params.id = id;
       const response = await this.client.index(params);
-      return response.body;
+      return response.body ? response.body : response;
     } catch (err) {
       return err;
     }
@@ -196,7 +197,7 @@ class ESClass {
       ignore: [404],
       maxRetries: 3
     });
-    return response.body.successful > 0;
+    return response.body ? response.body.successful > 0 : response.successful > 0;
   }
 
   async esImport() {
