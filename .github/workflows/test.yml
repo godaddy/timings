@@ -3,47 +3,43 @@
 
 name: Timings CI - test
 
-'on':
+on:
   push:
-    branches:
-    - "**"
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        node-version: [17.x, 18.x]
+        node-version: [18.x, 19.x, 20.x]
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v2.1.4
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
-    - name: Install, build, and run tests
-      id: npm_test
+
+    - name: Install node modules and run tests
       run: |
-        npm ci
+        npm ci --ignore-scripts
         npm test
+
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v3
       with:
         file: coverage/cobertura-coverage.xml
-    - name: Extract branch name
-      shell: bash
-      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
-      id: extract_branch
-    - name: Semantic Release Dry-run
-      uses: cycjimmy/semantic-release-action@v3
-      id: semantic
-      with:
-        branch: ${{ steps.extract_branch.outputs.branch }}
-        dry_run: true
-        extra_plugins: |
-          @semantic-release/changelog
-          @semantic-release/git
-          @semantic-release/npm
+        fail_ci_if_error: false
+
+    - name: Semantic Release [DRY-RUN]
+      if: ${{ matrix.node-version == '20.x' }}
+      uses: ./.github/actions/semantic
+      id: release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      with:
+        publish: false
+        add-summary: true

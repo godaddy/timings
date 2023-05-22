@@ -1,4 +1,4 @@
-FROM node:18.10.0-slim
+FROM node:20.2.0-slim
 RUN apt-get update && apt-get upgrade -y
 
 LABEL Description="timings"
@@ -10,10 +10,11 @@ WORKDIR /src
 
 # Install dependencies first, add code later: docker is caching by layers
 COPY package.json /src/package.json
+COPY package-lock.json /src/package-lock.json
 
 # Docker base image is already NODE_ENV=production
 RUN cd /src
-RUN npm install
+RUN npm ci --only=prod --ignore-scripts
 
 # Add source files
 COPY . /src/

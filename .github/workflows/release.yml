@@ -11,59 +11,62 @@ on:
       - completed
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
-
+    outputs:
+      release-outputs: ${{ steps.release.outputs }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
-    - name: Install, build, and run tests
-      id: npm_ci
-      run: |
-        npm ci
-    - name: Semantic Release
-      uses: cycjimmy/semantic-release-action@v3
-      id: semantic
-      with:
-        branches: main
-        extra_plugins: |
-          @semantic-release/changelog
-          @semantic-release/git
-          @semantic-release/npm
+      uses: actions/checkout@v3
+
+    - name: Semantic Release [PUBLISH]
+      uses: ./.github/actions/semantic
+      id: release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      with:
+        publish: true
+        add-summary: true
+
     - name: Set up Docker Buildx
-      if: steps.semantic.outputs.new_release_published == 'true'
+      if: steps.release.outputs.new_release_published == 'true'
       id: buildx
-      uses: docker/setup-buildx-action@master
+      uses: docker/setup-buildx-action@v2
+
     - name: Cache Docker layers
-      if: steps.semantic.outputs.new_release_published == 'true'
+      if: steps.release.outputs.new_release_published == 'true'
       uses: actions/cache@v2
       with:
         path: /tmp/.buildx-cache
         key: ${{ runner.os }}-buildx-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-buildx-
+
     - name: Login to Docker Hub
-      if: steps.semantic.outputs.new_release_published == 'true'
-      uses: docker/login-action@v1 
+      if: steps.release.outputs.new_release_published == 'true'
+      uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
+
     - name: Docker Build and Push
-      if: steps.semantic.outputs.new_release_published == 'true'
+      if: steps.release.outputs.new_release_published == 'true'
       id: docker_build
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v4
       with:
-        context: .
-        file: ./Dockerfile
         builder: ${{ steps.buildx.outputs.name }}
         push: true
         tags: |
           godaddy/timings:latest
-          godaddy/timings:${{ steps.semantic.outputs.new_release_version }}
+          godaddy/timings:${{ steps.release.outputs.new_release_version }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache
+
     - name: Image digest
-      run: echo ${{ steps.docker_build.outputs.digest }}
+      run: |
+        echo ${{ steps.docker_build.outputs.digest }}
+        echo Docker image was published sucessfully! >> $GITHUB_STEP_SUMMARY
+        echo - Image ID: **${{ steps.docker_build.outputs.imageid }}** >> $GITHUB_STEP_SUMMARY
+        echo - digest: **${{ steps.docker_build.outputs.digest }}** >> $GITHUB_STEP_SUMMARY
+        echo - metadata: **${{ steps.docker_build.outputs.metadata }}** >> $GITHUB_STEP_SUMMARY
