@@ -55,7 +55,7 @@
     "node-fetch": "^2.6.11",
     "parent-module": "^3.0.0",
     "percentile": "^1.6.0",
-    "semver": "^7.5.1",
+    "semver": "^7.5.2",
     "serve-favicon": "^2.5.0",
     "snyk": "^1.1159.0",
     "traceback": "^0.3.1",
