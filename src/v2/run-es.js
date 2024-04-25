@@ -63,7 +63,7 @@ class Elastic {
 
   async waitES() {
     const kbStatus = await this.checkKBStatus();
-    if (kbStatus?.status?.overall?.state === 'green') {
+    if (['green', 'available'].includes(this.app.locals.env.KB_STATUS)) {
       await this.checkESStatus();
       if (this.app.locals.env.ES_ACTIVE) {
         if (this.app.locals.esUpgrade === true) {
@@ -84,40 +84,50 @@ class Elastic {
         }
       }
     }
-    return kbStatus?.status?.overall?.state === 'green';
+    return ['green', 'available'].includes(this.app.locals.env.KB_STATUS);
   }
 
   async checkKBStatus() {
     const healthResult = await this.kb.getKBStatus();
     this.app.locals.env.KB_VERSION = healthResult?.version?.number || 'unknown';
     this.app.locals.env.KB_BUILD = healthResult?.version?.build_number || 'unknown';
-    this.app.locals.env.KB_STATUS = healthResult?.status?.overall?.state || 'unknown';
+    this.app.locals.env.KB_STATUS = healthResult?.status?.overall?.state || healthResult?.status?.overall?.level || 'unknown';
     this.app.locals.env.KB_INDEX_VERSION = healthResult?.version?.number || '0.0.0';
     this.app.locals.env.KB_INDEX_MAJOR = parseInt(this.app.locals.env.KB_INDEX_VERSION.substring(0, 1), 10);
     if (Array.isArray(healthResult?.status?.statuses)) {
+      // Elastic version < 8.x - status is green/yellow/red
       const esStatus = healthResult?.status?.statuses.filter(s => s.id.indexOf('core:elasticsearch') === 0);
       if (esStatus.length > 0) {
         this.app.locals.env.ES_STATUS = esStatus[0].state || 'unknown';
         if (['green', 'yellow'].includes(this.app.locals.env.ES_STATUS)) {
           this.app.locals.env.ES_ACTIVE = true;
           this.app.locals.env.ES_REASON.push(
-            `[ELASTIC] Elasticsearch status good: [${['green', 'yellow'].includes(this.app.locals.env.ES_STATUS)}]`);
+            `[ELASTIC] Elasticsearch status ok: [${['green', 'yellow'].includes(this.app.locals.env.ES_STATUS)}]`);
         }
       }
+    } else if (healthResult?.status?.core?.elasticsearch) {
+      // Elastic stack version 8.x - status is now in the 'level' field and should be 'available'
+      this.app.locals.env.ES_STATUS = healthResult?.status?.core.elasticsearch.level || 'unknown';
+      if (this.app.locals.env.ES_STATUS === 'available') {
+        this.app.locals.env.ES_ACTIVE = true;
+        this.app.locals.env.ES_REASON.push(
+          `[ELASTIC] Elasticsearch status ok: [${this.app.locals.env.ES_STATUS === 'available'}]`);
+      }
+
     } else this.app.locals.env.ES_STATUS = 'unknown';
 
     // const healthResult = await this.es.healthy(`${this.app.locals.env.ES_TIMEOUT / 10}s`, 'yellow');
-    if (this.app.locals.env.KB_STATUS === 'green') {
-      this.app.locals.env.ES_REASON.push(`[KIBANA] Kibana status green: [true]`);
+    if (['green', 'available'].includes(this.app.locals.env.KB_STATUS)) {
+      this.app.locals.env.ES_REASON.push(`[KIBANA] Kibana status ok: [true]`);
     } else {
-      this.app.locals.env.ES_REASON.push(`[KIBANA] Kibana status green: [false] - ` +
+      this.app.locals.env.ES_REASON.push(`[KIBANA] Kibana status ok: [false] - ` +
         `Please check [${this.app.locals.env.ES_PROTOCOL}://${this.app.locals.env.KB_HOST}:${this.app.locals.env.KB_PORT}]`);
     }
     return healthResult;
   }
 
   async checkESStatus() {
-    if (['green', 'yellow'].includes(this.app.locals.env.ES_STATUS)) {
+    if (['green', 'yellow', 'available'].includes(this.app.locals.env.ES_STATUS)) {
       this.app.locals.env.ES_ACTIVE = true;
       const info = await this.es.info();
       const version = info?.version?.number;

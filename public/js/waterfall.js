@@ -722,7 +722,7 @@ function drawWaterfall(res_id) {
         var tmp_data = {
             "id": res_id
         };
-        callApi(tmp_data, 'POST', '/v2/api/cicd/resources', 'json', true, function (err, res) {
+        callApi(tmp_data, 'POST', '/resources', 'json', true, function (err, res) {
             if (err) {
                 console.warn('Missing Data', 'No data returned!');
             } else {
