@@ -13,6 +13,7 @@
   "contributors": [
     "Marcel Verkerk <mverkerk@godaddy.com>"
   ],
+  "type": "module",
   "main": "server.js",
   "bin": {
     "timings": "./server.js"
@@ -24,9 +25,11 @@
     "semantic-release": "npx semantic-release --no-ci",
     "semantic-release:dry-run": "npx semantic-release --dry-run --no-ci --branches `git rev-parse --abbrev-ref HEAD`",
     "start": "node ./server",
-    "test": "nyc --reporter=cobertura npm run test:mocha",
-    "posttest": "npm run lint",
-    "test:mocha": "mocha test/**/*.js --exit"
+    "start:nodemon": "npx nodemon --exec node ./server",
+    "test": "npx vitest --run",
+    "test:ui": "npx vitest --ui",
+    "test:watch": "npx vitest watch",
+    "test:cov": "npx vitest --run --coverage"
   },
   "simple-git-hooks": {
     "pre-commit": "echo running pre-commit hook && npm run lint",
@@ -35,56 +38,51 @@
     "preserveUnused": false
   },
   "dependencies": {
-    "@elastic/elasticsearch": "^8.7.0",
+    "@elastic/elasticsearch": "^7.17.13",
     "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.6",
-    "ejs": "^3.1.9",
-    "express": "^4.18.2",
-    "express-rate-limit": "^6.7.0",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.2.0",
     "express-winston": "^4.2.0",
     "form-data": "^4.0.0",
-    "fs-extra": "^11.1.1",
-    "git-rev": "^0.2.1",
-    "is-docker": "^2.2.1",
-    "joi": "^17.9.2",
+    "fs-extra": "^11.2.0",
+    "is-docker": "^3.0.0",
+    "joi": "^17.13.0",
     "js-yaml": "^4.1.0",
-    "jsoneditor": "^9.10.2",
+    "jsoneditor": "^10.0.2",
     "mime-types": "^2.1.35",
-    "morgan": "^1.10.0",
-    "nconf": "^0.12.0",
-    "node-fetch": "^2.6.11",
-    "parent-module": "^3.0.0",
+    "nconf": "^0.12.1",
     "percentile": "^1.6.0",
-    "semver": "^7.5.1",
+    "semver": "^7.6.0",
     "serve-favicon": "^2.5.0",
-    "snyk": "^1.1159.0",
-    "traceback": "^0.3.1",
-    "uuid": "^9.0.0",
-    "winston": "^3.8.2"
+    "snyk": "^1.1290.0",
+    "uuid": "^9.0.1",
+    "winston": "^3.13.0"
   },
   "devDependencies": {
-    "@commitlint/cli": "^17.6.3",
-    "@commitlint/config-conventional": "^17.6.3",
+    "@commitlint/cli": "^19.3.0",
+    "@commitlint/config-conventional": "^19.2.2",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
-    "@semantic-release/npm": "^10.0.3",
-    "chai": "^4.3.7",
+    "@semantic-release/npm": "^12.0.0",
+    "@vitest/coverage-v8": "^1.5.2",
+    "@vitest/ui": "^1.5.2",
     "cz-conventional-changelog": "^3.3.0",
-    "dotenv": "^16.0.3",
-    "eslint": "^8.41.0",
-    "eslint-config-godaddy": "^7.0.2",
+    "dotenv": "^16.4.5",
+    "eslint": "^8.57.0",
+    "eslint-config-godaddy": "^7.1.0",
     "eslint-plugin-json": "^3.1.0",
-    "eslint-plugin-mocha": "^10.1.0",
-    "mocha": "^10.2.0",
-    "nodemon": "^2.0.22",
-    "nyc": "^15.1.0",
-    "pinst": "^3.0.0",
-    "semantic-release": "^21.0.2",
-    "simple-git-hooks": "^2.8.1",
-    "supertest": "^6.3.3"
+    "eslint-plugin-mocha": "^10.4.3",
+    "eslint-plugin-vitest": "^0.5.4",
+    "nodemon": "^3.1.0",
+    "semantic-release": "^23.0.8",
+    "simple-git-hooks": "^2.11.1",
+    "vite": "^5.2.10",
+    "vitest": "^1.5.2"
   },
   "engines": {
-    "node": ">=18.10.0",
-    "npm": ">=8.11.0"
+    "node": ">=20.12.0",
+    "npm": ">=10.0.0"
   }
 }

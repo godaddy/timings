@@ -1,16 +1,15 @@
 /**
 * Created by mverkerk on 10/20/2016.
 */
-const fs = require('fs');
-const path = require('path');
-const fetch = require('node-fetch');
-const FormData = require('form-data');
-const logger = require('../log')(module);
+import fs from 'fs';
+import path from 'path';
+import FormData from 'form-data';
 
 class KBClass {
   // Class to handle interactions with elasticsearch
   constructor(app) {
     this.app = app;
+    this.logger = app.logger;
     this.env = this.app.locals.env;
   }
 
@@ -38,10 +37,10 @@ class KBClass {
     } catch (err) {
       if (attempt <= retries) {
         if (err.code === 'ECONNREFUSED') {
-          logger.log('info', `[KIBANA] Status could not be determined [${err.code}] ` +
+          this.logger.info(`[KIBANA] Status could not be determined [${err.code}] ` +
             `[attempt ${attempt} out of ${retries}]`);
         } else {
-          logger.log('info', `[KIBANA] Status is [${data?.status?.overall?.state || data?.status?.overall?.level}] ` +
+          this.logger.info(`[KIBANA] Status is [${data?.status?.overall?.state || data?.status?.overall?.level}] ` +
             `[attempt ${attempt} out of ${retries}]`);
         }
         await delay(retryDelay);
@@ -57,7 +56,7 @@ class KBClass {
       const data = await kbResponse.json();
       return data.version?.number;
     } catch (err) {
-      logger.log('error', `[KIBANA] could not get Kibana Version!`, err);
+      this.logger.error(`[KIBANA] could not get Kibana Version!`, err);
     }
   }
 
@@ -103,7 +102,7 @@ class KBClass {
       response.setDefaultIndex = await this.setDefaultIndex();
       return response;
     } catch (err) {
-      logger.log('error', `[KIBANA] could not import Kibana objects!`, err);
+      this.logger.error(`[KIBANA] could not import Kibana objects!`, err);
     }
   }
 
@@ -123,9 +122,9 @@ class KBClass {
       const data = await kbResponse.json();
       return data.acknowledged;
     } catch (err) {
-      logger.log('error', `[KIBANA] could not set default index!`, err);
+      this.logger.error(`[KIBANA] could not set default index!`, err);
     }
   }
 }
 
-module.exports.KBClass = KBClass;
+export { KBClass };

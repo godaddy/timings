@@ -1,21 +1,19 @@
-/**
-* Created by mverkerk on 10/20/2016.
-*/
-const fs = require('fs');
-const path = require('path');
-const elasticsearch = require('@elastic/elasticsearch');
-const logger = require('../log')(module);
+/** Created by mverkerk on 10/20/2016. */
+import fs from 'fs';
+import { Client } from '@elastic/elasticsearch';
 
-const esPkg = fs.readFileSync(
-  path.join(__dirname, '..', '..', 'node_modules', '@elastic', 'elasticsearch', 'package.json'), 'utf8'
-);
-const { version } = JSON.parse(esPkg);
+// Loading sample data content
+const sampleData = JSON.parse(fs.readFileSync(new URL('../../config/.sample_data.json', import.meta.url)));
+const { version } = JSON.parse(fs.readFileSync(
+  new URL('../../node_modules/@elastic/elasticsearch/package.json', import.meta.url)
+));
 
 /* eslint no-sync: 0 */
 class ESClass {
   // Class to handle interactions with elasticsearch
   constructor(app) {
     this.app = app;
+    this.logger = app.logger;
     this.env = this.app.locals.env;
     // Create the ES client!
     this.client = this.esClient();
@@ -53,7 +51,7 @@ class ESClass {
           }
         ];
       }
-      return new elasticsearch.Client(esConfig);
+      return new Client(esConfig);
     }
   }
 
@@ -61,11 +59,11 @@ class ESClass {
     if (!this.client) return {};
     try {
       const response = await this.client.cluster.health({ level: 'cluster', wait_for_status: status, timeout: timeout });
-      logger.log('info', `[ELASTIC] status [${status}] of host ` +
+      this.logger.info(`[ELASTIC] status [${status}] of host ` +
         `[${this.app.locals.env.ES_HOST}://${this.app.locals.env.ES_HOST}:${this.app.locals.env.ES_PORT}] is OK!`);
       return response.body ? response.body : response;
     } catch (err) {
-      logger.log('error', `Could not check Elasticsearch cluster health for host [${this.app.locals.env.ES_HOST}]!`, err);
+      this.logger.error(`Could not check Elasticsearch cluster health for host [${this.app.locals.env.ES_HOST}]!`, err);
       return err.meta.body || err.meta;
     }
   }
@@ -75,10 +73,10 @@ class ESClass {
     const params = { name: name, body: body };
     try {
       const response = await this.client.indices.putIndexTemplate(params);
-      logger.log('info', `[TEMPLATE] created/updated [${name}] successfully!`);
+      this.logger.info(`[TEMPLATE] created/updated [${name}] successfully!`);
       return response.body ? response.body : response;
     } catch (err) {
-      logger.log('error', `[TEMPLATE] create [${name}] failure!`, err);
+      this.logger.error(`[TEMPLATE] create [${name}] failure!`, err);
     }
   }
 
@@ -88,7 +86,7 @@ class ESClass {
       const response = await this.client.indices.getIndexTemplate({ name: name });
       return response.body ? response.body : response;
     } catch (err) {
-      logger.log('error', `[TEMPLATE] could not get template [${name}]!`, err);
+      this.logger.error(`[TEMPLATE] could not get template [${name}]!`, err);
     }
   }
 
@@ -101,7 +99,7 @@ class ESClass {
       });
       return response.body ? response.body : response;
     } catch (err) {
-      logger.log('error', `[INDEX] could check for index [${index}]!`, err);
+      this.logger.error(`[INDEX] could check for index [${index}]!`, err);
     }
   }
 
@@ -114,11 +112,11 @@ class ESClass {
       });
       return response.body ? response.body : response;
     } catch (err) {
-      logger.log('error', `[INDEX] search in index [${index}] failed!`, err);
+      this.logger.error(`[INDEX] search in index [${index}] failed!`, err);
     }
   }
 
-  async getIncides(index) {
+  async getIndices(index) {
     if (!this.client) return;
     try {
       const response = await this.client.cat.indices({
@@ -130,7 +128,7 @@ class ESClass {
       if (err.statusCode === 404) {
         return null;
       }
-      logger.log('error', `[INDEX] search for index [${index}] failed!`, err);
+      this.logger.error(`[INDEX] search for index [${index}] failed!`, err);
     }
   }
 
@@ -140,7 +138,7 @@ class ESClass {
       const response = await this.client.info();
       return response.body ? response.body : response;
     } catch (err) {
-      logger.log('error', `[ELASTIC] could not get ES info!`, err);
+      this.logger.error(`[ELASTIC] could not get ES info!`, err);
     }
   }
 
@@ -158,7 +156,7 @@ class ESClass {
         // cicd-perf template doesn't exist - new installation?
         return;
       }
-      logger.log('error', `[TEMPLATE] could not get template [${indexPerf}]!`, err);
+      this.logger.error(`[TEMPLATE] could not get template [${indexPerf}]!`, err);
     }
   }
 
@@ -206,7 +204,6 @@ class ESClass {
       imports: [],
       ok: true
     };
-    const sampleData = require('../../config/.sample_data.json');
     try {
       const replaceDate = new Date().toISOString().split('T')[0];
       const data = JSON.parse(JSON.stringify(sampleData.latest).replace(/==date==/g, replaceDate));
@@ -227,14 +224,14 @@ class ESClass {
       response.info.push(
         `[IMPORT] processed [${response.imports.length}] sample items into elasticsearch! You can now find the sample data in ` +
         'the Elasticsearch [cicd-*-sample] indices');
-      logger.log('info', `[IMPORT] processed [${response.imports.length}] sample items into elasticsearch!`);
+      this.logger.info(`[IMPORT] processed [${response.imports.length}] sample items into elasticsearch!`);
     } catch (err) {
       response.ok = false;
       response.info.push(`Could not import sample data into Elasticsearch - error: ${err}`);
-      logger.log('error', response.info, err);
+      this.logger.error(response.info, err);
     }
     return response;
   }
 }
 
-module.exports.ESClass = ESClass;
+export { ESClass };

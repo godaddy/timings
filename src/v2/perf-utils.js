@@ -2,14 +2,14 @@
 /**
  * Created by mverkerk on 9/26/2016.
  */
-const fs = require('fs-extra');
-const path = require('path');
-const url = require('url'); // Used in usertimings method only
-const { v4: uuidv4 } = require('uuid');
-const percentile = require('percentile');
-const crypto = require('crypto');
-const esUtils = require('./es-utils.js');
-const mime = require('mime-types');
+import fs from 'fs-extra';
+import path from 'path';
+import url from 'url'; // Used in usertimings method only
+import { v4 as uuidv4 } from 'uuid';
+import percentile from 'percentile';
+import crypto from 'crypto';
+import mime from 'mime-types';
+import { ESClass } from './es-utils.js';
 
 class PUClass {
   constructor(body, route, objParams, app) {
@@ -17,7 +17,7 @@ class PUClass {
     this.body = body;
     this.route = route.replace('/', '');
     if (this.env.ES_ACTIVE === true) {
-      this.es = new esUtils.ESClass(app);
+      this.es = new ESClass(app);
     }
     this.debugMsg = [];
     this.esTrace = [];
@@ -26,7 +26,7 @@ class PUClass {
     this.dl = '';
     this.timing = {};
     this.objParams = objParams;
-    if (body.hasOwnProperty('sla')) {
+    if (body?.sla) {
       this.assertMetric = Object.keys(body.sla)[0] || '';
       this.assertSLA = body.sla[this.assertMetric] || '';
     }
@@ -43,7 +43,7 @@ class PUClass {
     try {
       this.measuredPerf = 0;
       // Call the correct timing function based on the route
-      if (this.objParams.hasOwnProperty('multirun')) {
+      if (this.objParams?.multirun) {
         const multiRunDone = await this.multirun();
         if (!multiRunDone === true) return cb(null, {
           acknowledge: true,
@@ -62,7 +62,7 @@ class PUClass {
         const response = await this.es.search(`${this.env.INDEX_PERF}-*`, this.route, blQuery);
         this.esTrace.push({ type: 'ES_RESPONSE', response: response });
         this.es_took = response.took;
-        if (response.hasOwnProperty('aggregations')) {
+        if (response?.aggregations?.baseline) {
           this.baseline = this.checkBaseline(response);
         } else {
           this.baseline = 0;
@@ -141,7 +141,7 @@ class PUClass {
   navtiming() {
     // Check for mandatory & default parameters in objParams
     let injectJSdata = this.objParams.injectJS;
-    if (injectJSdata.hasOwnProperty('value')) {
+    if (injectJSdata?.value) {
       injectJSdata = injectJSdata.value;
     }
     if (injectJSdata.timing.navigationStart <= 0 || isNaN(new Date(injectJSdata.timing.navigationStart).getTime())) {
@@ -190,7 +190,7 @@ class PUClass {
 
   usertiming() {
     let injectJSdata = this.objParams.injectJS;
-    if (injectJSdata.hasOwnProperty('value')) {
+    if (injectJSdata?.value) {
       injectJSdata = injectJSdata.value;
     }
     const measure = injectJSdata.measureArray;
@@ -247,18 +247,12 @@ class PUClass {
     query.bool.must.push({ term: { type: { value: this.route } } });
 
     // Add baseline includes
-    if (
-      baselineParams.hasOwnProperty('incl')
-      && Object.keys(baselineParams.incl).length > 0
-    ) {
+    if ((baselineParams?.incl ?? []).length > 0) {
       this.addBaselineIncl(baselineParams.incl, query, aggs);
     }
 
     // Add baseline excludes
-    if (
-      baselineParams.hasOwnProperty('excl')
-      && Object.keys(baselineParams.excl).length > 0
-    ) {
+    if ((baselineParams.excl ?? []).length > 0) {
       this.addBaselineExcl(baselineParams.excl, query);
     }
 
@@ -314,7 +308,7 @@ class PUClass {
         // Special field functions (_log_ and _agg_)
         if (incl[field] === '_log_') {
           // Copy field value from log parameter!
-          if (this.objParams.log.hasOwnProperty(field)) {
+          if (this.objParams?.log?.[field]) {
             mustIncl.query_string.query = `"${this.objParams.log[field]}"`;
             query.bool.must.push(mustIncl);
           }
@@ -366,7 +360,7 @@ class PUClass {
       et = new Date(this.objParams.timing.startTime).toISOString();
     } else {
       // get timestamp from injectJS.time parameter
-      et = (this.objParams.injectJS.hasOwnProperty('time'))
+      et = (this.objParams.injectJS?.time)
         ? new Date(this.objParams.injectJS.time).toISOString()
         : new Date().toISOString();
     }
@@ -396,10 +390,7 @@ class PUClass {
       es_took: this.es_took,
       api_version: this.env.APP_VERSION,
       api_host: `${this.env.HOST}:${this.env.HTTP_PORT}`,
-      hasResources: (
-        this.route === 'navtiming'
-        && this.objParams.injectJS.hasOwnProperty('resources')
-      )
+      hasResources: (this.route === 'navtiming' && !!this.objParams.injectJS?.resources)
     };
 
     // Add params to the export object
@@ -653,17 +644,17 @@ class PUClass {
       if (typeof (reqBody) === 'object') {
 
         // Get the URL from injectJS (nav/usertiming)
-        if (reqBody.hasOwnProperty('injectJS')) {
+        if (reqBody?.injectJS?.url) {
           body.dl = reqBody.injectJS.url;
         }
 
         // Get the URL from the params (apitiming)
-        if (reqBody.hasOwnProperty('timing')) {
+        if (reqBody?.timing) {
           body.dl = reqBody.url;
         }
 
         // Get the LOG info from payload
-        if (reqBody.hasOwnProperty('log')) {
+        if (reqBody?.log) {
           body.log = reqBody.log;
         }
       }
@@ -681,15 +672,11 @@ class PUClass {
 
   customParam(object, needle, result) {
     const ndlKey = Object.keys(needle)[0];
-    if (object.hasOwnProperty(ndlKey)) {
+    if (object?.[ndlKey]) {
       // Key exists! Check for value(s) - multiple values may be separated by '|' ...
       const ndlVal = needle[Object.keys(needle)[0]].split('|');
       for (const ndl of ndlVal) {
-        if (
-          typeof object[ndlKey] === 'object'
-          && object[ndlKey].hasOwnProperty(ndl)
-          && object[ndlKey][ndl]
-        ) {
+        if (object?.[ndlKey]?.[ndl]) {
           // Key-value pair exists at this level! Get out!
           return result;
         } else if (ndlVal.indexOf(ndl) === (ndlVal.length - 1)) {
@@ -717,10 +704,7 @@ class PUClass {
     const stripQueryString = req.body.stripQueryString || false;
     let injectJS = this.getInjectCode(injectType, visualCompleteMark, stripQueryString);
     // Send decoded string if requested!
-    if (
-      req.body.hasOwnProperty('decoded')
-      && req.body.decoded === true
-    ) {
+    if (req.body?.decoded === true) {
       injectJS = decodeURIComponent(injectJS);
     }
     cb(null, { status: 200, inject_code: injectJS });
@@ -791,4 +775,4 @@ class PUClass {
   }
 }
 
-module.exports.PUClass = PUClass;
+export { PUClass };

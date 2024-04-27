@@ -1,17 +1,21 @@
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const pkg = require('../../package.json');
-// const app = require('../../server');
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import winston from 'winston';
+import logger from '../log.js';
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
+const pkg = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url)));
 const { CONFIGFILE, ES_UPGRADE } = process.env;
 
 // Load config file - only JSON!
 let configFile = CONFIGFILE;
+
 if (!configFile || !configFile.endsWith('.json') || !fs.existsSync(path.resolve(configFile))) {
   // Bad config file provided - Load defaults [./config/default.js]
   configFile = path.resolve(__dirname, '../../config', 'default.json');
 }
+
 function setConfig(app, appRootPath) {
   app.locals.configFile = app.locals.configFile || configFile;
 
@@ -84,12 +88,46 @@ function setConfig(app, appRootPath) {
       }
     }
   };
-  const logger = require('../log')(module, app);
-  app.logger = logger;
+  // Attempt to create logging path - custom path is leading (LOG_PATH variable)
+  // - the first path that is successfully creates wins
+  app.locals.env.LOG_PATH = createPath([
+    app.locals.env.LOG_PATH,
+    path.join('..', 'timings', 'logs'),
+    `${os.homedir()}/timings/logs`,
+    '/var/log/timings/logs',
+    '/tmp/timings/logs',
+    '/temp/timings/logs'
+  ]);
 
+  // Add loggers to the app
+  logger.addLoggers(app);
+  app.logger = winston.loggers.get('app');
 }
 
-module.exports = function (appObject, appRootPath) {
+function getConfig(appObject, appRootPath) {
   setConfig(appObject, appRootPath);
   return setConfig;
-};
+}
+
+function createPath(paths) {
+  let res = false;
+  paths.forEach(trypath => {
+    if (trypath) {
+      trypath = path.resolve(trypath);
+      if (!res && fs.existsSync(path.resolve(trypath, 'app.log'))) { res = trypath; }
+      if (res) { return; }
+      try {
+        fs.ensureDirSync(trypath);
+        fs.accessSync(trypath, fs.W_OK);
+        res = trypath;
+        return;
+      } catch (err) {
+        console.log('error', `timings API - LOGGING - unable to create logging path ["${trypath}"]`, err);
+        return;
+      }
+    }
+  });
+  return res;
+}
+
+export { setConfig, getConfig };

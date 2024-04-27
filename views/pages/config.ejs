@@ -3,8 +3,8 @@
 
 <head>
   <%- include('../partials/head'); %>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.7.2/jsoneditor.min.css"
-    integrity="sha512-LDaPaKECzpambd6J0xPGx2s/z8EA1rAm3JzmoMgKO0VTRbXHTeE54oDLRw26eFiyBZ3Cf888tBEHzeUTYA3ddw=="
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.0.3/jsoneditor.min.css"
+    integrity="sha512-8G+Vb2+10BSrSo+wupdzJIylDLpGtEYniQhp0rsbTigPG7Onn2S08Ai/KEGlxN2Ncx9fGqVHtRehMuOjPb9f8g=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 
@@ -34,13 +34,13 @@
   <%- include('../partials/pre_js'); %>
 
   <!-- ✅ load page-specific JS here... ✅ -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.7.2/jsoneditor.min.js"
-  integrity="sha512-9T9AIzkTI9pg694MCTReaZ0vOimxuTKXA15Gin+AZ4eycmg85iEXGX811BAjyY+NOcDCdlA9k2u9SqVAyNqFkQ=="
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.0.3/jsoneditor.min.js"
+  integrity="sha512-KrNxmbQP5Edirsv+ahh/HcaHBXINizYSODFpcDI2cFoFCH35Z+bvtbOjwuzaWVOSkfWqGq4P/yzPljcPEnSU7A=="
   crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <%- include('../partials/post_js'); %>
   <script>
-    const configJSON = JSON.parse('<%- config %>')
-    setEditor('configeditor', configJSON)
+    const configJSON = JSON.parse('<%- config %>');
+    setEditor('configeditor', configJSON);
   </script>
 
 </body>

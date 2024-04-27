@@ -1,4 +1,4 @@
-const net = require('net');
+import net from 'net';
 let client;
 let retryTimeout;
 
@@ -44,4 +44,4 @@ const connect = async function (host, port, timeout = 5000) {
   client.on('close', onClose);
 };
 
-module.exports.connect = connect;
+export { connect };
