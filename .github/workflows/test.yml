@@ -15,10 +15,10 @@ jobs:
         node-version: [20.x, 21.x, 22.x]
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Setup Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
 
@@ -26,20 +26,3 @@ jobs:
       run: |
         npm ci --ignore-scripts
         npm test
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: coverage/cobertura-coverage.xml
-        fail_ci_if_error: false
-
-    - name: Semantic Release [DRY-RUN]
-      if: ${{ matrix.node-version == '20.x' }}
-      uses: ./.github/actions/semantic
-      id: release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      with:
-        publish: false
-        add-summary: true
