@@ -41,7 +41,7 @@ runs:
         fi
 
         echo "new_release_published=`if (grep -q 'The next release version is' release.output); then echo true; else echo false; fi`" >> $GITHUB_OUTPUT
-        echo "new_release_version=`grep 'The next release version is' release.output | sed -E 's/.* ([[:digit:].]+)$/\1/'`" >> $GITHUB_OUTPUT
+        echo "new_release_version=`if (grep 'The next release version is' release.output); then grep 'The next release version is' release.output | sed -E 's/.* ([[:digit:].]+)$/\1/'; else echo none; fi`" >> $GITHUB_OUTPUT
 
     - name: Update job summary after semantic-release
       if: ${{ inputs.add-summary == 'true' }}
