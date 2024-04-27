@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [20.x, 21.x, 22.x]
+        node-version: [20.12.x, 21.x, 22.x]
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -61,7 +61,6 @@ jobs:
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       with:
         publish: true
-        add-summary: true
 
   deploy:
     runs-on: ubuntu-latest

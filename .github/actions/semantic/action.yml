@@ -6,10 +6,6 @@ inputs:
     description: 'tell semantic-release to publish or run in DRY-RUN mode (default)'
     required: false
     default: 'false'
-  add-summary:
-    description: 'Add output of semantic-release results to GITHUB_STEP_SUMMARY'
-    required: false
-    default: 'false'
 
 outputs:
   last_release_version:
@@ -17,10 +13,10 @@ outputs:
     value: ${{ steps.release.outputs.last_release_version }}
   new_release_version:
     description: 'version after semantic-release'
-    value: ${{ steps.release.outputs.new_release_version }}
+    value: ${{ steps.post-release.outputs.new_release_version }}
   new_release_published:
     description: 'whether semantic-release did (or would) publish a new version'
-    value: ${{ steps.release.outputs.new_release_published }}
+    value: ${{ steps.post-release.outputs.new_release_published }}
 
 runs:
   using: composite
@@ -40,11 +36,21 @@ runs:
           npx semantic-release --dry-run --no-ci --branches ${{ github.ref_name }} | tee release.output;
         fi
 
-        echo "new_release_published=`if (grep -q 'The next release version is' release.output); then echo true; else echo false; fi`" >> $GITHUB_OUTPUT
-        echo "new_release_version=`if (grep 'The next release version is' release.output); then grep 'The next release version is' release.output | sed -E 's/.* ([[:digit:].]+)$/\1/'; else echo none; fi`" >> $GITHUB_OUTPUT
+    - name: post-release
+      if: always()
+      id: post-release
+      shell: bash
+      run: |
+        if (grep -q 'The next release version is' release.output); then
+          echo "new_release_published=true" >> $GITHUB_OUTPUT
+          echo "new_release_version=`grep 'The next release version is' release.output | sed -E 's/.* ([[:digit:].]+)$/\1/'`" >> $GITHUB_OUTPUT
+        else
+          echo "new_release_published=false" >> $GITHUB_OUTPUT
+          echo "new_release_version=none" >> $GITHUB_OUTPUT
+        fi
 
     - name: Update job summary after semantic-release
-      if: ${{ inputs.add-summary == 'true' }}
+      if: always()
       shell: bash
       run: |
         if [ '${{ steps.release.outputs.new_release_published }}' == 'true' ]; then
