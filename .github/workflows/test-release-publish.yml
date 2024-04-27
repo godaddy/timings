@@ -4,15 +4,39 @@
 name: Timings CI - release
 
 on:
-  workflow_run:
-    workflows: ["Timings CI - test"]
-    branches: [main]
-    types: 
-      - completed
+  push:
+  workflow_dispatch:
+    inputs:
+      force-docker:
+        description: 'Force publish docker image'
+        default: false
+        type: boolean
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20.x, 21.x, 22.x]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Install node modules and run tests
+      run: |
+        npm ci --ignore-scripts
+        npm test
+
+  release:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && needs.test.result == 'success'
     outputs:
       release-outputs: ${{ steps.release.outputs }}
     steps:
@@ -23,6 +47,7 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: 21
+        cache: 'npm'
 
     - name: Install node modules and run tests
       run: |
@@ -38,13 +63,28 @@ jobs:
         publish: true
         add-summary: true
 
+  deploy:
+    runs-on: ubuntu-latest
+    needs: release
+    if: github.ref == 'refs/heads/main' && (needs.release.outputs.release-outputs.new_release_published == 'true' || github.event.inputs.force-docker == true)
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 21
+
+    - name: Install node modules and run tests
+      run: |
+        npm ci --ignore-scripts
+  
     - name: Set up Docker Buildx
-      if: steps.release.outputs.new_release_published == 'true'
       id: buildx
       uses: docker/setup-buildx-action@v3
 
     - name: Cache Docker layers
-      if: steps.release.outputs.new_release_published == 'true'
       uses: actions/cache@v4
       with:
         path: /tmp/.buildx-cache
@@ -53,14 +93,12 @@ jobs:
           ${{ runner.os }}-buildx-
 
     - name: Login to Docker Hub
-      if: steps.release.outputs.new_release_published == 'true'
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Docker Build and Push
-      if: steps.release.outputs.new_release_published == 'true'
       id: docker_build
       uses: docker/build-push-action@v5
       with:
@@ -68,14 +106,11 @@ jobs:
         push: true
         tags: |
           godaddy/timings:latest
-          godaddy/timings:${{ steps.release.outputs.new_release_version }}
+          godaddy/timings:${{ needs.release.outputs.release-outputs.new_release_version }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache
 
     - name: Image digest
       run: |
-        echo ${{ steps.docker_build.outputs.digest }}
         echo Docker image was published sucessfully! >> $GITHUB_STEP_SUMMARY
         echo - Image ID: **${{ steps.docker_build.outputs.imageid }}** >> $GITHUB_STEP_SUMMARY
-        echo - digest: **${{ steps.docker_build.outputs.digest }}** >> $GITHUB_STEP_SUMMARY
-        echo - metadata: **${{ steps.docker_build.outputs.metadata }}** >> $GITHUB_STEP_SUMMARY
