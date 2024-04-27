@@ -1,3 +1,22 @@
+## [2.0.5](https://github.com/godaddy/timings/compare/v2.0.4...v2.0.5) (2024-04-27)
+
+
+### Bug Fixes
+
+* **node:** lower the min. required node version to 18 ([2f320ed](https://github.com/godaddy/timings/commit/2f320ed1eab332af9d182a82c63cd27c56f749c2))
+* **npmrc:** update package-lock to default npm registry ([0e12dbd](https://github.com/godaddy/timings/commit/0e12dbd8867d1b45c309d9899eadf2210200dc9a))
+
+
+### Code Refactoring
+
+* multiple updates to code and tests ([1b77a3b](https://github.com/godaddy/timings/commit/1b77a3b04258956a856632d85c69999cc6a4e165))
+* various updates for elastic 8.x compatibility ([#132](https://github.com/godaddy/timings/issues/132)) ([7771aad](https://github.com/godaddy/timings/commit/7771aadaafeda8cab17135f69344845208624c24))
+
+
+### CI/CD
+
+* updating cicd workflows ([5ea606f](https://github.com/godaddy/timings/commit/5ea606f24a22700f318f5c520551bd83a8f3c6dd))
+
 ## <small>2.0.4 (2022-10-03)</small>
 
 * ci(test): add node 18 to test matrix (#120) ([17bf59e](https://github.com/godaddy/timings/commit/17bf59e)), closes [#120](https://github.com/godaddy/timings/issues/120)
