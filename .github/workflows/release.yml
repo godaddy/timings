@@ -24,6 +24,10 @@ jobs:
       with:
         node-version: 21
 
+    - name: Install node modules and run tests
+      run: |
+        npm ci --ignore-scripts
+  
     - name: Semantic Release [PUBLISH]
       uses: ./.github/actions/semantic
       id: release
