@@ -132,8 +132,8 @@ jobs:
         tags: |
           godaddy/timings:latest
           godaddy/timings:${{ needs.semantic-release.outputs.new_release_version }}
-        cache-from: type=registry,ref=user/app:buildcache
-        cache-to: type=registry,ref=user/app:buildcache,mode=max
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
   finish:
     runs-on: ubuntu-latest
