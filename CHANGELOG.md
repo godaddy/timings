@@ -1,3 +1,16 @@
+## [2.0.7](https://github.com/godaddy/timings/compare/v2.0.6...v2.0.7) (2024-04-29)
+
+
+### Bug Fixes
+
+* remove the debug echo to run semantic-release again - oops ([294ac8c](https://github.com/godaddy/timings/commit/294ac8c56d903077a4ff057a85bb65a098f887b4))
+
+
+### Code Refactoring
+
+* try to fix semantic-release issues with GITHUB_TOKEN ([64bb9c3](https://github.com/godaddy/timings/commit/64bb9c36e65f825ba1fefcdb84a013f7c194b113))
+* update github CI workflow ([e2e9c88](https://github.com/godaddy/timings/commit/e2e9c880174b15c2358e9c778672de4cf02f628f))
+
 ## [2.0.6](https://github.com/godaddy/timings/compare/v2.0.5...v2.0.6) (2024-04-28)
 
 ## [2.0.5](https://github.com/godaddy/timings/compare/v2.0.4...v2.0.5) (2024-04-27)
