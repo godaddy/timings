@@ -1,3 +1,10 @@
+## [2.0.8](https://github.com/godaddy/timings/compare/v2.0.7...v2.0.8) (2024-04-29)
+
+
+### Bug Fixes
+
+* update test-release-publish.yml ([3df5472](https://github.com/godaddy/timings/commit/3df54724ba59b8e9bef184543386c7413c2f622c))
+
 ## [2.0.7](https://github.com/godaddy/timings/compare/v2.0.6...v2.0.7) (2024-04-29)
 
 

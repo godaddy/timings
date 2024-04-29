@@ -1,6 +1,6 @@
 {
   "name": "timings",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "description": "RESTful API for performance engineering",
   "keywords": [
     "perf",
