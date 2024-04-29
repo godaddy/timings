@@ -17,7 +17,7 @@ defaults:
     shell: bash
 
 env:
-  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
 permissions:
@@ -71,6 +71,7 @@ jobs:
       run: |
         # Echo the version from package.json
         echo "Current package version: [$(jq -r .version package.json)]"
+        echo "Env: ${{ toJSON(env) }}"
   
     - name: Setup NodeJS 21
       uses: actions/setup-node@v4
