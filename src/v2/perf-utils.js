@@ -100,7 +100,7 @@ class PUClass {
       e.message = 'Missing first run - currentRun has to be 1 for the first run!';
       throw e;
     }
-    const appendObject = this.objParams.multirun.currentRun < 2 ? {} : await fs.readJson(multiFile);
+    const appendObject = this.objParams.multirun.currentRun < 2 ? {} : fs.readJsonSync(multiFile);
     appendObject[this.objParams.multirun.currentRun] = this.objParams;
     appendObject[this.objParams.multirun.currentRun].route = this.route;
     // Write to the file

@@ -1,9 +1,9 @@
-import fs from 'fs';
+import fs from 'fs-extra';
 import semver from 'semver';
 import { ESClass } from './es-utils.js';
 import { KBClass } from './kb-utils.js';
 
-const esTemplate = JSON.parse(fs.readFileSync(new URL('../../config/.es_template.json', import.meta.url)));
+const esTemplate = fs.readJsonSync(new URL('../../config/.es_template.json', import.meta.url));
 
 /* eslint no-sync: 0 */
 class Elastic {

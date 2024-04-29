@@ -1,11 +1,11 @@
-import fs from 'fs';
+import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
 import winston from 'winston';
 import logger from '../log.js';
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
-const pkg = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url)));
+const pkg = fs.readJsonSync(new URL('../../package.json', import.meta.url));
 const { CONFIGFILE, ES_UPGRADE } = process.env;
 
 // Load config file - only JSON!
@@ -19,7 +19,7 @@ if (!configFile || !configFile.endsWith('.json') || !fs.existsSync(path.resolve(
 function setConfig(app, appRootPath) {
   app.locals.configFile = app.locals.configFile || configFile;
 
-  const appConfig = JSON.parse(fs.readFileSync(path.resolve(configFile)));
+  const appConfig = fs.readJsonSync(configFile);
 
   // Check for missing keys & add some ENV vars
   if (!appConfig.env) {

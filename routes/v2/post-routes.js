@@ -1,7 +1,7 @@
 /**
  * Created by mverkerk on 9/25/2016.
  */
-import fs from 'fs';
+import fs from 'fs-extra';
 import { Router } from 'express';
 import crypto from 'crypto';
 // eslint-disable-next-line new-cap
@@ -48,15 +48,13 @@ export default function (app) {
       req.body.env.ES_PASS = app.locals.env.ES_PASS;
     }
 
-    const data = JSON.stringify(req.body);
-
     // Write the file and send the response
     try {
       const returnJSON = req.body;
       if (returnJSON.env?.ES_PASS) returnJSON.env.ES_PASS = '********';
       res.json(returnJSON);
       // eslint-disable-next-line no-sync
-      fs.writeFileSync(app.locals.env.APP_CONFIG, data);
+      fs.writeJsonSync(app.locals.env.APP_CONFIG, returnJSON);
       // Config updated - re-init the server
       const es = new Elastic(app);
       setConfig(app, app.locals.appRootPath);  // this resets the config!

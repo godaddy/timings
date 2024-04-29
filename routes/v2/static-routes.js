@@ -1,6 +1,6 @@
 // eslint-disable-next-line new-cap
 import os from 'os';
-import fs from 'fs';
+import fs from 'fs-extra';
 import { Router } from 'express';
 import path from 'path';
 import isDocker from 'is-docker';
@@ -63,7 +63,7 @@ export default function (app) {
       try {
         if (cfgFile && fs.existsSync(cfgFile)) {
           if (cfgFile.endsWith('.json')) {
-            config = JSON.parse(fs.readFileSync(cfgFile, 'utf8'));
+            config = fs.readJsonSync(cfgFile);
           } else {
             config.error = `Sorry - your config file [${cfgFile}] is not JSON - we hope to add more options soon!`;
           }

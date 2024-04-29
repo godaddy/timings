@@ -1,12 +1,10 @@
 /** Created by mverkerk on 10/20/2016. */
-import fs from 'fs';
+import fs from 'fs-extra';
 import { Client } from '@elastic/elasticsearch';
 
 // Loading sample data content
-const sampleData = JSON.parse(fs.readFileSync(new URL('../../config/.sample_data.json', import.meta.url)));
-const { version } = JSON.parse(fs.readFileSync(
-  new URL('../../node_modules/@elastic/elasticsearch/package.json', import.meta.url)
-));
+const sampleData = fs.readJsonSync(new URL('../../config/.sample_data.json', import.meta.url));
+const { version } = fs.readJsonSync(new URL('../../node_modules/@elastic/elasticsearch/package.json', import.meta.url));
 
 /* eslint no-sync: 0 */
 class ESClass {

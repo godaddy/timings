@@ -1,7 +1,7 @@
 /**
 * Created by mverkerk on 10/20/2016.
 */
-import fs from 'fs';
+import fs from 'fs-extra';
 import path from 'path';
 import FormData from 'form-data';
 

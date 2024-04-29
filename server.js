@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable no-process-exit */
 /* eslint-disable id-length */
-import fs from 'fs';
+import fs from 'fs-extra';
 import path from 'path';
 import winston from 'winston';
 import expressWinston from 'express-winston';
@@ -27,7 +27,7 @@ const logFileSettings = {
 };
 
 // Loading package.json content
-const pkg = JSON.parse(fs.readFileSync(new URL('./package.json', import.meta.url)));
+const pkg = fs.readJsonSync(new URL('./package.json', import.meta.url));
 
 let app;
 
