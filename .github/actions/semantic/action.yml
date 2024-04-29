@@ -20,7 +20,7 @@ runs:
       shell: bash
       run: |
         echo "last_release_version=`cat package.json | jq -r .version`" >> $GITHUB_OUTPUT
-        echo npx semantic-release | tee release.output;
+        npx semantic-release | tee release.output;
 
     - name: post-release
       if: always()
