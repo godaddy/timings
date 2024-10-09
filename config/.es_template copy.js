@@ -1,4 +1,4 @@
-const nconf = require('nconf');
+import nconf from 'nconf';
 
 // Elastic Templates
 const template = {
@@ -712,4 +712,4 @@ template.elk6['kibana'] = {
   }
 }
 
-module.exports = template;
+export { template };

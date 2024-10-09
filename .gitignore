@@ -1,3 +1,7 @@
+# IDE files
+.idea
+.vscode
+
 # Runtime data
 logs
 *.log

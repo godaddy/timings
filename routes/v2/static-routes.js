@@ -1,17 +1,17 @@
-const os = require('os');
-const fs = require('fs');
-const express = require('express');
 // eslint-disable-next-line new-cap
-const router = express.Router();
-const path = require('path');
-const isDocker = require('is-docker');
-const runES = require('../../src/v2/run-es');
-const esUtils = require('../../src/v2/es-utils');
-const kbUtils = require('../../src/v2/kb-utils');
-
+import os from 'os';
+import fs from 'fs-extra';
+import { Router } from 'express';
+import path from 'path';
+import isDocker from 'is-docker';
+import { Elastic } from '../../src/v2/run-es.js';
+import { ESClass } from '../../src/v2/es-utils.js';
+import { KBClass } from '../../src/v2/kb-utils.js';
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const router = new Router();
 const htmlDir = path.join(__dirname, '../../public/');
 
-module.exports = function (app) {
+export default function (app) {
   router.get('/*', function (req, res, next) {
     res.setHeader('Last-Modified', (new Date()).toUTCString());
     next();
@@ -63,7 +63,7 @@ module.exports = function (app) {
       try {
         if (cfgFile && fs.existsSync(cfgFile)) {
           if (cfgFile.endsWith('.json')) {
-            config = JSON.parse(fs.readFileSync(cfgFile, 'utf8'));
+            config = fs.readJsonSync(cfgFile);
           } else {
             config.error = `Sorry - your config file [${cfgFile}] is not JSON - we hope to add more options soon!`;
           }
@@ -73,6 +73,8 @@ module.exports = function (app) {
       } catch (e) {
         config.error = `Error fetching config file [${cfgFile}] - ${e}`;
       }
+      // Remove password from config
+      if (config.env.ES_PASS) config.env.ES_PASS = '********';
       if (req.query.f === 'json') {
         res.json(config);
       } else {
@@ -126,7 +128,7 @@ module.exports = function (app) {
     let esInfo;
     try {
       if (app.locals.env.ES_HOST && app.locals.env.KB_HOST) {
-        const es = new runES.Elastic(app);
+        const es = new Elastic(app);
         if (Object.keys(req.query).includes('re-check')) {
           await es.waitES();
         }
@@ -151,7 +153,7 @@ module.exports = function (app) {
 
   router.get('/template_check', async function (req, res, next) {
     try {
-      const es = new runES.Elastic(app);
+      const es = new Elastic(app);
       const checkTemplate = await es.checkUpgrade();
       res.json(checkTemplate);
     } catch (e) {
@@ -161,7 +163,7 @@ module.exports = function (app) {
 
   router.get('/es_check', async function (req, res, next) {
     try {
-      const es = new runES.Elastic(app);
+      const es = new Elastic(app);
       const esInfo = await es.waitES();
       res.json(esInfo);
     } catch (e) {
@@ -171,7 +173,7 @@ module.exports = function (app) {
 
   router.get('/es_upgrade', async function (req, res, next) {
     try {
-      const es = new runES.Elastic(app);
+      const es = new Elastic(app);
       const upgrade = await es.upgrade();
       res.json(upgrade);
     } catch (e) {
@@ -181,7 +183,7 @@ module.exports = function (app) {
 
   router.get('/es_import', async function (req, res, next) {
     try {
-      const es = new esUtils.ESClass(app);
+      const es = new ESClass(app);
       const esImport = await es.esImport();
       res.json(esImport);
     } catch (e) {
@@ -191,7 +193,7 @@ module.exports = function (app) {
 
   router.get('/kb_import', async function (req, res, next) {
     try {
-      const kb = new kbUtils.KBClass(app);
+      const kb = new KBClass(app);
       const kbImport = await kb.kbImport();
       res.json(kbImport);
     } catch (e) {
@@ -221,7 +223,7 @@ module.exports = function (app) {
 
     // Add ELK info - if it's active
     if (app.locals.env.ES_HOST) {
-      const es = new runES.Elastic(app);
+      const es = new Elastic(app);
       await es.getEsInfo();
     }
     if (app.locals.env.ES_ACTIVE) {
@@ -243,7 +245,7 @@ module.exports = function (app) {
       if (app.locals.env.ES_ACTIVE === true) {
         kbLink = `${app.locals.env.ES_PROTOCOL}://${app.locals.env.KB_HOST}`;
         if (app.locals.env.KB_PORT !== 80) kbLink += `:${app.locals.env.KB_PORT}`;
-        kbLink += '/app/kibana#/dashboard/TIMINGS-Dashboard';
+        kbLink += `/app/kibana#/dashboard/${app.locals.env.KB_RENAME || 'TIMINGS'}-Dashboard`;
       }
       ret.kibana = {
         kibana_version: app.locals.env.KB_VERSION || 'Unknown',
@@ -310,4 +312,4 @@ module.exports = function (app) {
   }
 
   return router;
-};
+}

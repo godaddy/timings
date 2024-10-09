@@ -1,15 +1,15 @@
 {
   "env": {
     "ES_PROTOCOL": "http",
-    "ES_HOST": "",
+    "ES_HOST": "127.0.0.1",
     "ES_PORT": 9200, 
     "ES_TIMEOUT": 5000, 
     "ES_USER": "",
     "ES_PASS": "",
     "ES_SSL_CERT": "",
     "ES_SSL_KEY": "",
-    "KB_HOST": "",
-    "KB_PORT": 5601, 
+    "KB_HOST": "127.0.0.1",
+    "KB_PORT": 5601,
     "KB_INDEX": "",
     "HTTP_PORT": 80
   },
