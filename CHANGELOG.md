@@ -1,3 +1,5 @@
+## [2.0.9](https://github.com/godaddy/timings/compare/v2.0.8...v2.0.9) (2024-10-09)
+
 ## [2.0.8](https://github.com/godaddy/timings/compare/v2.0.7...v2.0.8) (2024-04-29)
 
 
