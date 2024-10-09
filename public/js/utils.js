@@ -69,7 +69,7 @@ function drawHomeCards(data, subKey, parentKey) {
         cardKey.className = 'row m-1';
         if (key.toLowerCase().indexOf('link') >= 0) {
           value = decodeURIComponent(value);
-          cardKey.innerHTML = `<div class="col-lg-3 text-center mb-1">${key}</div><div class="col-lg-9 text-center mb-1"><a href="${value}" target="_blank">TIMINGS-Dashboard</a></div>`;
+          cardKey.innerHTML = `<div class="col-lg-3 text-center mb-1">${key}</div><div class="col-lg-9 text-center mb-1"><a href="${value}" target="_blank">Kibana Dashboard</a></div>`;
         } else {
           cardKey.innerHTML = `<div class="col-lg-3 text-center mb-1">${key}</div><div class="col-lg-9 badge ${(
             value === false ||
@@ -162,6 +162,56 @@ function callApi(ajaxData, type, url, dataType, cache, cb) {
   return result;
 };
 
+function arrayBufferToBase64(buffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return window.btoa(binary);
+}
+
+async function encryptData(secretData) {
+  // Generate a symmetric key for AES-GCM
+  const key = await window.crypto.subtle.generateKey(
+    {
+      name: "AES-GCM",
+      length: 256,
+    },
+    true,
+    ["encrypt", "decrypt"]
+  );
+
+  // Convert the data to an ArrayBuffer
+  const encoder = new TextEncoder();
+  const encodedData = encoder.encode(secretData);
+  const iv = window.crypto.getRandomValues(new Uint8Array(12)); // Initialization vector
+
+  // Encrypt the data
+  const encryptedContent = await window.crypto.subtle.encrypt(
+    {
+        name: "AES-GCM",
+        iv: iv,
+        // tagLength: 128, // Optional: Specify the length of the authentication tag. Default is 128 bits.
+    },
+    key,
+    encodedData
+  );
+  
+  // The encryptedContent contains both the encrypted data and the auth tag
+  // If you need to separate them, you can slice the ArrayBuffer
+  // For example, if the tagLength is 128 bits (16 bytes), you can do:
+  const encrypted = encryptedContent.slice(0, encryptedContent.byteLength - 16);
+  const authTag = encryptedContent.slice(encryptedContent.byteLength - 16);
+
+
+  // Export the symmetric key (to be securely sent to the server, e.g., encrypted with the server's public key)
+  const exportedKey = await window.crypto.subtle.exportKey("raw", key);
+
+  return { encrypted, iv, exportedKey, authTag };
+}
+
 // set json
 function setEditor(elem, json) {
   const container = document.getElementById(elem);
@@ -175,17 +225,31 @@ function setEditor(elem, json) {
     search: true,
     navigationBar: true
   };
+  if (json.env.ES_PASS) {
+    json.env.ES_PASS = '********';
+  }
   editor = new JSONEditor(container, options);
   editor.set(json);
-  if (!('error' in json)) {
-    editor.expandAll();
-  }
+  editor.expandAll();
 }
 
 // get json
-function saveEditor() {
+async function saveEditor() {
   const json = editor.get();
+  // If json.env.ES_PASS was updated, encode it before sending it to the server
+  if (json.env.ES_PASS) {
+    const { encrypted, iv, exportedKey, authTag } = await encryptData(json.env.ES_PASS);
+    json.env.ES_PASS = {
+      encryptedBase64: arrayBufferToBase64(encrypted),
+      ivBase64: arrayBufferToBase64(iv),
+      symmetricKeyBase64: arrayBufferToBase64(exportedKey),
+      authTagBase64: arrayBufferToBase64(authTag)
+    };
+  }
   callApi(json, 'POST', '/config', 'json', false, (err, data) => {
+    // Set the editor to the new data
+    editor.set(data);
+    editor.expandAll();
     if (err) {
       $('#saveResult')
         .removeClass('text-success')

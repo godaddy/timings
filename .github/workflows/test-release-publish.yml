@@ -1,0 +1,161 @@
+# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: Timings CI - release
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      force-docker:
+        description: 'Force publish docker image'
+        default: false
+        type: boolean
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+permissions:
+  contents: read # for checkout
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20.12.x, 21.x, 22.x]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Install node modules and run tests
+      run: |
+        npm ci --ignore-scripts
+        npm test
+
+  semantic-release:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref_name == 'main' && needs.test.result == 'success'
+    permissions:
+      contents: write # to be able to publish a GitHub release
+      issues: write # to be able to comment on released issues
+      pull-requests: write # to be able to comment on released pull requests
+      id-token: write # to enable use of OIDC for npm provenance
+    outputs:
+      last_release_version: ${{ steps.release.outputs.last_release_version }}
+      new_release_version: ${{ steps.release.outputs.new_release_version }}
+      new_release_published: ${{ steps.release.outputs.new_release_published }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+
+    - name: Print info
+      run: |
+        # Echo the version from package.json
+        echo "Current package version: [$(jq -r .version package.json)]"
+        echo "Env: ${{ toJSON(env) }}"
+  
+    - name: Setup NodeJS 21
+      uses: actions/setup-node@v4
+      with:
+        node-version: 21
+        cache: 'npm'
+
+    - name: NPM install
+      run: |
+        npm ci --ignore-scripts
+  
+    - name: Semantic Release [PUBLISH]
+      id: release
+      uses: ./.github/actions/semantic
+
+  publish-docker:
+    runs-on: ubuntu-latest
+    needs: semantic-release
+    if: github.ref_name == 'main' && (needs.semantic-release.outputs.new_release_published == 'true' || github.event.inputs.force-docker == true)
+    outputs:
+      docker_imageid: ${{ steps.docker_build.outputs.imageid }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+
+    - name: Print npm package info
+      run: |
+        # Echo the version from package.json
+        echo "Current package version: [$(jq -r .version package.json)]"
+
+    - name: Setup NodeJS 21
+      uses: actions/setup-node@v4
+      with:
+        node-version: 21
+
+    - name: NPM install
+      run: |
+        npm ci --ignore-scripts
+  
+    - name: Install Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Docker Build and Push
+      id: docker_build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: |
+          godaddy/timings:latest
+          godaddy/timings:${{ needs.semantic-release.outputs.new_release_version }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  finish:
+    runs-on: ubuntu-latest
+    needs: [semantic-release, publish-docker]
+    steps:
+      - name: Print info
+        run: |
+          echo "needs.semantic-release: ${{ toJSON(needs.semantic-release) }}"
+
+      - name: Report
+        run: |
+          if [ '${{ needs.semantic-release.outputs.new_release_published }}' == 'true' ]; then
+            echo - A new release was published! >> $GITHUB_STEP_SUMMARY
+            echo - Last Release: **${{ needs.semantic-release.outputs.last_release_version }}** >> $GITHUB_STEP_SUMMARY
+            echo - New Release: **${{ needs.semantic-release.outputs.new_release_version }}** >> $GITHUB_STEP_SUMMARY
+          else
+            echo - No new Release! The current release is: **${{ needs.semantic-release.outputs.last_release_version }}** >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ '${{ needs.publish-docker.result }}' == 'success' ]; then
+            echo - Docker image was published! >> $GITHUB_STEP_SUMMARY
+            echo - Image ID: **${{ needs.publish-docker.outputs.docker_imageid }}** >> $GITHUB_STEP_SUMMARY
+          else
+            echo - Docker image was not published! >> $GITHUB_STEP_SUMMARY
+          fi
+  

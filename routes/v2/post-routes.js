@@ -1,36 +1,71 @@
 /**
  * Created by mverkerk on 9/25/2016.
  */
-const fs = require('fs');
-const express = require('express');
+import fs from 'fs-extra';
+import { Router } from 'express';
+import crypto from 'crypto';
 // eslint-disable-next-line new-cap
-const router = express.Router();
-const joi = require('joi');
-const bodyParser = require('body-parser');
-const puUtils = require('../../src/v2/perf-utils');
-const runES = require('../../src/v2/run-es');
+import joi from 'joi';
+import bodyParser from 'body-parser';
+import { PUClass } from '../../src/v2/perf-utils.js';
+import { Elastic } from '../../src/v2/run-es.js';
+import { setConfig } from '../../src/v2/config.js';
+const router = new Router();
 
 const jsonParser = bodyParser.json();
 
-module.exports = function (app) {
+function decryptData({ encryptedBase64, symmetricKeyBase64, ivBase64, authTagBase64 }) {
+  try {
+  // Decode Base64 to Buffer
+    const encryptedData = Buffer.from(encryptedBase64, 'base64');
+    const iv = Buffer.from(ivBase64, 'base64');
+    const key = Buffer.from(symmetricKeyBase64, 'base64');
+    const authTag = Buffer.from(authTagBase64, 'base64');
+
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(authTag); // Set the authentication tag
+
+    let decrypted = decipher.update(encryptedData, null, 'utf8');
+    decrypted += decipher.final('utf8'); // Finalize decryption
+
+    return decrypted;
+  } catch (error) {
+    console.error('Decryption failed:', error.message);
+    return null; // or handle error appropriately
+  }
+}
+
+export default function (app) {
   router.post('/config', jsonParser, async (req, res, next) => {
-    // Save file here
-    const data = JSON.stringify(req.body);
+    // Decode the ES_PASS if it's present
+    if (req.body.env?.ES_PASS) {
+      const decrypted = decryptData(req.body.env.ES_PASS);
+      req.body.env.ES_PASS = decrypted;
+    }
+
+    // First check if ES_PASS has been updated - if not, set it back to the current value to prevent overwriting
+    if (req.body.env?.ES_PASS === '********') {
+      req.body.env.ES_PASS = app.locals.env.ES_PASS;
+    }
+
+    // Write the file and send the response
     try {
+      const returnJSON = req.body;
+      if (returnJSON.env?.ES_PASS) returnJSON.env.ES_PASS = '********';
+      res.json(returnJSON);
       // eslint-disable-next-line no-sync
-      fs.writeFileSync(app.locals.env.APP_CONFIG, data);
+      fs.writeJsonSync(app.locals.env.APP_CONFIG, returnJSON);
       // Config updated - re-init the server
-      const es = new runES.Elastic(app);
-      require('../../src/v2/config')(app, app.locals.appRootPath);  // this resets the config!
+      const es = new Elastic(app);
+      setConfig(app, app.locals.appRootPath);  // this resets the config!
       es.esInit();
-      res.json({ ok: true });
     } catch (e) {
       return next(e);
     }
   });
 
   router.post('/navtiming', jsonParser, (req, res, next) => {
-    const pu = new puUtils.PUClass(req.body, req.route.path, mergeParams(req.body), app);
+    const pu = new PUClass(req.body, req.route.path, mergeParams(req.body), app);
     validateSchema('navtiming', req, pu);
     pu.handler((err, returnJSON) => {
       if (err) {
@@ -42,7 +77,7 @@ module.exports = function (app) {
   });
 
   router.post('/usertiming', jsonParser, (req, res, next) => {
-    const pu = new puUtils.PUClass(req.body, req.route.path, mergeParams(req.body), app);
+    const pu = new PUClass(req.body, req.route.path, mergeParams(req.body), app);
     validateSchema('usertiming', req, pu);
     pu.handler((err, returnJSON) => {
       if (err) {
@@ -54,7 +89,7 @@ module.exports = function (app) {
   });
 
   router.post('/apitiming', jsonParser, (req, res, next) => {
-    const pu = new puUtils.PUClass(req.body, req.route.path, mergeParams(req.body), app);
+    const pu = new PUClass(req.body, req.route.path, mergeParams(req.body), app);
     validateSchema('apitiming', req, pu);
     pu.handler((err, returnJSON) => {
       if (err) {
@@ -66,7 +101,7 @@ module.exports = function (app) {
   });
 
   router.post('/resources', jsonParser, (req, res, next) => {
-    const pu = new puUtils.PUClass(req.body, req.route.path, mergeParams(req.body), app);
+    const pu = new PUClass(req.body, req.route.path, mergeParams(req.body), app);
     validateSchema('resources', req, pu);
     pu.getResources(req, (err, returnJSON) => {
       if (err) {
@@ -78,7 +113,7 @@ module.exports = function (app) {
   });
 
   router.post('/injectjs', jsonParser, (req, res, next) => {
-    const pu = new puUtils.PUClass(req.body, req.route.path, mergeParams(req.body), app);
+    const pu = new PUClass(req.body, req.route.path, mergeParams(req.body), app);
     validateSchema('injectjs', req, pu);
     pu.getInjectJS(req, (err, returnJSON) => {
       if (err) {
@@ -92,14 +127,10 @@ module.exports = function (app) {
   function mergeParams(body) {
     const confDefaults = app.locals.params.defaults;
 
-    if (
-      body.hasOwnProperty('flags') &&
-      body.flags.hasOwnProperty('assertRum')
-    ) {
+    if (typeof body?.flags?.assertRum === 'boolean') {
       body.flags.assertBaseline = body.flags.assertRum;
       delete body.flags.assertRum;
     }
-
     return mergeDeep({}, confDefaults, body);
   }
 
@@ -237,4 +268,4 @@ module.exports = function (app) {
   }
 
   return router;
-};
+}
