@@ -1,0 +1,36 @@
+name: semantic-release-node
+description: 'perform semantic-release actions for node'
+
+outputs:
+  last_release_version:
+    description: 'version before semantic-release'
+    value: ${{ steps.release.outputs.last_release_version }}
+  new_release_version:
+    description: 'version after semantic-release'
+    value: ${{ steps.post-release.outputs.new_release_version }}
+  new_release_published:
+    description: 'whether semantic-release did (or would) publish a new version'
+    value: ${{ steps.post-release.outputs.new_release_published }}
+
+runs:
+  using: composite
+  steps:
+    - name: run-release
+      id: release
+      shell: bash
+      run: |
+        echo "last_release_version=`cat package.json | jq -r .version`" >> $GITHUB_OUTPUT
+        npx semantic-release | tee release.output;
+
+    - name: post-release
+      if: always()
+      id: post-release
+      shell: bash
+      run: |
+        if (grep -q 'The next release version is' release.output); then
+          echo "new_release_published=true" >> $GITHUB_OUTPUT
+          echo "new_release_version=`grep 'The next release version is' release.output | sed -E 's/.* ([[:digit:].]+)$/\1/'`" >> $GITHUB_OUTPUT
+        else
+          echo "new_release_published=false" >> $GITHUB_OUTPUT
+          echo "new_release_version=none" >> $GITHUB_OUTPUT
+        fi

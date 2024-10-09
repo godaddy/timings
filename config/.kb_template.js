@@ -226,4 +226,4 @@ const template = {
   }
 };
 
-module.exports = template;
+export default template;
